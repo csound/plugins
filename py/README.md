@@ -1,7 +1,7 @@
 PYTHON OPCODES
 ===
 
-This is the porting to Python3.x of the Python opcodes of Csound which ran under Python 2.7 until know.
+This is the porting to Python 3.x of the Python opcodes of Csound which ran under Python 2.7 until know.
 The backward compatibility is preserved for the Csound code of the orchestra, however it is not maintained
 for the Python code that would be embedded in a Csound orchestra or in Csound instruments, due to the lack
 of backward compatibility between Python 3.x and Python 2.7.
