@@ -20,11 +20,20 @@
 
 #ifdef _DEBUG
 # undef _DEBUG
+#ifdef __APPLE__
+#  include <Python/Python.h>
+#else
 #  include <Python.h>
+#endif
 # define _DEBUG
 #else
-# include <Python.h>
+#ifdef __APPLE__
+#  include <Python/Python.h>
+#else
+#  include <Python.h>
 #endif
+#endif
+
 #include <sysdep.h>
 #include "csdl.h"
 #include "pythonopcodes.h"
