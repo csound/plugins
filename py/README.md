@@ -20,6 +20,8 @@ in place, you can do (from the py dir):
 ```
 $ mkdir build
 $ cd build
-$ cmake ..
+$ cmake ../..
 $ make
 ```
+
+You'll then find the plugin in the **py** subdirectory created by the above commands in the **build** directory.
