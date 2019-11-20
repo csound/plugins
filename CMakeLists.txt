@@ -28,4 +28,4 @@ option(USE_LRINT "Use lrint/lrintf for converting floating point values to integ
 find_package(Csound)
 
 # Python Opcodes
-add_subdirectory(Py)
+add_subdirectory(py)
