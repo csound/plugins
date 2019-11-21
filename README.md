@@ -19,6 +19,6 @@ $ sudo make install
 $ sudo ldconfig
 ```
 
-By default, all the plugins are built. If one want to excludes a plugin from the build process, one can pass an option to the `cmake` command. For example, to exclude the chua plugin, the `cmake` command would be:
+By default, all the plugins are built. If one wants to excludes a plugin from the build process, one can pass an option to the `cmake` command. For example, to exclude the chua plugin, the `cmake` command would be:
 ```
 $ cmake -DBUILD_CHUA_OPCODES=OFF ../
