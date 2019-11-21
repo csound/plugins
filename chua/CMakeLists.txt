@@ -1,0 +1,13 @@
+# Build chuap opcodes
+if(${BUILD_CHUA_OPCODES})
+    find_package(EIGEN3)
+    check_deps(BUILD_CHUA_OPCODES EIGEN3_FOUND)
+    if(BUILD_CHUA_OPCODES)
+	make_plugin(chua ChuaOscillator.cpp)
+	target_include_directories(chua PRIVATE ${CSOUND_INCLUDE_DIRS})
+	target_link_libraries(chua PRIVATE ${EIGEN_LIBRARIES})
+	if(APPLE)
+	   set_target_properties(chua PROPERTIES COMPILE_FLAGS "-Wno-unused-local-typedef")
+	endif()
+    endif()
+endif()
