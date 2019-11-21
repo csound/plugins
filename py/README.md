@@ -9,19 +9,3 @@ of backward compatibility between Python 3.x and Python 2.7.
 Python 2.7 will not be maintained past 2020. The
 [official porting guide](https://docs.python.org/3/howto/pyporting.html) has advice for
 running Python 2 code in Python 3.
-
-
-Build Instructions
----
-
-The build requires Csound to be installed, as well as CMake, and Python 3.x. With this
-in place, you can do (from the py dir):
-
-```
-$ mkdir build
-$ cd build
-$ cmake ../..
-$ make
-```
-
-You'll then find the plugin in the **py** subdirectory created by the above commands in the **build** directory.
