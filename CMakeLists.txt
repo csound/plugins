@@ -117,7 +117,9 @@ function(make_plugin libname srcs)
 endfunction(make_plugin)
 
 option(BUILD_CHUA_OPCODES "Build the chua opcodes" ON)
+option(BUILD_IMAGE_OPCODES "Build the image opcodes" ON)
 option(BUILD_PYTHON_OPCODES "Build the Python opcodes" ON)
 
 add_subdirectory(chua)
+add_subdirectory(image)
 add_subdirectory(py)
