@@ -1,5 +1,15 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(Csound-plugins)
+
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    set(CMAKE_COMPILER_IS_CLANG 1)
+endif()
+
+# C++11 needed
+if(NOT MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+endif()
+
 set(APIVERSION "6.0")
 
 set(CMAKE_MACOSX_RPATH 1)
@@ -13,7 +23,7 @@ include(CheckCXXCompilerFlag)
 ### COMPILER OPTIMIZATION FLAGS
 option(USE_COMPILER_OPTIMIZATIONS "Use the default Csound compiler optimization flags" ON)
 if(USE_COMPILER_OPTIMIZATIONS)
-include(${CMAKE_SOURCE_DIR}/cmake/CompilerOptimizations.cmake)
+    include(${CMAKE_SOURCE_DIR}/cmake/CompilerOptimizations.cmake)
 endif()
 
 if(APPLE)
@@ -24,6 +34,55 @@ endif()
 # Optional targets, they should all default to ON (check_deps will disable them if not possible to build)
 option(USE_DOUBLE "Set to use double-precision floating point for audio samples." ON)
 option(USE_LRINT "Use lrint/lrintf for converting floating point values to integers." ON)
+option(BUILD_RELEASE "Build for release" ON)
+option(USE_GIT_COMMIT "Show the git commit in version information" ON)
+option(REQUIRE_PTHREADS "For non-Windows systems, set whether Csound will use threads or not" ON)
+
+# in Release configuration, set NDEBUG
+if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+message("-----> Release mode")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG")
+elseif(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+message("-----> Debug mode")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBETA")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DBETA")
+endif()
+
+# set -Werror if in Debug configuration
+if(NOT MSVC AND NOT WASM)
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 ")
+    set(CMAKE_C_FLAGS_RELEASE "-O3 ")
+    if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Wall -Werror -Wno-missing-field-initializers")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-missing-field-initializers")
+    endif()
+endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    set(LINUX YES)
+else()
+    set(LINUX NO)
+endif()
+
+set(BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
+
+check_c_compiler_flag(-fvisibility=hidden HAS_VISIBILITY_HIDDEN)
+check_cxx_compiler_flag(-fvisibility=hidden HAS_CXX_VISIBILITY_HIDDEN)
+if (HAS_VISIBILITY_HIDDEN)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+endif()
+if (HAS_CXX_VISIBILITY_HIDDEN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+endif()
+
+check_c_compiler_flag(-std=gnu99 HAS_GNU99)
+if (HAS_GNU99)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+endif()
+if (HAS_CXX_VISIBILITY_HIDDEN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+endif()
 
 find_package(Csound)
 
@@ -115,6 +174,29 @@ function(make_plugin libname srcs)
         LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}" 
         ARCHIVE DESTINATION "${PLUGIN_INSTALL_DIR}" )
 endfunction(make_plugin)
+
+# Linux does not have a separate libintl, it is part of libc
+set(LIBINTL_AVAIL (LIBINTL_LIBRARY OR LINUX))
+
+if(LINUX)
+    message(STATUS "Building on Linux.")
+    add_definitions(-DLINUX -DPIPES -DNO_FLTK_THREADS -D_GNU_SOURCE -DHAVE_SOCKETS)
+    list(APPEND libcsound_LIBS ${MATH_LIBRARY} dl)
+
+    find_library(LIBRT_LIBRARY rt)
+
+    if(LIBRT_LIBRARY)
+      list(APPEND libcsound_LIBS ${LIBRT_LIBRARY})
+      message(STATUS "  ADDING LIBRT LIBRARY: ${LIBRT_LIBRARY}.")
+    endif()
+
+    find_library(LIBEXECINFO_LIBRARY execinfo)
+
+    if(LIBEXECINFO_LIBRARY)
+       list(APPEND libcsound_LIBS ${LIBEXECINFO_LIBRARY})
+       message(STATUS "  ADDING LIBEXECINFO LIBRARY: ${LIBEXECINFO_LIBRARY}.")
+    endif()
+endif()
 
 option(BUILD_CELLULAR_OPCODES "Build the cellular opcodes" ON)
 option(BUILD_CHUA_OPCODES "Build the chua opcodes" ON)
