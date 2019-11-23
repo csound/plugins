@@ -86,6 +86,9 @@ endif()
 
 find_package(Csound)
 
+set(FLTK_SKIP_OPENGL true)
+find_package(FLTK)
+
 option(USE_LIB64 "Set to on to set installation directory for libraries to lib64" OFF)
 if(USE_LIB64)
     set(LIBRARY_INSTALL_DIR "lib64")
@@ -198,6 +201,20 @@ if(LINUX)
     endif()
 endif()
 
+if(APPLE AND NOT IOS)
+    message(STATUS "Building on OSX")
+    add_definitions(-DMACOSX -DPIPES -DNO_FLTK_THREADS -DHAVE_SOCKETS)
+    find_library(ACCELERATE_LIBRARY Accelerate)
+    find_path(VECLIB_PATH "Accelerate/Accelerate.h")
+    include_directories(${VECLIB_PATH})
+    list(APPEND libcsound_LIBS ${MATH_LIBRARY} dl ${ACCELERATE_LIBRARY})
+endif()
+
+if(WIN32)
+    add_definitions(-DWIN32)
+endif()
+
+
 option(BUILD_AMPMIDID_OPCODES "Build the ampmidid opcodes" ON)
 option(BUILD_CELLULAR_OPCODES "Build the cellular opcodes" ON)
 option(BUILD_CHUA_OPCODES "Build the chua opcodes" ON)
@@ -215,6 +232,8 @@ option(BUILD_QUADBEZIER_OPCODES "Build the quadbezier opcodes" ON)
 option(BUILD_SIGNALFLOWGRAPH_OPCODES "Build the signalflowgraph opcodes" ON)
 option(BUILD_SYSTEM_CALL_OPCODES "Build the system_call opcodes" ON)
 
+option(USE_FLTK "Use FLTK for graphs and widget opcodes" ON)
+
 add_subdirectory(ampmidid)
 add_subdirectory(cellular)
 add_subdirectory(chua)
@@ -231,3 +250,4 @@ add_subdirectory(py)
 add_subdirectory(quadbezier)
 add_subdirectory(signalflowgraph)
 add_subdirectory(system_call)
+add_subdirectory(widgets)

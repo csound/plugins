@@ -1,4 +1,4 @@
-# Build Python opcodes
+# Build py opcodes
 if(${BUILD_PYTHON_OPCODES})
     find_package(PythonLibs 3)
     
