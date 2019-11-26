@@ -1,4 +1,7 @@
 # Build widgets opcodes
+set(FLTK_SKIP_OPENGL true)
+find_package(FLTK)
+
 check_deps(USE_FLTK FLTK_FOUND)
 if(USE_FLTK)
     set(widgets_SRCS FL_graph.cpp winFLTK.c widgets.cpp)

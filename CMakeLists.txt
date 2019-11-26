@@ -86,9 +86,6 @@ endif()
 
 find_package(Csound)
 
-set(FLTK_SKIP_OPENGL true)
-find_package(FLTK)
-
 option(USE_LIB64 "Set to on to set installation directory for libraries to lib64" OFF)
 if(USE_LIB64)
     set(LIBRARY_INSTALL_DIR "lib64")
@@ -216,12 +213,14 @@ endif()
 
 
 option(BUILD_CHUA_OPCODES "Build the chua opcodes" ON)
+option(BUILD_FAUST_OPCODES "Build the Faust opcodes" ON)
 option(BUILD_IMAGE_OPCODES "Build the image opcodes" ON)
 option(BUILD_PYTHON_OPCODES "Build the py opcodes" ON)
 
 option(USE_FLTK "Use FLTK for graphs and widget opcodes" ON)
 
 add_subdirectory(chua)
+add_subdirectory(faustcsound)
 add_subdirectory(image)
 add_subdirectory(py)
 add_subdirectory(widgets)
