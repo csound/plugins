@@ -17,6 +17,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 include(TestBigEndian)
+include(CheckFunctionExists)
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
@@ -57,6 +58,28 @@ if(NOT MSVC AND NOT WASM)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Wall -Werror -Wno-missing-field-initializers")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-missing-field-initializers")
     endif()
+endif()
+
+if(NOT MSVC AND REQUIRE_PTHREADS)
+  # Use ladder of if's to support older CMake versions (i.e., travis)
+  find_library(PTHREAD_LIBRARY winpthread-1)
+  if(NOT PTHREAD_LIBRARY)
+    find_library(PTHREAD_LIBRARY pthread)
+  endif()
+  if(NOT PTHREAD_LIBRARY)
+    find_library(PTHREAD_LIBRARY pthreadGC2)
+  endif()
+
+  if(NOT (PTHREAD_LIBRARY OR HAIKU))
+      # pthreads are built in to Haiku
+      message(STATUS "Csound requires the pthread library")
+  endif()
+
+  #FIXME this variable is for required include directories, possible bug
+  list(APPEND CMAKE_REQUIRED_INCLUDES pthread.h)
+  if (NOT HAIKU)
+    set(CMAKE_REQUIRED_LIBRARIES pthread)
+  endif()
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -174,6 +197,24 @@ function(make_plugin libname srcs)
         LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}" 
         ARCHIVE DESTINATION "${PLUGIN_INSTALL_DIR}" )
 endfunction(make_plugin)
+
+#checking pthread functions
+if(REQUIRE_PTHREADS AND (PTHREAD_LIBRARY OR HAIKU))
+
+  #list(APPEND libcsound_CFLAGS -DHAVE_PTHREAD)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_PTHREAD")
+
+  check_function_exists(pthread_spin_lock PTHREAD_SPIN_LOCK_EXISTS)
+  check_function_exists(pthread_barrier_init PTHREAD_BARRIER_INIT_EXISTS)
+
+  if(PTHREAD_SPIN_LOCK_EXISTS)
+     list(APPEND libcsound_CFLAGS -DHAVE_PTHREAD_SPIN_LOCK)
+  endif()
+
+  if(PTHREAD_BARRIER_INIT_EXISTS)
+     list(APPEND libcsound_CFLAGS -DHAVE_PTHREAD_BARRIER_INIT)
+  endif()
+endif()
 
 # Linux does not have a separate libintl, it is part of libc
 set(LIBINTL_AVAIL (LIBINTL_LIBRARY OR LINUX))
