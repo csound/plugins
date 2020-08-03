@@ -124,7 +124,7 @@
 
 #include <OpcodeBase.hpp>
 #include <cmath>
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 using namespace csound;
 
