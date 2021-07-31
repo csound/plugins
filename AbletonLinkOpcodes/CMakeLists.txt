@@ -30,6 +30,7 @@ if(BUILD_ABLETON_LINK_OPCODES)
             endif()
         endif()
     endif()
+    target_include_directories(ableton_link_opcodes PRIVATE ${CSOUND_INCLUDE_DIRS})
     target_include_directories(ableton_link_opcodes PRIVATE ${ABLETON_LINK_HOME}/include)
     target_include_directories(ableton_link_opcodes PRIVATE ${ABLETON_LINK_HOME}/modules/asio-standalone/asio/include)
     install(TARGETS ableton_link_opcodes
