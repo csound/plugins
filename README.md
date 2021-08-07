@@ -11,6 +11,8 @@ The build requires Csound to be installed, as well as CMake. With this
 in place, you can do :
 
 ```
+$ git clone https://github.com/csound/plugins.git
+$ cd plugins
 $ mkdir build
 $ cd build
 $ cmake ../
@@ -22,3 +24,11 @@ $ sudo ldconfig
 By default, all the plugins are built. If one wants to exclude a plugin from the build process, one can pass an option to the `cmake` command. For example, to exclude the chua plugin, the `cmake` command would be:
 ```
 $ cmake -DBUILD_CHUA_OPCODES=OFF ../
+
+After the first build the plugins can be updated with
+
+```
+$ git pull
+$ make
+$ make install
+```

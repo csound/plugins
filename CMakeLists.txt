@@ -27,8 +27,13 @@ if(USE_COMPILER_OPTIMIZATIONS)
     include(${CMAKE_SOURCE_DIR}/cmake/CompilerOptimizations.cmake)
 endif()
 
+##/Library/Frameworks/CsoundLib64.framework/Versions/Current/Resources/Opcodes64
+
 if(APPLE)
     set(OSX_VERSION " ")
+    set(CS_FRAMEWORK_DEST "/Library/Frameworks/")
+    set CSOUNDLIB "CsoundLib64")
+    endif()
 endif()
 
 ## USER OPTIONS ##
