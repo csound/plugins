@@ -31,7 +31,7 @@ endif()
 
 if(APPLE)
     set(OSX_VERSION " ")
-    set(CS_FRAMEWORK_DEST "/Library/Frameworks/")
+    set(CS_FRAMEWORK_DEST "/Library/Frameworks/" CACHE PATH "Csound framework path")
     set(CSOUNDLIB "CsoundLib64")
 endif()
 
