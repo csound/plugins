@@ -32,8 +32,7 @@ endif()
 if(APPLE)
     set(OSX_VERSION " ")
     set(CS_FRAMEWORK_DEST "/Library/Frameworks/")
-    set CSOUNDLIB "CsoundLib64")
-    endif()
+    set(CSOUNDLIB "CsoundLib64")
 endif()
 
 ## USER OPTIONS ##
