@@ -14,7 +14,7 @@ Currently, the plugins available in this tree are
 - chua (requires Eigen library, header-only)
  chuap
 
-- Faust (requires libfaust and LLVM)
+- Faust (requires libfaust)
  faustgen faustcompile faustaudio faustdsp faustplay faustctl
 
 - image (requires libpng)
