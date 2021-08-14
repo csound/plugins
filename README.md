@@ -24,8 +24,8 @@ Currently, the plugins available in this tree are
  **Many opcodes to call Python code**
 
 - widgets (requires the FLTK LIB)  
-**FLTK-based widgets.*  
-These opcodes do not work correctly on MacOS due
+**FLTK-based widgets.**  
+NB: These opcodes do not work correctly on MacOS due
  to incompatibilities with the operating system.
 
 Build Instructions for Linux
