@@ -10,11 +10,14 @@ find_path(CSOUND_INCLUDE_DIR csound.h HINTS
  /Library/Frameworks/CsoundLib64.framework/Headers
  "$ENV{HOME}/Library/Frameworks/CsoundLib.framework/Headers"
  /Library/Frameworks/CsoundLib.framework/Headers)
-find_path(CSOUND_FRAMEWORK csound.h HINTS 
+find_path(CSOUND_FRAMEWORK CsoundLib64 HINTS 
 "$ENV{HOME}/Library/Frameworks/CsoundLib64.framework"
- /Library/Frameworks/CsoundLib64.framework
- "$ENV{HOME}/Library/Frameworks/CsoundLib.framework/Headers"
- /Library/Frameworks/CsoundLib.framework/Headers) 
+ /Library/Frameworks/CsoundLib64.framework)
+find_path(CSOUND_FRAMEWORK32 CsoundLib HINTS 
+"$ENV{HOME}/Library/Frameworks/CsoundLib64.framework"
+ /Library/Frameworks/CsoundLib64.framework 
+ "$ENV{HOME}/Library/Frameworks/CsoundLib.framework"
+ /Library/Frameworks/CsoundLib.framework) 
 else()
 find_path(CSOUND_INCLUDE_DIR csound.h PATH_SUFFIXES csound)
 endif()

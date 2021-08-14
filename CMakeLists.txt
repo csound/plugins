@@ -136,7 +136,7 @@ else()
     set(PLUGIN_INSTALL_DIR "${LIBRARY_INSTALL_DIR}/csound/plugins-${APIVERSION}")
     if(APPLE)
         set(PLUGIN_INSTALL_DIR
-    "${CSOUND_FRAMEWORK}/Versions/${APIVERSION}/Resources/Opcodes")
+    "${CSOUND_FRAMEWORK32}/Versions/${APIVERSION}/Resources/Opcodes")
     endif()
 endif()
 
