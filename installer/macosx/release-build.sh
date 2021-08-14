@@ -15,12 +15,13 @@ make
 
 # zip install
 
-# image opcodes
+# image opcodes (LIB_PNG needs to be set correctly)
 echo "--- making image zip ---"
 cd ..
 export IMAGE_DIR=$BUILD_DIR/image
+export LIB_PNG=/usr/local/lib/libpng16.16.dylib
 cp $IMAGE_DIR/libimage.dylib .
-cp /usr/local/lib/libpng16.16.dylib .
+cp $LIB_PNG .
 install_name_tool -id libpng16.16.dylib libpng16.16.dylib
 install_name_tool -change /usr/local/lib/libpng16.16.dylib libpng16.16.dylib libimage.dylib
 mkdir image
@@ -41,7 +42,7 @@ mkdir faustcsound
 cp $FCS_DIR/libfaustcsound.dylib faustcsound
 zip faustcsound.zip faustcsound/*.dylib
 
-# python opcodes
+# python opcodes (python VERSION used needs to be set correctly)
 echo "--- making py zip ---"
 export VERSION=3.9
 export PY_ZIP_DIR="python${VERSION}-opcodes"
