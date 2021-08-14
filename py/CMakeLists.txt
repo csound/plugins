@@ -1,11 +1,12 @@
 # Build py opcodes
 if(${BUILD_PYTHON_OPCODES})
-    find_package(PythonLibs 3)
+       find_package(Python3 COMPONENTS Interpreter Development)
+       set(PYTHON_INCLUDE_DIRS ${Python3_INCLUDE_DIRS})
+       message("-- Python include dirs:   ${Python3_INCLUDE_DIRS}")
+       set(PYTHON_LIBRARIES ${Python3_LIBRARIES})
+       message("-- Python libraries:   ${PYTHON_LIBRARIES}")
+       check_deps(BUILD_PYTHON_OPCODES Python3_FOUND)
     
-    string(REGEX MATCH "python3\\.." PYTHON3_SUBVERSION ${PYTHON_LIBRARIES})
-    set(PYTHON_INCLUDE_DIRS /usr/include/${PYTHON3_SUBVERSION})
-    
-    check_deps(BUILD_PYTHON_OPCODES PYTHONLIBS_FOUND)
     if(BUILD_PYTHON_OPCODES)
 	make_plugin(py src/pythonopcodes.c)
 	target_include_directories(py PRIVATE ${CSOUND_INCLUDE_DIRS})
