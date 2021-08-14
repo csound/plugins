@@ -5,8 +5,16 @@
 #  CSOUND_LIBRARIES - The libraries needed to use the Csound library.
 
 if(APPLE)
-find_path(CSOUND_INCLUDE_DIR csound.h HINTS /Library/Frameworks/CsoundLib64.framework/Headers
-"$ENV{HOME}/Library/Frameworks/CsoundLib64.framework/Headers")
+find_path(CSOUND_INCLUDE_DIR csound.h HINTS 
+"$ENV{HOME}/Library/Frameworks/CsoundLib64.framework/Headers"
+ /Library/Frameworks/CsoundLib64.framework/Headers
+ "$ENV{HOME}/Library/Frameworks/CsoundLib.framework/Headers"
+ /Library/Frameworks/CsoundLib.framework/Headers)
+find_path(CSOUND_FRAMEWORK csound.h HINTS 
+"$ENV{HOME}/Library/Frameworks/CsoundLib64.framework"
+ /Library/Frameworks/CsoundLib64.framework
+ "$ENV{HOME}/Library/Frameworks/CsoundLib.framework/Headers"
+ /Library/Frameworks/CsoundLib.framework/Headers) 
 else()
 find_path(CSOUND_INCLUDE_DIR csound.h PATH_SUFFIXES csound)
 endif()

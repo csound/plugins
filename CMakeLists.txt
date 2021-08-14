@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(Csound-plugins)
 
+
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_COMPILER_IS_CLANG 1)
 endif()
@@ -14,7 +15,18 @@ set(APIVERSION "6.0")
 
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+"${CMAKE_SOURCE_DIR}/cmake/Modules/")
+
+find_package(Csound)
+
+if(CSOUND_FOUND)
+ message("Csound headers: ${CSOUND_INCLUDE_DIR}")
+ if(APPLE)
+   message("Csound framework: ${CSOUND_FRAMEWORK}")
+ endif()
+endif()
+
 
 include(TestBigEndian)
 include(CheckFunctionExists)
@@ -31,7 +43,7 @@ endif()
 
 if(APPLE)
     set(OSX_VERSION " ")
-    set(CS_FRAMEWORK_DEST "/Library/Frameworks/" CACHE PATH "Csound framework path")
+    # set(CS_FRAMEWORK_DEST "/Library/Frameworks/" CACHE PATH "Csound framework path")
     set(CSOUNDLIB "CsoundLib64")
 endif()
 
@@ -111,7 +123,7 @@ if (HAS_CXX_VISIBILITY_HIDDEN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 endif()
 
-find_package(Csound)
+
 
 option(USE_LIB64 "Set to on to set installation directory for libraries to lib64" OFF)
 if(USE_LIB64)
@@ -126,13 +138,17 @@ if(USE_DOUBLE)
     message(STATUS "Building with 64-bit floats")
     set(PLUGIN_INSTALL_DIR "${LIBRARY_INSTALL_DIR}/csound/plugins64-${APIVERSION}")
     if(APPLE)
-        set(PLUGIN_INSTALL_DIR "${CS_FRAMEWORK_DEST}/${CSOUNDLIB}.framework/Versions/${APIVERSION}/Resources/Opcodes64")
+        set(PLUGIN_INSTALL_DIR
+    "${CSOUND_FRAMEWORK}/Versions/${APIVERSION}/Resources/Opcodes64")
+        message("-- PLUGIN INSTALL DIR: ${PLUGIN_INSTALL_DIR}")
     endif()
 else()
     message(STATUS "Building with 32-bit floats")
     set(PLUGIN_INSTALL_DIR "${LIBRARY_INSTALL_DIR}/csound/plugins-${APIVERSION}")
     if(APPLE)
-        set(PLUGIN_INSTALL_DIR "${CS_FRAMEWORK_DEST}/${CSOUNDLIB}.framework/Versions/${APIVERSION}/Resources/Opcodes")
+        set(PLUGIN_INSTALL_DIR
+    "${CSOUND_FRAMEWORK}/Versions/${APIVERSION}/Resources/Opcodes")
+      message("-- PLUGIN INSTALL DIR: ${PLUGIN_INSTALL_DIR}")
     endif()
 endif()
 
