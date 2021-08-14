@@ -1,7 +1,7 @@
 #!/bin/sh
 # set -x
 # directories
-export RELEASE_DIR="`eval date +%Y-%m-%d-%H%M%S`"
+export RELEASE_DIR=`date +%Y-%m-%d-%H%M%S`
 
 # build
 mkdir $RELEASE_DIR
