@@ -8,23 +8,24 @@ effective in version 7 of Csound.
 
 Currently, the plugins available in this tree are
 
-- AbletonLive Link (requires Ableton link)
- link_create link_enable link_is_enabled link_tempo_set link_tempo_get link_beat_get link_metro link_beat_request link_beat_force
+- AbletonLive Link (requires Ableton link)  
+ **link_create link_enable link_is_enabled link_tempo_set link_tempo_get link_beat_get link_metro link_beat_request link_beat_force**
 
-- chua (requires Eigen library, header-only)
- chuap
+- chua (requires Eigen library, header-only)  
+ **chuap**
 
-- Faust (requires libfaust)
- faustgen faustcompile faustaudio faustdsp faustplay faustctl
+- Faust (requires libfaust)  
+ **faustgen faustcompile faustaudio faustdsp faustplay faustctl**
 
-- image (requires libpng)
- imageload imagesave imagecreate imagesize imagegetpixel imagesetpixel imagefree
+- image (requires libpng)  
+ **imageload imagesave imagecreate imagesize imagegetpixel imagesetpixel imagefree**
 
-- py (requires a Python 3.x installation with dev libs)
- Many opcodes to call python code
+- py (requires a Python 3.x installation with dev libs)  
+ **Many opcodes to call Python code**
 
-- widgets (requires the FLTK LIB)
- FLTK-based widgets. These opcodes do not work correctly on MacOS due
+- widgets (requires the FLTK LIB)  
+**FLTK-based widgets.*  
+These opcodes do not work correctly on MacOS due
  to incompatibilities with the operating system.
 
 Build Instructions for Linux
