@@ -201,10 +201,10 @@ function(make_plugin libname srcs)
         math(EXPR i "${i}+1")
     endwhile()
 
-    set_target_properties(${libname} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+   # set_target_properties(${libname} PROPERTIES
+    #    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+     #   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      #  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
     install(TARGETS ${libname}
         LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}" 
