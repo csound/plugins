@@ -197,11 +197,8 @@ struct faustcompile {
   MYFLT *extra;
   llvm_dsp_factory *factory;
   uintptr_t thread;
-#ifdef HAVE_PTHREAD
-  pthread_mutex_t *lock;
-#else
   uint64_t *lock;
-#endif
+
   
 };
 
@@ -364,23 +361,13 @@ int32_t init_faustcompile(CSOUND *csound, faustcompile *p) {
   *p->hptr = -1.0;
 
   p->lock =
-    (pthread_mutex_t *)csound->QueryGlobalVariable(csound, "::faustlock::");
+    (uint64_t *)csound->QueryGlobalVariable(csound, "::faustlock::");
   if (p->lock == NULL) {
-#ifdef HAVE_PTHREAD    
-    csound->CreateGlobalVariable(csound,
-                                 "::faustlock::", sizeof(pthread_mutex_t));
-#else
    csound->CreateGlobalVariable(csound,
                                  "::faustlock::", sizeof(uint64_t));
-#endif
     p->lock =
-      (pthread_mutex_t *)csound->QueryGlobalVariable(csound, "::faustlock::");
-#ifdef HAVE_PTHREAD    
-    pthread_mutex_init(p->lock, NULL);
-#else
-    *(p->lock) = (uint64_t) csound->CreateMutex(0);
-#endif    
-    // csound->Message(csound, "lock created %p\n", p->lock);
+      (uint64_t *)csound->QueryGlobalVariable(csound, "::faustlock::");
+    *(p->lock) = (uint64_t) csound->Create_Mutex(0);
   }
 
 
