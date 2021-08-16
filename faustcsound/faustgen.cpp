@@ -197,7 +197,12 @@ struct faustcompile {
   MYFLT *extra;
   llvm_dsp_factory *factory;
   uintptr_t thread;
+#ifdef HAVE_PTHREAD
   pthread_mutex_t *lock;
+#else
+  uint64_t *lock;
+#endif
+  
 };
 
 char **parse_cmd(CSOUND *csound, char *str, int32_t *argc) {
@@ -296,12 +301,12 @@ void *init_faustcompile_thread(void *pp) {
     extra = (char *) "";
 
   // Need to protect this
-  csound->LockMutex(p->lock);
+  csound->LockMutex((void *) p->lock);
   // csound->Message(csound, "lock %p\n", p->lock);
   factory = createDSPFactoryFromString("faustop", (const char *) ccode,
                                        argc, argv, extra, err_msg, 3);
   // csound->Message(csound, "unlock %p\n", p->lock);
-  csound->UnlockMutex(p->lock);
+  csound->UnlockMutex((void *) p->lock);
 
   if (factory == NULL) {
     csound->Message(csound, Str("\nFaust compilation problem:\nline %s\n"),
@@ -361,11 +366,20 @@ int32_t init_faustcompile(CSOUND *csound, faustcompile *p) {
   p->lock =
     (pthread_mutex_t *)csound->QueryGlobalVariable(csound, "::faustlock::");
   if (p->lock == NULL) {
+#ifdef HAVE_PTHREAD    
     csound->CreateGlobalVariable(csound,
                                  "::faustlock::", sizeof(pthread_mutex_t));
+#else
+   csound->CreateGlobalVariable(csound,
+                                 "::faustlock::", sizeof(uint64_t));
+#endif
     p->lock =
       (pthread_mutex_t *)csound->QueryGlobalVariable(csound, "::faustlock::");
+#ifdef HAVE_PTHREAD    
     pthread_mutex_init(p->lock, NULL);
+#else
+    *(p->lock) = (uint64_t) csound->CreateMutex(0);
+#endif    
     // csound->Message(csound, "lock created %p\n", p->lock);
   }
 
@@ -852,21 +866,20 @@ void *init_faustgen_thread(void *pp) {
   faustgen *p = ((hdata2 *)pp)->p;
   OPARMS parms;
   std::string err_msg;
+#ifdef USE_DOUBLE
+  int32_t argc = 4;
+  const char *argv[] = {"-vec", "-lv", " 1", "-double"};
+#else
   int32_t argc = 3;
-  const char *argv[argc];
+  const char *argv[] = {"-vec", "-lv", " 1"};
+#endif
   faustobj **pfdsp, *fdsp;
   llvm_dsp *dsp;
   controls *ctls = new controls();
   const char *varname = "::dsp";
-  argv[0] = "-vec";
-  argv[1] = "-lv";
-  argv[2] = " 1";
   p->engine = NULL;
 
-#ifdef USE_DOUBLE
-  argv[3] = "-double";
-  argc += 1;
-#endif
+
 
   p->factory = createDSPFactoryFromString(
                                           "faustop", (const char *)p->code->data, argc, argv, "", err_msg, 3);
@@ -928,7 +941,11 @@ void *init_faustgen_thread(void *pp) {
     p->factory = NULL;
     p->engine = NULL;
     csound->Free(csound, pp);
+#ifdef HAVE_PTHREAD    
     pthread_exit(&ret);
+#else
+    return NULL;
+#endif    
   }
   if (p->engine->getNumOutputs() != p->OUTCOUNT - 1) {
     int32_t ret;
@@ -942,7 +959,11 @@ void *init_faustgen_thread(void *pp) {
     csound->Free(csound, pp);
     p->engine = NULL;
     p->factory = NULL;
+#ifdef HAVE_PTHREAD    
     pthread_exit(&ret);
+#else
+    return NULL;
+#endif 
   }
 
   /* memory for sampAccurate offsets */
@@ -965,7 +986,9 @@ void *init_faustgen_thread(void *pp) {
 
 int32_t init_faustgen(CSOUND *csound, faustgen *p) {
   uintptr_t thread;
+#ifdef HAVE_PTHREAD  
   pthread_attr_t attr;
+#endif  
   int32_t *ret;
   hdata2 *data = (hdata2 *)csound->Malloc(csound, sizeof(hdata2));
   data->csound = csound;
