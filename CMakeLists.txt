@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(Csound-plugins)
 
+
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_COMPILER_IS_CLANG 1)
 endif()
@@ -14,8 +15,10 @@ set(APIVERSION "6.0")
 
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+"${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+find_package(CSOUND)
 include(TestBigEndian)
 include(CheckFunctionExists)
 include(CheckCCompilerFlag)
@@ -30,9 +33,8 @@ endif()
 ##/Library/Frameworks/CsoundLib64.framework/Versions/Current/Resources/Opcodes64
 
 if(APPLE)
+     message(STATUS "Building on OSX")
     set(OSX_VERSION " ")
-    set(CS_FRAMEWORK_DEST "/Library/Frameworks/" CACHE PATH "Csound framework path")
-    set(CSOUNDLIB "CsoundLib64")
 endif()
 
 ## USER OPTIONS ##
@@ -93,7 +95,6 @@ else()
 endif()
 
 set(BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
-
 check_c_compiler_flag(-fvisibility=hidden HAS_VISIBILITY_HIDDEN)
 check_cxx_compiler_flag(-fvisibility=hidden HAS_CXX_VISIBILITY_HIDDEN)
 if (HAS_VISIBILITY_HIDDEN)
@@ -111,31 +112,39 @@ if (HAS_CXX_VISIBILITY_HIDDEN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 endif()
 
-find_package(Csound)
-
-option(USE_LIB64 "Set to on to set installation directory for libraries to lib64" OFF)
+option(USE_LIB64 "Set to on to set installation directory for
+libraries to lib64" OFF)
 if(USE_LIB64)
     set(LIBRARY_INSTALL_DIR "lib64")
     add_definitions("-DLIB64")
 else()
     set(LIBRARY_INSTALL_DIR "lib")
 endif()
-message(STATUS "LIBRARY INSTALL DIR: ${LIBRARY_INSTALL_DIR}")
+if(NOT APPLE)
+ message(STATUS "LIBRARY INSTALL DIR: ${LIBRARY_INSTALL_DIR}")
+endif()
 
 if(USE_DOUBLE)
     message(STATUS "Building with 64-bit floats")
     set(PLUGIN_INSTALL_DIR "${LIBRARY_INSTALL_DIR}/csound/plugins64-${APIVERSION}")
     if(APPLE)
-        set(PLUGIN_INSTALL_DIR "${CS_FRAMEWORK_DEST}/${CSOUNDLIB}.framework/Versions/${APIVERSION}/Resources/Opcodes64")
+        set(PLUGIN_INSTALL_DIR
+    "${CSOUND_FRAMEWORK}/Versions/${APIVERSION}/Resources/Opcodes64")
     endif()
 else()
     message(STATUS "Building with 32-bit floats")
     set(PLUGIN_INSTALL_DIR "${LIBRARY_INSTALL_DIR}/csound/plugins-${APIVERSION}")
     if(APPLE)
-        set(PLUGIN_INSTALL_DIR "${CS_FRAMEWORK_DEST}/${CSOUNDLIB}.framework/Versions/${APIVERSION}/Resources/Opcodes")
+        set(PLUGIN_INSTALL_DIR
+    "${CSOUND_FRAMEWORK32}/Versions/${APIVERSION}/Resources/Opcodes")
     endif()
 endif()
 
+message("-- Csound headers: ${CSOUND_INCLUDE_DIR}")
+if(APPLE)
+   message("-- Csound framework: ${CSOUND_FRAMEWORK}")
+endif()
+message("-- Plugins to be installed at: ${PLUGIN_INSTALL_DIR}")
 
 # Checks if dependencies for an enabled target are fulfilled.
 # If FAIL_MISSING is true and the dependencies are not fulfilled,
@@ -192,10 +201,10 @@ function(make_plugin libname srcs)
         math(EXPR i "${i}+1")
     endwhile()
 
-    set_target_properties(${libname} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+   # set_target_properties(${libname} PROPERTIES
+    #    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+     #   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      #  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
     install(TARGETS ${libname}
         LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}" 
@@ -244,7 +253,6 @@ if(LINUX)
 endif()
 
 if(APPLE AND NOT IOS)
-    message(STATUS "Building on OSX")
     add_definitions(-DMACOSX -DPIPES -DNO_FLTK_THREADS -DHAVE_SOCKETS)
     find_library(ACCELERATE_LIBRARY Accelerate)
     find_path(VECLIB_PATH "Accelerate/Accelerate.h")
