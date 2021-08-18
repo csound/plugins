@@ -12,7 +12,7 @@
 AppId={{0E50FA48-4C41-4D27-A742-C77D1A3A3905}
 AppName={#MyAppName}
 AppVersion={#OPVERSION}
-DefaultDirName={localappdata}\csound\6.0\plugins64
+DefaultDirName={localappdata}\csound\6.0\
 DisableDirPage=no
 DisableProgramGroupPage=yes
 UsePreviousAppDir=no
@@ -46,7 +46,7 @@ Source: "../../build\chua\Release\chua.dll"; DestDir: "{app}\plugins64\"; Flags:
 Source: "../../build\faustcsound\Release\faustcsound.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "../../build\image\Release\image.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "../../build\py\Release\py.dll"; DestDir: "{app}\plugins64"; Flags: ignoreversion; Components: core; Permissions: users-full;
-Source: "../../build\widgets\Release\widgets.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+;Source: "../../build\widgets\Release\widgets.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "C:\Program Files\Faust\lib\faust.dll"; DestDir: "{autopf64}\Csound6_x64\bin\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 
 
@@ -59,7 +59,7 @@ var
 
 const
   installerMessage =
-'This installer will install the Python, Faust, Image, Chua, FLTK and Ableton Link ' + #13#10  +
+'This installer will install the Python, Faust, Image, Chua and Ableton Link ' + #13#10  +
 'plugin opcodes for Csound.' + #13#10 + #13#10 +
 'Opcodes will be installed to C:\Users\<name>\AppData\Local\csound\6.0\plugins64' + #13#10  +
 '' + #13#10 + 
