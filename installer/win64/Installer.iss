@@ -12,7 +12,7 @@
 AppId={{0E50FA48-4C41-4D27-A742-C77D1A3A3905}
 AppName={#MyAppName}
 AppVersion={#OPVERSION}
-DefaultDirName={localappdata}\..\csound\6.0\plugins64
+DefaultDirName={localappdata}\csound\6.0\plugins64
 DisableDirPage=no
 DisableProgramGroupPage=yes
 UsePreviousAppDir=no
@@ -61,7 +61,7 @@ const
   installerMessage =
 'This installer will install the Python, Faust, Image, Chua, FLTK and Ableton Link ' + #13#10  +
 'plugin opcodes for Csound.' + #13#10 + #13#10 +
-'Opcodes will be installed to C:\Users\<name>\AppData\csound\6.0\plugins64' + #13#10  +
+'Opcodes will be installed to C:\Users\<name>\AppData\Local\csound\6.0\plugins64' + #13#10  +
 '' + #13#10 + 
 'Csound should detect and load these plugins whenever it runs. The Faust library will' + #13#10  +
 'be installed to C:/Program Files/Csound_x64/bin. If you do not have Csound installed'  + #13#10  +
