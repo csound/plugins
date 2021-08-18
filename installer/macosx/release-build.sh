@@ -1,18 +1,20 @@
 #!/bin/sh
-set -x
+# set -x
 # directories
-export OPVERSION=$1
+export OPVERSION=$2
+export BRANCH_NAME=$1
+echo "Using branch: $BRANCH_NAME"
 export RELEASE_DIR=`date +%Y-%m-%d-%H%M%S`
 export BASEDIR=`pwd`/$RELEASE_DIR
 export INSTALLDIR=Package_Contents
-export DMGNAME="CsoundPlugins-MacOS_x86_64-${OPVERSION}.dmg"
+export DMGNAME="Csound6-Plugins-MacOS_x86_64-${OPVERSION}.dmg"
 
 # build
 mkdir $RELEASE_DIR
 cd $RELEASE_DIR
 export BUILD_DIR=build
 mkdir $BUILD_DIR
-git clone https://github.com/csound/plugins
+git clone -b $BRANCH_NAME https://github.com/csound/plugins
 cd $BUILD_DIR
 cmake ../plugins -DCMAKE_BUILD_TYPE=Release
 make
@@ -46,13 +48,13 @@ mkdir faustcsound
 cp $FCS_DIR/libfaustcsound.dylib faustcsound
 zip faustcsound.zip faustcsound/*.dylib
 
-# python opcodes (python VERSION used needs to be set correctly)
+# python opcodes (python PYVERSION used needs to be set correctly)
 echo "--- making py zip ---"
-export VERSION=3.9
-export PY_ZIP_DIR="python${VERSION}-opcodes"
+export PYVERSION=3.9
+export PY_ZIP_DIR="python${PYVERSION}-opcodes"
 export PY_DIR=$BUILD_DIR/py
 mkdir $PY_ZIP_DIR
-cp $PY_DIR/libpy.dylib $PY_ZIP_DIR/libpy${VERSION}.dylib
+cp $PY_DIR/libpy.dylib $PY_ZIP_DIR/libpy${PYVERSION}.dylib
 zip $PY_ZIP_DIR.zip $PY_ZIP_DIR/*.dylib
 
 # installer (ALL)
