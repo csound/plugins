@@ -1,7 +1,11 @@
 #!/bin/sh
-# set -x
+set -x
 # directories
+export OPVERSION=$1
 export RELEASE_DIR=`date +%Y-%m-%d-%H%M%S`
+export BASEDIR=`pwd`/$RELEASE_DIR
+export INSTALLDIR=Package_Contents
+export DMGNAME="CsoundPlugins-MacOS_x86_64-${OPVERSION}.dmg"
 
 # build
 mkdir $RELEASE_DIR
@@ -48,8 +52,20 @@ export VERSION=3.9
 export PY_ZIP_DIR="python${VERSION}-opcodes"
 export PY_DIR=$BUILD_DIR/py
 mkdir $PY_ZIP_DIR
-cp $PY_DIR/libpy.dylib $PY_ZIP_DIR
+cp $PY_DIR/libpy.dylib $PY_ZIP_DIR/libpy${VERSION}.dylib
 zip $PY_ZIP_DIR.zip $PY_ZIP_DIR/*.dylib
 
-cd ..
-open $RELEASE_DIR
+# installer (ALL)
+cd $BASEDIR
+mkdir -p $INSTALLDIR/tmp/csound
+
+cp chua/*.dylib $INSTALLDIR/tmp/csound/.
+cp faustcsound/*.dylib $INSTALLDIR/tmp/csound/.
+cp $PY_ZIP_DIR/*.dylib $INSTALLDIR/tmp/csound/.
+cp image/*.dylib $INSTALLDIR/tmp/csound/.
+
+mkdir dmgsrc
+pkgbuild --identifier com.csound.csound6Environment.csoundOps64 --root $INSTALLDIR --version 1 --scripts ../scripts dmgsrc/CsoundPlugins64.pkg
+hdiutil create $DMGNAME -srcfolder dmgsrc -fs HFS+ 
+
+open $BASEDIR

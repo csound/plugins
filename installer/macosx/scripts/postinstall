@@ -1,0 +1,10 @@
+#!/bin/sh
+set -x
+if [ -d "$HOME/Library/csound/6.0/plugins64/" ]; then
+   mv /tmp/csound/*.dylib $HOME/Library/csound/6.0/plugins64/.
+else
+   mkdir -p $HOME/Library/csound/6.0/plugins64
+   mv /tmp/csound/*.dylib $HOME/Library/csound/6.0/plugins64/.   
+fi
+chown -R $USER $HOME/Library/csound
+
