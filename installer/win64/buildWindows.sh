@@ -1,6 +1,6 @@
 #Simple script to build plugins on Windows. Modify each of the paths below for your own needs.. 
 
-cd build
+cd ../../build
 cmake -DFLTK_BASE_LIBRARY_DEBUG=../../../../vcpkg/installed/x64-windows-csound/lib/fltkd.lib \
 -DFLTK_BASE_LIBRARY_RELEASE=../../vcpkg/installed/x64-windows-csound/lib/fltk.lib \
 -DFLTK_INCLUDE_DIR=../../vcpkg/packages/fltk_x64-windows-csound/include \
