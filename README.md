@@ -26,7 +26,20 @@ Currently, the plugins available in this tree are
 - widgets (requires the FLTK LIB)  
 **FLTK-based widgets.**  
 NB: These opcodes do not work correctly on MacOS due
- to incompatibilities with the operating system.
+to incompatibilities with the operating system.
+
+Install location
+--------------
+The CMake scripts in this repository use the default CS_USER_PLUGIN
+location as defined in the Csound build. These are:
+
+- LINUX: `$HOME/.local/lib/csound/${APIVERSION}/plugins64`(doubles)  
+          or `$HOME/.local/lib/csound/${APIVERSION}/plugins` (floats)  
+- MACOS: `$HOME/Library/csound/${APIVERSION}/plugins64` (doubles)  
+         or `$HOME/Library/csound/${APIVERSION}/plugins` (floats)  
+- Windows:  `%%APP_LOCAL%%\csound\${APIVERSION}\plugins64`(doubles)  
+        or `%%APP_LOCAL%%\csound\${APIVERSION}\plugins` (floats)
+
 
 Build Instructions for Linux
 ---
@@ -43,7 +56,10 @@ $ cmake ../
 $ make
 ```
 
-By default, all the plugins are built. If one wants to exclude a plugin from the build process, one can pass an option to the cmake command. For example, to exclude the chua plugin, the `cmake` command would be:
+By default, all the plugins are built. If one wants to exclude a
+plugin from the build process,
+one can pass an option to the cmake command.
+For example, to exclude the chua plugin, the `cmake` command would be:
 
 ```
 $ cmake -DBUILD_CHUA_OPCODES=OFF ../
@@ -53,7 +69,6 @@ To install the opcodes you have built
 
 ```
 $ make install
-$ ldconfig
 ```
 
 Depending on your permissions, you might need to prepend `sudo` to
@@ -113,3 +128,4 @@ $ make install
 ```
 
 using `sudo` in the last step if needed.
+

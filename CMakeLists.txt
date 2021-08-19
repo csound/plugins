@@ -134,7 +134,7 @@ if(USE_DOUBLE)
       set(PLUGIN_INSTALL_DIR
       "$ENV{HOME}/.local/lib/csound/${APIVERSION}/plugins64")
      elseif(WINDOWS)
-      set(PLUGIN_INSTALL_DIR "csound/${APIVERSION}/plugins64")
+      set(PLUGIN_INSTALL_DIR "${env.LOCALAPPDATA}/csound/${APIVERSION}/plugins64")
     endif()
 else()
     message(STATUS "Building with 32-bit floats")
@@ -145,7 +145,7 @@ else()
       set(PLUGIN_INSTALL_DIR
       "$ENV{HOME}/.local/lib/csound/${APIVERSION}/plugins")
      elseif(WINDOWS)
-      set(PLUGIN_INSTALL_DIR "csound/${APIVERSION}/plugins")
+      set(PLUGIN_INSTALL_DIR "${env.LOCALAPPDATA}/csound/${APIVERSION}/plugins")
       endif()
 endif()
 
