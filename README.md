@@ -37,8 +37,8 @@ location as defined in the Csound build. These are:
           or `$HOME/.local/lib/csound/${APIVERSION}/plugins` (floats)  
 - MACOS: `$HOME/Library/csound/${APIVERSION}/plugins64` (doubles)  
          or `$HOME/Library/csound/${APIVERSION}/plugins` (floats)  
-- Windows:  `%%APP_LOCAL%%\csound\${APIVERSION}\plugins64`(doubles)  
-        or `%%APP_LOCAL%%\csound\${APIVERSION}\plugins` (floats)
+- Windows:  `%LOCALAPPDATA%\csound\${APIVERSION}\plugins64`(doubles)  
+        or `%LOCALAPPDATA%\csound\${APIVERSION}\plugins` (floats)
 
 
 Build Instructions for Linux
