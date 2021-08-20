@@ -126,7 +126,7 @@ static Image * __doOpenImage(char * filename, CSOUND *csound)
     if (UNLIKELY(!png_ptr)) {
       csound->InitError(csound, "%s", Str("imageload: out of memory.\n"));
       csound->FileClose(csound, fd);
-      return NOTOK;
+      return NULL;
     }
     info_ptr = png_create_info_struct(png_ptr);
     if (UNLIKELY(!info_ptr)) {
