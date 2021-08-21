@@ -360,16 +360,15 @@ int32_t init_faustcompile(CSOUND *csound, faustcompile *p) {
   *p->hptr = -1.0;
   p->lock = csound->Create_Mutex(0);
   
-#ifdef HAVE_PTHREAD
+#ifdef NEVER
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setstacksize(&attr, *p->stacksize * MBYTE);
   pthread_create((pthread_t *) &thread, &attr, init_faustcompile_thread, data);
 #else
-  // FIXME: for systems with no pthreads (e.g. Windows - MSVC)
-  // a means of setting the stack size will need to be found
+  /* New API function allows thread stack to be defined - new in Csound 6.17 */
   thread = (uintptr_t)
-    csound->CreateThread((uintptr_t (*)(void *))init_faustcompile_thread, data);
+    csound->CreateThread2((uintptr_t (*)(void *))init_faustcompile_thread, *p->stacksize * MBYTE, data);
 #endif
 
   p->thread = thread;
@@ -969,7 +968,7 @@ int32_t init_faustgen(CSOUND *csound, faustgen *p) {
   hdata2 *data = (hdata2 *)csound->Malloc(csound, sizeof(hdata2));
   data->csound = csound;
   data->p = p;
-#ifdef HAVE_PTHREAD
+#ifdef NEVER
   pthread_attr_init(&attr);
   pthread_attr_setstacksize(&attr, MBYTE);
   pthread_create((pthread_t *)&thread, &attr, init_faustgen_thread, data);
@@ -981,10 +980,9 @@ int32_t init_faustgen(CSOUND *csound, faustgen *p) {
   else
     return NOTOK;
 #else
-  // FIXME: for systems with no pthreads (e.g. Windows - MSVC)
-  // a means of setting the stack size will need to be found
+  /* New API function allows for threads to be given a stack */
   thread = (uintptr_t)
-    csound->CreateThread((uintptr_t (*)(void *))init_faustcompile_thread, data);
+    csound->CreateThread2((uintptr_t (*)(void *))init_faustcompile_thread, MBYTE, data);
   csound->RegisterDeinitCallback(csound, p, delete_faustgen);
   csound->JoinThread((void *)thread);
   csound->RegisterDeinitCallback(csound, p, delete_faustgen);
