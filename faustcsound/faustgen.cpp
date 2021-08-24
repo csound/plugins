@@ -984,7 +984,7 @@ int32_t init_faustgen(CSOUND *csound, faustgen *p) {
   // FIXME: for systems with no pthreads (e.g. Windows - MSVC)
   // a means of setting the stack size will need to be found
   thread = (uintptr_t)
-    csound->CreateThread((uintptr_t (*)(void *))init_faustgen_thread, data);
+    csound->CreateThread((uintptr_t (*)(void *))init_faustcompile_thread, data);
   csound->RegisterDeinitCallback(csound, p, delete_faustgen);
   csound->JoinThread((void *)thread);
   csound->RegisterDeinitCallback(csound, p, delete_faustgen);
