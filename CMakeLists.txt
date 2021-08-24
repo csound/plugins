@@ -273,19 +273,6 @@ if(WIN32)
     add_definitions(-DWIN32)
 endif()
 
-
-option(BUILD_CHUA_OPCODES "Build the chua opcodes" ON)
-option(BUILD_FAUST_OPCODES "Build the Faust opcodes" ON)
-option(BUILD_IMAGE_OPCODES "Build the image opcodes" ON)
-option(BUILD_PYTHON_OPCODES "Build the py opcodes" ON)
-option(BUILD_ABLETON_LINK_OPCODES "Build the Ableton link opcodes" ON)
-
-if(APPLE)
-        option(USE_FLTK "Use FLTK for graphs and widget opcodes" OFF)
-else()
-        option(USE_FLTK "Use FLTK for graphs and widget opcodes" ON)
-endif()
-
 add_subdirectory(chua)
 add_subdirectory(faustcsound)
 add_subdirectory(image)

@@ -1,4 +1,6 @@
 # Build chuap opcodes
+option(BUILD_CHUA_OPCODES "Build the chua opcodes" ON)
+
 if(${BUILD_CHUA_OPCODES})
     find_package(EIGEN3)
     check_deps(BUILD_CHUA_OPCODES EIGEN3_FOUND)
