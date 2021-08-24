@@ -915,7 +915,7 @@ int32_t init_faustgen(CSOUND *csound, faustgen *p) {
   data->p = p;
   /* New API function allows for threads to be given a stack */
   thread = (uintptr_t)
-    csound->CreateThread2((uintptr_t (*)(void *))init_faustgen_thread, MBYTE, data);
+  csound->CreateThread2((uintptr_t (*)(void *))init_faustgen_thread, MBYTE, data);
   csound->RegisterDeinitCallback(csound, p, delete_faustgen);
   csound->JoinThread((void *)thread);
   csound->RegisterDeinitCallback(csound, p, delete_faustgen);
