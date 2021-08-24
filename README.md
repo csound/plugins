@@ -28,10 +28,10 @@ Currently, the plugins available in this tree are
 NB: These opcodes do not work correctly on MacOS due
 to incompatibilities with the operating system.
 
-- virtual keyboard (requires the FLTK LIB)
+- virtual keyboard (requires the FLTK LIB)  
 **Virtual MIDI keyboard midi backend**
 
-- STK opcodes (requires STK library)_
+- STK opcodes (requires STK library)  
 **Physical model opcodes using the STK library**
 
 
