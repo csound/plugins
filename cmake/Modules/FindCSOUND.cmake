@@ -9,27 +9,24 @@ find_path(CSOUND_INCLUDE_DIR csound.h HINTS
 "$ENV{HOME}/Library/Frameworks/CsoundLib64.framework/Headers"
  /Library/Frameworks/CsoundLib64.framework/Headers
  "$ENV{HOME}/Library/Frameworks/CsoundLib.framework/Headers"
- /Library/Frameworks/CsoundLib.framework/Headers
-  ${CSOUND_INCLUDE_DIR_HINT})
+ /Library/Frameworks/CsoundLib.framework/Headers)
 find_path(CSOUND_FRAMEWORK CsoundLib64 HINTS 
 "$ENV{HOME}/Library/Frameworks/CsoundLib64.framework"
- /Library/Frameworks/CsoundLib64.framework
-  ${CSOUND_FRAMEWORK_DIR_HINT})
+ /Library/Frameworks/CsoundLib64.framework)
 find_path(CSOUND_FRAMEWORK32 CsoundLib HINTS 
 "$ENV{HOME}/Library/Frameworks/CsoundLib64.framework"
  /Library/Frameworks/CsoundLib64.framework 
  "$ENV{HOME}/Library/Frameworks/CsoundLib.framework"
- /Library/Frameworks/CsoundLib.framework
-  ${CSOUND_FRAMEWORK32_DIR_HINT}) 
+ /Library/Frameworks/CsoundLib.framework) 
 else()
-find_path(CSOUND_INCLUDE_DIR csound.h PATH_SUFFIXES csound HINTS ${CSOUND_INCLUDE_DIR_HINT})
+find_path(CSOUND_INCLUDE_DIR csound.h PATH_SUFFIXES csound)
 endif()
 
 if(APPLE)
 find_library(CSOUND_LIBRARY NAMES CsoundLib64 HINTS /Library/Frameworks/CsoundLib64.framework/
-"$ENV{HOME}/Library/Frameworks/CsoundLib64.framework" ${CSOUND_LIBRARY_DIR_HINT})
+"$ENV{HOME}/Library/Frameworks/CsoundLib64.framework")
 else()
-find_library(CSOUND_LIBRARY NAMES csound64 csound HINTS ${CSOUND_LIBRARY_DIR_HINT})
+find_library(CSOUND_LIBRARY NAMES csound64 csound)
 endif()
 
 include(FindPackageHandleStandardArgs)

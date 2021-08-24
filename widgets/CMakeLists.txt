@@ -16,28 +16,3 @@ if(USE_FLTK)
     endif()
     target_include_directories(widgets PRIVATE ${FLTK_INCLUDE_DIR})
 endif()
-
-if(USE_FLTK)
-    set(virtual_SRCS virtual_keyboard/FLTKKeyboard.cpp
-        virtual_keyboard/FLTKKeyboardWindow.cpp
-        virtual_keyboard/FLTKKeyboardWidget.cpp
-        virtual_keyboard/virtual_keyboard.cpp
-        virtual_keyboard/Bank.cpp
-        virtual_keyboard/KeyboardMapping.cpp
-        virtual_keyboard/Program.cpp
-        virtual_keyboard/SliderBank.cpp
-        virtual_keyboard/SliderData.cpp)
-    make_plugin(virtual "${virtual_SRCS}" "${FLTK_LIBRARIES}")
-    if (NOT MSVC)
-        target_link_libraries(virtual ${FLTK_BASE_LIBRARY})
-        target_link_libraries(virtual ${FLTK_FORMS_LIBRARY})
-        target_link_libraries(virtual ${FLTK_IMAGES_LIBRARY})
-    else()
-        target_link_libraries(virtual ${FLTK_LIBRARIES})
-    endif()
-    target_include_directories(virtual PRIVATE ${CSOUND_INCLUDE_DIRS})
-    target_include_directories(virtual PRIVATE ".")
-    target_include_directories(virtual PRIVATE ${FLTK_INCLUDE_DIR})
-endif()
-
-message(STATUS "")
