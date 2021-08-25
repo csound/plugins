@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(Csound-plugins)
-
-
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_COMPILER_IS_CLANG 1)
 endif()
@@ -19,6 +17,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 find_package(CSOUND)
+if(NOT CSOUND_INCLUDE_DIRS)
+      message(FATAL_ERROR "Csound header files are required")
+endif()
+
 include(TestBigEndian)
 include(CheckFunctionExists)
 include(CheckCCompilerFlag)
@@ -280,3 +282,4 @@ add_subdirectory(py)
 add_subdirectory(widgets)
 add_subdirectory(AbletonLinkOpcodes)
 add_subdirectory(stk)
+add_subdirectory(CUDA)
