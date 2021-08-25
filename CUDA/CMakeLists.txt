@@ -4,6 +4,8 @@ if(BUILD_CUDA_OPCODES)
  FIND_PACKAGE(CUDA REQUIRED)
  check_deps(BUILD_CUDA_OPCODES CUDA_FOUND)
  if(BUILD_CUDA_OPCODES)
+ message(STATUS "Building the CUDA opcodes")
+
  function(make_cuda_plugin libname srcs)
 
  SET(LIB_TYPE_DYNAMIC) #set the lib type
@@ -73,6 +75,9 @@ SET(CUDA_NVCC_FLAGS  "-ccbin /usr/bin/clang -arch=sm_30
 
  SET (CUDA_VERBOSE_BUILD ON CACHE BOOL "nvcc verbose" FORCE)
 
+ else()
+ message(STATUS "Not Building the CUDA opcodes")
  endif()
-
+else()
+message(STATUS "Not building the CUDA opcodes")
 endif()
