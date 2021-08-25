@@ -30,7 +30,6 @@
 #if !defined(_MSC_VER)
 #include <unistd.h>
 #endif
-#include <csound.h>
 #include "widglobals.h"
 #include <FL/x.H>
 
