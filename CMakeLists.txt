@@ -288,4 +288,4 @@ add_subdirectory(websockets)
 add_subdirectory(hdf5)
 add_subdirectory(linear_algebra)
 add_subdirectory(mp3)
-
+add_subdirectory(wiimote)
