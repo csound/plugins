@@ -1,4 +1,4 @@
-/*
+/* 
     p5glove.c:
 
     Copyright (C) 2009 by John ffitch,
@@ -77,11 +77,12 @@ typedef struct {
 
 //P5Glove myGlove;
 
+
 uintptr_t runp5thread(void *g)
 {
     P5Glove    *glove = (P5Glove *)g;
     while (*glove) {
-      p5glove_sample(*glove, 0.2);
+      p5glove_sample(*glove, 0);
     }
     return 0;
 }
@@ -101,7 +102,7 @@ int32_t p5glove_find(CSOUND *csound, P5GLOVEINIT *p)
     }
     *glove = p5glove_open(0);
     if (UNLIKELY(*glove==NULL)) {
-      return csound->InitError(csound, Str("unable to open p5glove\n"));
+      return csound->InitError(csound, "%s", Str("unable to open p5glove\n"));
     }
     p->on = 1;
     csound->RegisterDeinitCallback(csound, p,
@@ -153,7 +154,7 @@ int32_t p5g_data(CSOUND *csound, P5GLOVE *p)
     int32_t kontrol = (int)(*p->kControl+FL(0.5));
     uint32_t buttons, just, rels;
     if (glove==NULL)
-      csound->PerfError(csound,  &p->h, Str("No open glove"));
+      csound->PerfError(csound,  &p->h, "%s", Str("No open glove"));
     p5glove_get_buttons(*glove,&buttons);
     just = ((!p->last) & buttons);
     rels = (p->last & !buttons);
