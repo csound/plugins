@@ -1,9 +1,25 @@
 option(BUILD_P5GLOVE_OPCODES "Build the P5Glove opcodes" ON)
-find_path(P5GLOVE_INCLUDE_DIR p5glove.h /usr/local/include)
-find_library(P5GLOVE_LIB p5glove)
-check_deps(BUILD_P5GLOVE_OPCODES P5GLOVE_LIB)
-if(BUILD_P5GLOVE_OPCODES)
+
+if (NOT APPLE) 
+ find_path(P5GLOVE_INCLUDE_DIR p5glove.h /usr/local/include)
+ find_library(P5GLOVE_LIB p5glove)
+ check_deps(BUILD_P5GLOVE_OPCODES P5GLOVE_LIB)
+ if(BUILD_P5GLOVE_OPCODES)
     make_plugin(p5g p5glove.c ${P5GLOVE_LIB})
     target_include_directories(p5g PRIVATE ${P5GLOVE_INCLUDE_DIR})
     target_include_directories(p5g PRIVATE ${CSOUND_INCLUDE_DIR})
+ endif()
+else()
+   if(BUILD_P5GLOVE_OPCODES)
+    make_plugin(p5g "p5glove.c;libp5glove/p5glove.c;libp5glove/usb_hid_macosx.c")
+    target_link_libraries(p5g  "-framework IOKit" "-framework CoreFoundation")
+    target_include_directories(p5g PRIVATE ./libp5glove)
+    target_include_directories(p5g PRIVATE ${CSOUND_INCLUDE_DIR})
+ endif()  
+
+
 endif()
+
+
+
+
