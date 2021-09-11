@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "csound-plugins",
+  "version-string": "6.16.2",
+  "builtin-baseline": "997cd412fa4dff71bec6c99dea95f0b9a3c2c240",
+  "dependencies": [
+    "eigen3",
+    "hdf5",
+    "libstk",
+    "fltk",
+    "fluidsynth",
+    "hdf5",
+    "zlib"
+  ]
+}
