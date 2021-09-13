@@ -29,19 +29,19 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 # C++11 needed
 if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
 set(APIVERSION "6.0")
 
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
-"${CMAKE_SOURCE_DIR}/cmake/Modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 find_package(CSOUND)
+
 if(NOT CSOUND_INCLUDE_DIRS)
-      message(FATAL_ERROR "Csound header files are required")
+    message(FATAL_ERROR "Csound header files are required")
 endif()
 
 include(TestBigEndian)
@@ -58,7 +58,7 @@ endif()
 ##/Library/Frameworks/CsoundLib64.framework/Versions/Current/Resources/Opcodes64
 
 if(APPLE)
-     message(STATUS "Building on OSX")
+    message(STATUS "Building on OSX")
     set(OSX_VERSION " ")
 endif()
 
