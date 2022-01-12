@@ -91,7 +91,9 @@ $ make
 $ make install
 ```
 
-using `sudo` in the last step if raised permissions are needed.
+using `sudo` in the last step if raised permissions are needed. On
+Linux, the installation location can be set with the relevant CMake
+variables as indicated above.
 
 Csound Location
 ------------
