@@ -43,7 +43,7 @@ library instalation directory (customisable) on LINUX. These are:
 
 - LINUX: depends on both `CMAKE_INSTALL_PREFIX` and `USE_LIB64`, which
 set the cmake variable `LIBRARY_INSTALL_DIR`. It is then installed in 
-`${LIBRARY_INSTALL_DIR}/csound/plugins64-${APIVERSION`(doubles)  or `${LIBRARY_INSTALL_DIR}/csound/plugins-${APIVERSION` (floats)  
+`${LIBRARY_INSTALL_DIR}/csound/plugins64-${APIVERSION}`(doubles)  or `${LIBRARY_INSTALL_DIR}/csound/plugins-${APIVERSION}` (floats)  
 - MACOS: `$HOME/Library/csound/${APIVERSION}/plugins64` (doubles)  
          or `$HOME/Library/csound/${APIVERSION}/plugins` (floats)  
 - Windows:  `%LOCALAPPDATA%\csound\${APIVERSION}\plugins64`(doubles)  
