@@ -114,6 +114,7 @@ if (HAS_CXX_VISIBILITY_HIDDEN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 endif()
 
+if(LINUX)
 option(USE_LIB64 "Set to on to set installation directory for
 libraries to lib64" OFF)
 if(USE_LIB64)
@@ -122,12 +123,10 @@ if(USE_LIB64)
 else()
     set(LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 endif()
+message(STATUS "LIBRARY INSTALL DIR: ${LIBRARY_INSTALL_DIR}")
+endif()
 
-#if(NOT APPLE)
-#message(STATUS "LIBRARY INSTALL DIR: ${LIBRARY_INSTALL_DIR}")
-#endif()
-
-# plugin install directories (CS_USER_PLUGIN)
+# plugin install directories (CS_USER_PLUGIN on MacOs/Windows)
 if(USE_DOUBLE)
     message(STATUS "Building with 64-bit floats")
     if(APPLE)

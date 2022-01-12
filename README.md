@@ -38,10 +38,12 @@ to incompatibilities with the operating system.
 Install location
 --------------
 The CMake scripts in this repository use the default CS_USER_PLUGIN
-location as defined in the Csound build. These are:
+location on MacOS and Windows as defined in the Csound build, or a
+library instalation directory (customisable) on LINUX. These are:
 
-- LINUX: `$HOME/.local/lib/csound/${APIVERSION}/plugins64`(doubles)  
-          or `$HOME/.local/lib/csound/${APIVERSION}/plugins` (floats)  
+- LINUX: depends on both `CMAKE_INSTALL_PREFIX` and `USE_LIB64`, which
+set the cmake variable `LIBRARY_INSTALL_DIR`. It is then installed in 
+`LIBRARY_INSTALL_DIR/csound/plugins64-6.0`(doubles)  or `LIBRARY_INSTALL_DIR/csound/plugins-6.0` (floats)  
 - MACOS: `$HOME/Library/csound/${APIVERSION}/plugins64` (doubles)  
          or `$HOME/Library/csound/${APIVERSION}/plugins` (floats)  
 - Windows:  `%LOCALAPPDATA%\csound\${APIVERSION}\plugins64`(doubles)  
