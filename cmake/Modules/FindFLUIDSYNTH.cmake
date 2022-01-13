@@ -10,8 +10,21 @@ if (FLUIDSYNTH_INCLUDE_DIR AND FLUIDSYNTH_LIBRARIES)
   set (FluidSynth_FIND_QUIETLY TRUE)
 endif ()
 
+if(APPLE)
+find_path(FLUIDSYNTH_INCLUDE_DIR fluidsynth.h HINTS 
+ /usr/local/include
+  ${FLUIDSYNTH_INCLUDE_DIR_HINT})
+else()
 find_path (FLUIDSYNTH_INCLUDE_DIR fluidsynth.h)
+endif()
+
+if(APPLE)
+find_library(FLUIDSYNTH_LIBRARY NAMES Fluidsynth HINTS /Library/Frameworks/Fluidsynth.framework/
+ ${FLUIDSYNTH_LIBRARY_DIR_HINT})
+else()
 find_library (FLUIDSYNTH_LIBRARIES NAMES fluidsynth libfluidsynth)
+endif()
+
 mark_as_advanced (FLUIDSYNTH_LIBRARIES FLUIDSYNTH_INCLUDE_DIR)
 
 # handle the QUIETLY and REQUIRED arguments and set FLUIDSYNTH_FOUND to TRUE if 
