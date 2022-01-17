@@ -41,13 +41,20 @@ The CMake scripts in this repository use the default CS_USER_PLUGIN
 location on MacOS and Windows as defined in the Csound build, or a
 library instalation directory (customisable) on LINUX. These are:
 
-- LINUX: depends on both `CMAKE_INSTALL_PREFIX` and `USE_LIB64`, which
-set the cmake variable `LIBRARY_INSTALL_DIR`. It is then installed in 
-`${LIBRARY_INSTALL_DIR}/csound/plugins64-${APIVERSION}`(doubles)  or `${LIBRARY_INSTALL_DIR}/csound/plugins-${APIVERSION}` (floats)  
-- MACOS: `$HOME/Library/csound/${APIVERSION}/plugins64` (doubles)  
-         or `$HOME/Library/csound/${APIVERSION}/plugins` (floats)  
-- Windows:  `%LOCALAPPDATA%\csound\${APIVERSION}\plugins64`(doubles)  
-        or `%LOCALAPPDATA%\csound\${APIVERSION}\plugins` (floats)
+- LINUX: depends on both `CMAKE_INSTALL_PREFIX` and `USE_LIB64`. It is then installed in:
+   * if `USE_LIB64=1` then to
+       * for doubles: `${CSOUND_INSTALL_PREFIX}/lib64/csound/plugins64-${APIVERSION}`
+       * for floats: `${CSOUND_INSTALL_PREFIX}/lib64/csound/plugins-${APIVERSION}` (floats)`
+   * if `USE_LIB64=0` then to
+       * for doubles: `${CSOUND_INSTALL_PREFIX}/lib/csound/plugins64-${APIVERSION}`
+       * for floats: `${CSOUND_INSTALL_PREFIX}/lib/csound/plugins-${APIVERSION}`
+
+- MACOS: 
+    * For doubles: `$HOME/Library/csound/${APIVERSION}/plugins64` 
+    * For floats: `$HOME/Library/csound/${APIVERSION}/plugins`
+- Windows: 
+    * For doubles: `%LOCALAPPDATA%\csound\${APIVERSION}\plugins64`
+    * For floats: `%LOCALAPPDATA%\csound\${APIVERSION}\plugins`
 
 
 Build Instructions for Linux and MacOS
