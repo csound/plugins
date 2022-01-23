@@ -22,10 +22,13 @@ jobs:
         include:
           - os: "windows-latest"
             mono: ""
+            csound-bin: "csound-windows_x86_64-6.16.2.exe"
           - os: "ubuntu-latest"
             mono: "mono"
+            csound-bin: ""
           - os: "macos-latest"
             mono: "mono"
+            csound-bin: "csound-MacOS_x86_64-6.16.2.dmg"
 
     steps:
       - name: Checkout Source Code
@@ -54,6 +57,11 @@ jobs:
           -password "${{ secrets.GITHUB_TOKEN }}"
 
       # TODO import Csound build
+      - uses: robinraju/release-downloader@v1.3
+        with:
+          repository: "csound/csound"
+          tag: "6.16.2"
+          fileName: ${{ matrix.csound-bin }}
 
       - name: Generate CMake Build
         run: cmake -B build -S . -DUSE_VCPKG=1
