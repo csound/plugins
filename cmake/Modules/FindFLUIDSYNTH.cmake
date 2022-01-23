@@ -12,14 +12,14 @@ endif ()
 
 if(APPLE)
 find_path(FLUIDSYNTH_INCLUDE_DIR fluidsynth.h HINTS 
- /usr/local/include
+ /Library/Frameworks/FluidSynth.framework/Headers 
   ${FLUIDSYNTH_INCLUDE_DIR_HINT})
 else()
 find_path (FLUIDSYNTH_INCLUDE_DIR fluidsynth.h)
 endif()
 
 if(APPLE)
-find_library(FLUIDSYNTH_LIBRARY NAMES Fluidsynth HINTS /Library/Frameworks/Fluidsynth.framework/
+find_library(FLUIDSYNTH_LIBRARY NAMES FluidSynth HINTS /Library/Frameworks/FluidSynth.framework/
  ${FLUIDSYNTH_LIBRARY_DIR_HINT})
 else()
 find_library (FLUIDSYNTH_LIBRARIES NAMES fluidsynth libfluidsynth)
