@@ -1,0 +1,75 @@
+name: Plugins Build
+
+env:
+  VCPKG_BINARY_SOURCES: "clear;nuget,GitHub,readwrite"
+  # CSOUND_VERSION: 6.17.0
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  linux_build:
+    name: Linux/Ubuntu build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install cmake libsndfile1-dev libasound2-dev libjack-dev portaudio19-dev libportmidi-dev libpulse-dev swig liblua5.1-0-dev default-jdk libfltk1.1-dev libfluidsynth-dev liblo-dev fluid ladspa-sdk libpng-dev dssi-dev libstk0-dev libgmm++-dev bison flex libportsmf-dev libeigen3-dev libcunit1-dev
+      - name: Configure build
+        run: mkdir build && cd build && cmake ..
+      - name: Build Csound
+        run: cd build && make
+      - name: Run tests
+        run: cd build && make test csdtests
+
+  macos_build:
+    name: MacOS build
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+      - name: Install Dependencies
+        run: brew install cmake swig eigen asio libsndfile portaudio portmidi libsamplerate liblo jack openjdk hdf5 gettext fluid-synth fltk stk wiiuse
+      - name: Configure build
+        run: mkdir build && cd build && cmake ..
+      - name: Build Csound
+        run: cd build && make
+      - name: Run tests
+        run: cd build && make test csdtests
+
+  windows_build:
+    name: Windows build
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+          submodules: true
+      - name: Bootstrap VCPKG
+        run: .\vcpkg\bootstrap-vcpkg.bat
+      - name: Setup NuGet Credentials
+        shell: bash
+        run: >
+          `./vcpkg/vcpkg fetch nuget | tail -n 1`
+          sources add
+          -source "https://nuget.pkg.github.com/csound/index.json"
+          -storepasswordincleartext
+          -name "GitHub"
+          -username "csound"
+          -password "${{ secrets.GITHUB_TOKEN }}"
+      - name: Configure build
+        run: cmake -B build -S . -DUSE_VCPKG=1
+      - name: Build Csound
+        run: cmake --build build --config Release
