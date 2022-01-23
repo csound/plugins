@@ -13,12 +13,19 @@ on:
       - develop
 
 jobs:
-  platform_builds:
+  build_package:
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: "windows-latest"
+            mono: ""
+          - os: "ubuntu-latest"
+            mono: "mono"
+          - os: "macos-latest"
+            mono: "mono"
 
     steps:
       - name: Checkout Source Code
@@ -26,6 +33,17 @@ jobs:
         with:
           fetch-depth: 1
           submodules: true
+
+      - name: Setup VCPKG cache
+        shell: bash
+        run: >
+          ${{ matrix.mono }} `./vcpkg/vcpkg fetch nuget | tail -n 1`
+          sources add
+          -source "https://nuget.pkg.github.com/csound/index.json"
+          -storepasswordincleartext
+          -name "GitHub"
+          -username "csound"
+          -password "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Bootstrap VCPKG (windows)
         if: startsWith(matrix.os, 'windows')
@@ -35,18 +53,9 @@ jobs:
         if: "!startsWith(matrix.os, 'windows')"
         run: ./vcpkg/bootstrap-vcpkg.sh
 
-      # - name: Setup NuGet Credentials
-      #   shell: bash
-      #   run: >
-      #     `./vcpkg/vcpkg fetch nuget | tail -n 1`
-      #     sources add
-      #     -source "https://nuget.pkg.github.com/csound/index.json"
-      #     -storepasswordincleartext
-      #     -name "GitHub"
-      #     -username "csound"
-      #     -password "${{ secrets.GITHUB_TOKEN }}"
+      # TODO import Csound build
 
-      - name: Generate Build
+      - name: Generate CMake Build
         run: cmake -B build -S . -DUSE_VCPKG=1
 
       - name: Build Plugins
