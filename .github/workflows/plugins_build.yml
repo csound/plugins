@@ -15,32 +15,39 @@ on:
 jobs:
   platform_builds:
     runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
+
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v1
         with:
           fetch-depth: 1
           submodules: true
-      - name: Bootstrap VCPKG
+
+      - name: Bootstrap VCPKG (windows)
         if: startsWith(matrix.os, 'windows')
         run: .\vcpkg\bootstrap-vcpkg.bat
-      - name: Bootstrap VCPKG
+
+      - name: Bootstrap VCPKG (unix)
         if: "!startsWith(matrix.os, 'windows')"
         run: ./vcpkg/bootstrap-vcpkg.sh
-      - name: Setup NuGet Credentials
-        shell: bash
-        run: >
-          `./vcpkg/vcpkg fetch nuget | tail -n 1`
-          sources add
-          -source "https://nuget.pkg.github.com/csound/index.json"
-          -storepasswordincleartext
-          -name "GitHub"
-          -username "csound"
-          -password "${{ secrets.GITHUB_TOKEN }}"
-      - name: Configure build
+
+      # - name: Setup NuGet Credentials
+      #   shell: bash
+      #   run: >
+      #     `./vcpkg/vcpkg fetch nuget | tail -n 1`
+      #     sources add
+      #     -source "https://nuget.pkg.github.com/csound/index.json"
+      #     -storepasswordincleartext
+      #     -name "GitHub"
+      #     -username "csound"
+      #     -password "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Generate Build
         run: cmake -B build -S . -DUSE_VCPKG=1
+
       - name: Build Plugins
         run: cmake --build build --config Release
