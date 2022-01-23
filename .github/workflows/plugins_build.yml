@@ -25,10 +25,10 @@ jobs:
           fetch-depth: 1
           submodules: true
       - name: Bootstrap VCPKG
-        if: ${{ matrix.os }} == 'windows-latest'
+        if: startsWith(matrix.os, 'windows')
         run: .\vcpkg\bootstrap-vcpkg.bat
       - name: Bootstrap VCPKG
-        if: ${{ matrix.os }} != 'windows-latest'
+        if: "!startsWith(matrix.os, 'windows')"
         run: ./vcpkg/bootstrap-vcpkg.sh
       - name: Setup NuGet Credentials
         shell: bash
