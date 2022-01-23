@@ -34,6 +34,14 @@ jobs:
           fetch-depth: 1
           submodules: true
 
+      - name: Bootstrap VCPKG (windows)
+        if: startsWith(matrix.os, 'windows')
+        run: .\vcpkg\bootstrap-vcpkg.bat
+
+      - name: Bootstrap VCPKG (unix)
+        if: "!startsWith(matrix.os, 'windows')"
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
       - name: Setup VCPKG cache
         shell: bash
         run: >
@@ -44,14 +52,6 @@ jobs:
           -name "GitHub"
           -username "csound"
           -password "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Bootstrap VCPKG (windows)
-        if: startsWith(matrix.os, 'windows')
-        run: .\vcpkg\bootstrap-vcpkg.bat
-
-      - name: Bootstrap VCPKG (unix)
-        if: "!startsWith(matrix.os, 'windows')"
-        run: ./vcpkg/bootstrap-vcpkg.sh
 
       # TODO import Csound build
 
