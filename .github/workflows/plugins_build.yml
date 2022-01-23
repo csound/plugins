@@ -28,7 +28,7 @@ jobs:
         if: ${{ matrix.os }} == 'windows-latest'
         run: .\vcpkg\bootstrap-vcpkg.bat
       - name: Bootstrap VCPKG
-        if: ${{ matrix.od }} != 'windows-latest'
+        if: ${{ matrix.os }} != 'windows-latest'
         run: ./vcpkg/bootstrap-vcpkg.sh
       - name: Setup NuGet Credentials
         shell: bash
