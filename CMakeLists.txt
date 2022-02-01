@@ -3,6 +3,7 @@ project(Csound-plugins)
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_COMPILER_IS_CLANG 1)
 endif()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 # C++11 needed
 if(NOT MSVC)
