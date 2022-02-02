@@ -132,7 +132,7 @@ if(USE_DOUBLE)
     message(STATUS "Building with 64-bit floats")
     if(APPLE)
      set(PLUGIN_INSTALL_DIR
-       "$ENV{HOME}/Library/csound/${APIVERSION}/plugins64")
+       "$ENV{HOME}/Library/csound/${APIVERSION}/plugins64" CACHE PATH "Plugin install path")
     elseif(LINUX)
       set(PLUGIN_INSTALL_DIR
       "${LIBRARY_INSTALL_DIR}/csound/plugins64-${APIVERSION}")
@@ -143,7 +143,7 @@ else()
     message(STATUS "Building with 32-bit floats")
     if(APPLE)
         set(PLUGIN_INSTALL_DIR
-    "$ENV{HOME}/Library/csound/${APIVERSION}/plugins")
+    "$ENV{HOME}/Library/csound/${APIVERSION}/plugins" CACHE PATH "Plugin install path")
     elseif(LINUX)
       set(PLUGIN_INSTALL_DIR
       "${LIBRARY_INSTALL_DIR}/csound/plugins-${APIVERSION}")
