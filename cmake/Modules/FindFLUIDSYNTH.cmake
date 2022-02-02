@@ -19,7 +19,7 @@ find_path (FLUIDSYNTH_INCLUDE_DIR fluidsynth.h)
 endif()
 
 if(APPLE)
-find_library(FLUIDSYNTH_LIBRARY NAMES FluidSynth libfluidsynth HINTS /Library/Frameworks/FluidSynth.framework/
+find_library(FLUIDSYNTH_LIBRARY NAMES FluidSynth fluidsynth HINTS /Library/Frameworks/FluidSynth.framework/
  ${FLUIDSYNTH_LIBRARY_DIR_HINT})
 else()
 find_library (FLUIDSYNTH_LIBRARIES NAMES fluidsynth libfluidsynth)
