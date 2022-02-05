@@ -849,7 +849,8 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
         // FIXME if this is called frequently or on the audio thread then this won't
         // work and will need a different solution
 #ifdef _MSC_VER
-    hsize_t* chunkDimensions = malloc (dataset->rank * sizeof (hsize_t));
+    //hsize_t* chunkDimensions = malloc (dataset->rank * sizeof (hsize_t));
+    hsize_t chunkDimensions[16];
 #else
     hsize_t chunkDimensions[dataset->rank];
 #endif
@@ -875,7 +876,7 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
     dataset->offset[0] += vectorSize;
 
 #ifdef _MSC_VER
-    free (chunkDimensions);
+    //free (chunkDimensions);
 #endif
 
 }
