@@ -752,7 +752,6 @@ int32_t HDF5Read_initialise(CSOUND *csound, HDF5Read *self)
     //STRINGDAT *path = (STRINGDAT *)self->arguments[self->outputArgumentCount];
     self->hdf5File = HDF5IO_newHDF5File(csound, &self->hdf5FileMemory, self->path, false);
     HDF5Read_openDatasets(csound, self);
-    printf("***%d end read initialisation\n", __LINE__);
 
     return OK;
 }
@@ -802,10 +801,8 @@ void HDF5Read_readData(CSOUND *csound, HDF5Read *self, HDF5Dataset *dataset,
                                   NULL, chunkDimensions, NULL));
     hid_t memspace  = H5Screate_simple(dataset->rank, chunkDimensions, NULL);
     HDF5ERROR(memspace);
-    printf("***%d %p %d\n", __LINE__, memspace, dataset->datasetID);// OK here
     HDF5ERROR(H5Dread(dataset->datasetID, self->hdf5File->floatSize,
                       memspace, filespace, H5P_DEFAULT, dataPointer));
-    printf("***%d\n", __LINE__);// not here
     HDF5ERROR(H5Sclose(filespace));
     HDF5ERROR(H5Sclose(memspace));
 
@@ -831,7 +828,6 @@ void HDF5Read_readData(CSOUND *csound, HDF5Read *self, HDF5Dataset *dataset,
 void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
                             HDF5Dataset *dataset, MYFLT *inputDataPointer)
 {
-    printf("***%d\tReadAudioData\n");
     if (dataset->offset[0] >=
         dataset->datasetSize[0]) {
       return;
@@ -848,10 +844,8 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
       vectorSize = (int32_t)(dataset->datasetSize[0] -
                          dataset->offset[0]);
     }
-    printf("***%d\trank %d\n", __LINE__, dataset->rank);
     MYFLT *dataPointer =
       vectorSize != self->ksmps ? dataset->sampleBuffer : inputDataPointer;
-    printf("***%d\tvectorSize %d\n", __LINE__, vectorSize);
         // FIXME if this is called frequently or on the audio thread then this won't
         // work and will need a different solution
 #ifdef _MSC_VER
@@ -859,8 +853,6 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
 #else
     hsize_t chunkDimensions[dataset->rank];
 #endif
-    printf("***%d %d/%d/%d\n", __LINE__, dataset->datasetSize[0],
-           dataset->datasetSize[1], dataset->datasetSize[2]);// Gets here
     memcpy(&chunkDimensions[1], &dataset->datasetSize[1],
            sizeof(hsize_t) * (dataset->rank-1)); // Reads too much
     chunkDimensions[0] = vectorSize;
@@ -868,7 +860,7 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
     //    memcpy (chunkDimensions, dataset->datasetSize,
     //            sizeof (hsize_t)/* * dataset->rank */
     //            );
-    chunkDimensions[dataset->rank - 1] = vectorSize;
+    //chunkDimensions[dataset->rank - 1] = vectorSize;
 
     HDF5Read_readData (csound, self, dataset, dataset->offset,
                        chunkDimensions, dataPointer);
@@ -885,7 +877,6 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
 #ifdef _MSC_VER
     free (chunkDimensions);
 #endif
-    printf("***%d end\n", __LINE__);
 
 }
 
@@ -936,7 +927,6 @@ int32_t HDF5Read_process(CSOUND *csound, HDF5Read *self)
 {
     int32_t i;
     for (i = 0; i < self->inputArgumentCount; ++i) {
-      printf("***%d Process\t%d\n", __LINE__, i);
 
       HDF5Dataset *dataset = &self->datasets[i];
 
@@ -944,7 +934,6 @@ int32_t HDF5Read_process(CSOUND *csound, HDF5Read *self)
 
         continue;
       }
-      printf("***%d switch %d\n", __LINE__, dataset->readType);
 
       switch (dataset->readType) {
 
@@ -1010,7 +999,6 @@ int32_t HDF5Read_finish(CSOUND *csound, void *inReference)
 void HDF5Read_checkArgumentSanity(CSOUND *csound, const HDF5Read *self)
 {
     int32_t i;
-    printf("***%d\t In Sanity check\n", __LINE__);
     if (UNLIKELY(self->inputArgumentCount != self->outputArgumentCount)) {
 
       if (self->inputArgumentCount > self->outputArgumentCount) {
@@ -1041,7 +1029,6 @@ void HDF5Read_checkArgumentSanity(CSOUND *csound, const HDF5Read *self)
                                 "is unknown, exiting"), i + 1);
       }
     }
-    printf("***%d\tend\n",__LINE__);
 }
 
 // Open the specified dataset in the hdf5 file
@@ -1343,14 +1330,12 @@ void HDF5Read_openDatasets(CSOUND *csound, HDF5Read *self)
         currentDataset->readAll = true;
         currentDataset->datasetName[strlen(inputArgument->data) - 1] = '\0';
       }
-      printf("***%d\n", __LINE__);
       currentDataset->readType =
         HDF5IO_getArgumentTypeFromArgument(csound, self->arguments[i]);
       currentDataset->argumentPointer = self->arguments[i];
       HDF5Read_checkReadTypeSanity(csound, self, currentDataset);
       HDF5Read_initialiseHDF5Dataset(csound, self, currentDataset);
 
-      printf("***%d\t%d\n", __LINE__, currentDataset->readType);
       switch (currentDataset->readType) {
       case ARATE_ARRAY: {
 
@@ -1386,9 +1371,8 @@ void HDF5Read_openDatasets(CSOUND *csound, HDF5Read *self)
         break;
 
       }
-      printf("***%d end\n", __LINE__);
     }
-     printf("***%d end Fn\n", __LINE__);
+
 }
 
 
