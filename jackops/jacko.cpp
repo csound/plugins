@@ -453,7 +453,7 @@
  * 5. At the end of processing, the module deinitialization
  *    function erases all Jack-related state.
  */
-#include <OpcodeBase.hpp>
+#include "OpcodeBase.hpp"
 #include <atomic>
 #include <csound.h>
 #include <cstdio>
