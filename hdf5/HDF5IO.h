@@ -120,6 +120,8 @@ typedef struct HDF5Read
 {
     OPDS h;
     MYFLT *arguments[20];
+    STRINGDAT *path;
+    STRINGDAT *names[20];
     int32_t inputArgumentCount;
     int32_t outputArgumentCount;
     size_t ksmps;

@@ -749,8 +749,8 @@ int32_t HDF5Read_initialise(CSOUND *csound, HDF5Read *self)
     HDF5Read_checkArgumentSanity(csound, self);
     csound->RegisterDeinitCallback(csound, self, HDF5Read_finish);
     self->isSampleAccurate = HDF5IO_getSampleAccurate(csound);
-    STRINGDAT *path = (STRINGDAT *)self->arguments[self->outputArgumentCount];
-    self->hdf5File = HDF5IO_newHDF5File(csound, &self->hdf5FileMemory, path, false);
+    //STRINGDAT *path = (STRINGDAT *)self->arguments[self->outputArgumentCount];
+    self->hdf5File = HDF5IO_newHDF5File(csound, &self->hdf5FileMemory, self->path, false);
     HDF5Read_openDatasets(csound, self);
 
     return OK;
@@ -830,7 +830,6 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
 {
     if (dataset->offset[0] >=
         dataset->datasetSize[0]) {
-
       return;
     }
 
@@ -845,24 +844,24 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
       vectorSize = (int32_t)(dataset->datasetSize[0] -
                          dataset->offset[0]);
     }
-
     MYFLT *dataPointer =
       vectorSize != self->ksmps ? dataset->sampleBuffer : inputDataPointer;
-
         // FIXME if this is called frequently or on the audio thread then this won't
         // work and will need a different solution
 #ifdef _MSC_VER
-    hsize_t* chunkDimensions = malloc (dataset->rank * sizeof (hsize_t));
+    //hsize_t* chunkDimensions = malloc (dataset->rank * sizeof (hsize_t));
+    hsize_t chunkDimensions[16];
 #else
     hsize_t chunkDimensions[dataset->rank];
 #endif
     memcpy(&chunkDimensions[1], &dataset->datasetSize[1],
-           sizeof(hsize_t) * dataset->rank);
+           sizeof(hsize_t) * (dataset->rank-1)); // Reads too much
     chunkDimensions[0] = vectorSize;
 
-    memcpy (chunkDimensions, dataset->datasetSize,
-            sizeof (hsize_t) * dataset->rank);
-    chunkDimensions[dataset->rank - 1] = vectorSize;
+    //    memcpy (chunkDimensions, dataset->datasetSize,
+    //            sizeof (hsize_t)/* * dataset->rank */
+    //            );
+    //chunkDimensions[dataset->rank - 1] = vectorSize;
 
     HDF5Read_readData (csound, self, dataset, dataset->offset,
                        chunkDimensions, dataPointer);
@@ -877,8 +876,9 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
     dataset->offset[0] += vectorSize;
 
 #ifdef _MSC_VER
-    free (chunkDimensions);
+    //free (chunkDimensions);
 #endif
+
 }
 
 // Read data at control rate from a hdf5 dataset
@@ -1016,22 +1016,8 @@ void HDF5Read_checkArgumentSanity(CSOUND *csound, const HDF5Read *self)
 
     for (i = 0; i < self->inputArgumentCount; ++i) {
 
-      ArgumentType inputType =
-        HDF5IO_getArgumentTypeFromArgument(csound,
-                                   self->arguments[self->outputArgumentCount + i]);
       ArgumentType outputType =
         HDF5IO_getArgumentTypeFromArgument(csound, self->arguments[i]);
-
-      if (UNLIKELY(inputType != STRING_VAR)) {
-
-        csound->Die(csound, Str("hdf5read: Error, input argument %d does not "
-                                "appear to be a string, exiting"), i + 1);
-      }
-      else if (UNLIKELY(inputType == UNKNOWN)) {
-
-        csound->Die(csound, Str("hdf5read: Error, input argument %d type "
-                                "is unknown, exiting"), i + 1);
-      }
 
       if (UNLIKELY(outputType == STRING_VAR)) {
 
@@ -1320,7 +1306,7 @@ void HDF5Read_initialiseScalarOutput(CSOUND *csound, HDF5Read *self,
 // Assign the input argument name to the dataset name
 // Get the read type from the arguments
 // Assign the argument data pointer
-// Check that the read type and write type are compatible
+// Check that the read type and write type are compatiblea
 // Initialise the data set using the corresponding function for read type specified
 
 void HDF5Read_openDatasets(CSOUND *csound, HDF5Read *self)
@@ -1333,10 +1319,9 @@ void HDF5Read_openDatasets(CSOUND *csound, HDF5Read *self)
     for (i = 0; i < self->inputArgumentCount; ++i) {
 
       HDF5Dataset *currentDataset = &self->datasets[i];
-      STRINGDAT *inputArgument =
-        (STRINGDAT *)self->arguments[self->outputArgumentCount + i + 1];
+      STRINGDAT *inputArgument = (STRINGDAT *)self->names[i];
 
-      csound->AuxAlloc(csound, sizeof(char) * strlen(inputArgument->data),
+      csound->AuxAlloc(csound, sizeof(char) * strlen(inputArgument->data)+1,
                        &currentDataset->datasetNameMemory);
       currentDataset->datasetName = currentDataset->datasetNameMemory.auxp;
       strcpy(currentDataset->datasetName, inputArgument->data);
@@ -1346,7 +1331,6 @@ void HDF5Read_openDatasets(CSOUND *csound, HDF5Read *self)
         currentDataset->readAll = true;
         currentDataset->datasetName[strlen(inputArgument->data) - 1] = '\0';
       }
-
       currentDataset->readType =
         HDF5IO_getArgumentTypeFromArgument(csound, self->arguments[i]);
       currentDataset->argumentPointer = self->arguments[i];
@@ -1389,6 +1373,7 @@ void HDF5Read_openDatasets(CSOUND *csound, HDF5Read *self)
 
       }
     }
+
 }
 
 
@@ -1408,8 +1393,8 @@ static OENTRY localops[] = {
     .opname = "hdf5read",
     .dsblksiz = sizeof(HDF5Read),
     .thread = 3,
-    .outypes = "*",
-    .intypes = "*",
+    .outypes = "********************",
+    .intypes = "SW",
     .iopadr = (SUBR)HDF5Read_initialise,
     .kopadr = (SUBR)HDF5Read_process,
     .aopadr = NULL
