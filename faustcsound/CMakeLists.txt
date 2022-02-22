@@ -1,6 +1,6 @@
 # Build faustcsound opcodes
+option(BUILD_FAUST_OPCODES "Build the Faust opcodes" ON)
 find_package(FAUST)
-
 check_deps(BUILD_FAUST_OPCODES FAUST_FOUND)
 if(BUILD_FAUST_OPCODES)
     make_plugin(faustcsound faustgen.cpp)

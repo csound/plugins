@@ -1,4 +1,6 @@
 # Build py opcodes
+option(BUILD_PYTHON_OPCODES "Build the py opcodes" ON)
+
 if(${BUILD_PYTHON_OPCODES})
        find_package(Python3 COMPONENTS Interpreter Development)
        set(PYTHON_INCLUDE_DIRS ${Python3_INCLUDE_DIRS})

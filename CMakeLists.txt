@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(Csound-plugins)
-
-
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_COMPILER_IS_CLANG 1)
 endif()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 # C++11 needed
 if(NOT MSVC)
@@ -19,6 +18,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 find_package(CSOUND)
+if(NOT CSOUND_INCLUDE_DIRS)
+      message(FATAL_ERROR "Csound header files are required")
+endif()
+
 include(TestBigEndian)
 include(CheckFunctionExists)
 include(CheckCCompilerFlag)
@@ -112,27 +115,27 @@ if (HAS_CXX_VISIBILITY_HIDDEN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 endif()
 
+if(LINUX)
 option(USE_LIB64 "Set to on to set installation directory for
 libraries to lib64" OFF)
 if(USE_LIB64)
-    set(LIBRARY_INSTALL_DIR "lib64")
+    set(LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib64")
     add_definitions("-DLIB64")
 else()
-    set(LIBRARY_INSTALL_DIR "lib")
+    set(LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 endif()
-if(NOT APPLE)
- message(STATUS "LIBRARY INSTALL DIR: ${LIBRARY_INSTALL_DIR}")
+message(STATUS "LIBRARY INSTALL DIR: ${LIBRARY_INSTALL_DIR}")
 endif()
 
-# plugin install directories (CS_USER_PLUGIN)
+# plugin install directories (CS_USER_PLUGIN on MacOs/Windows)
 if(USE_DOUBLE)
     message(STATUS "Building with 64-bit floats")
     if(APPLE)
-        set(PLUGIN_INSTALL_DIR
-    "$ENV{HOME}/Library/csound/${APIVERSION}/plugins64")
+     set(PLUGIN_INSTALL_DIR
+       "$ENV{HOME}/Library/csound/${APIVERSION}/plugins64" CACHE PATH "Plugin install path")
     elseif(LINUX)
       set(PLUGIN_INSTALL_DIR
-      "$ENV{HOME}/.local/lib/csound/${APIVERSION}/plugins64")
+      "${LIBRARY_INSTALL_DIR}/csound/plugins64-${APIVERSION}")
      elseif(WINDOWS)
       set(PLUGIN_INSTALL_DIR "${env.LOCALAPPDATA}/csound/${APIVERSION}/plugins64")
     endif()
@@ -140,10 +143,10 @@ else()
     message(STATUS "Building with 32-bit floats")
     if(APPLE)
         set(PLUGIN_INSTALL_DIR
-    "$ENV{HOME}/Library/csound/${APIVERSION}/plugins")
+    "$ENV{HOME}/Library/csound/${APIVERSION}/plugins" CACHE PATH "Plugin install path")
     elseif(LINUX)
       set(PLUGIN_INSTALL_DIR
-      "$ENV{HOME}/.local/lib/csound/${APIVERSION}/plugins")
+      "${LIBRARY_INSTALL_DIR}/csound/plugins-${APIVERSION}")
      elseif(WINDOWS)
       set(PLUGIN_INSTALL_DIR "${env.LOCALAPPDATA}/csound/${APIVERSION}/plugins")
       endif()
@@ -273,22 +276,22 @@ if(WIN32)
     add_definitions(-DWIN32)
 endif()
 
-
-option(BUILD_CHUA_OPCODES "Build the chua opcodes" ON)
-option(BUILD_FAUST_OPCODES "Build the Faust opcodes" ON)
-option(BUILD_IMAGE_OPCODES "Build the image opcodes" ON)
-option(BUILD_PYTHON_OPCODES "Build the py opcodes" ON)
-option(BUILD_ABLETON_LINK_OPCODES "Build the Ableton link opcodes" ON)
-
-if(APPLE)
-        option(USE_FLTK "Use FLTK for graphs and widget opcodes" OFF)
-else()
-        option(USE_FLTK "Use FLTK for graphs and widget opcodes" ON)
-endif()
-
 add_subdirectory(chua)
 add_subdirectory(faustcsound)
 add_subdirectory(image)
 add_subdirectory(py)
 add_subdirectory(widgets)
 add_subdirectory(AbletonLinkOpcodes)
+add_subdirectory(stk)
+add_subdirectory(CUDA)
+add_subdirectory(opencl)
+add_subdirectory(websockets)
+add_subdirectory(hdf5)
+add_subdirectory(linear_algebra)
+add_subdirectory(mp3)
+add_subdirectory(wiimote)
+add_subdirectory(p5glove)
+add_subdirectory(jackops)
+add_subdirectory(fluidOpcodes)
+
+

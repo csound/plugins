@@ -1,5 +1,5 @@
 # Build Ableton Link Opcodes
-
+option(BUILD_ABLETON_LINK_OPCODES "Build the Ableton link opcodes" ON)
 check_deps(BUILD_ABLETON_LINK_OPCODES ABLETON_LINK_HOME)
 if(BUILD_ABLETON_LINK_OPCODES)
     message(STATUS "Ableton Link home: ${ABLETON_LINK_HOME}")

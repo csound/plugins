@@ -1,4 +1,6 @@
 # Build image opcodes
+option(BUILD_IMAGE_OPCODES "Build the image opcodes" ON)
+
 if(${BUILD_IMAGE_OPCODES})
     find_package(PNG)
     

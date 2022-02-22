@@ -1,4 +1,10 @@
 # Build widgets opcodes
+if(APPLE)
+        option(USE_FLTK "Use FLTK for graphs and widget opcodes" OFF)
+else()
+        option(USE_FLTK "Use FLTK for graphs and widget opcodes" ON)
+endif()
+
 set(FLTK_SKIP_OPENGL true)
 find_package(FLTK)
 
