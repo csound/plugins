@@ -70,7 +70,7 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         run: |
           7z x .\downloads\${{ matrix.csound-bin }}
-          $files = get-childitem -Filter *.exe \downloads\
+          $files = get-childitem -Filter *.exe .\downloads\
           foreach ($file in $files) { Start-Process $file.Fullname -ArgumentList "/SILENT" }
 
       - name: Install Csound (unix)
