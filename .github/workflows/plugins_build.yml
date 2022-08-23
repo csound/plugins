@@ -18,20 +18,20 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest]
         include:
           - os: "windows-latest"
             mono: ""
             version: "6.17.0"
             csound-bin: "csound-6.17.0-windows-x64-installer.zip"
 
-          - os: "ubuntu-latest"
-            mono: "mono"
-            csound-bin: ""
+          # - os: "ubuntu-latest"
+          #   mono: "mono"
+          #   csound-bin: ""
 
-          - os: "macos-latest"
-            mono: "mono"
-            csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
+          # - os: "macos-latest"
+          #   mono: "mono"
+          #   csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
 
     steps:
       - name: Checkout Source Code
