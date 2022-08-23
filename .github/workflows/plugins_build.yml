@@ -23,9 +23,11 @@ jobs:
           - os: "windows-latest"
             mono: ""
             csound-bin: "csound-windows_x86_64-6.16.2.exe"
+
           - os: "ubuntu-latest"
             mono: "mono"
             csound-bin: ""
+
           - os: "macos-latest"
             mono: "mono"
             csound-bin: "csound-MacOS_x86_64-6.16.2.dmg"
