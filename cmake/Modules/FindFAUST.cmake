@@ -32,16 +32,15 @@ if(FAUST_FOUND)
             message(WARNING "Using a static Faust library requires LLVM tooling to be present in the path.")
             UNSET(FAUST_FOUND)
         else()
-        
-        exec_program(${LLVM_CONFIG} ARGS --includedir OUTPUT_VARIABLE LLVM_DIR)
-        exec_program(${LLVM_CONFIG} ARGS --libs OUTPUT_VARIABLE LLVM_LIBS)
-        exec_program(${LLVM_CONFIG} ARGS --version OUTPUT_VARIABLE LLVM_VERSION)
-        exec_program(${LLVM_CONFIG} ARGS --ldflags OUTPUT_VARIABLE LLVM_LDFLAGS)
+          exec_program(${LLVM_CONFIG} ARGS --includedir OUTPUT_VARIABLE LLVM_DIR)
+          exec_program(${LLVM_CONFIG} ARGS --libs OUTPUT_VARIABLE LLVM_LIBS)
+          exec_program(${LLVM_CONFIG} ARGS --version OUTPUT_VARIABLE LLVM_VERSION)
+          exec_program(${LLVM_CONFIG} ARGS --ldflags OUTPUT_VARIABLE LLVM_LDFLAGS)
 
-        set(LLVM_VERSION LLVM_${LLVM_VERSION_MAJOR}${LLVM_VERSION_MINOR})
+          set(LLVM_VERSION LLVM_${LLVM_VERSION_MAJOR}${LLVM_VERSION_MINOR})
 
-        find_package(OpenSSL REQUIRED)
-        set(FAUST_LIBRARIES ${FAUST_LIBRARIES} dl ${OPENSSL_LIBRARIES} ncurses z ${LLVM_LDFLAGS} ${LLVM_LIBS} )
+          find_package(OpenSSL REQUIRED)
+          set(FAUST_LIBRARIES ${FAUST_LIBRARIES} dl ${OPENSSL_LIBRARIES} ncurses z ${LLVM_LDFLAGS} ${LLVM_LIBS} )
         endif()
         
       endif()

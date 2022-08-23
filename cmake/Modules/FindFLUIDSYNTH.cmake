@@ -7,22 +7,23 @@
 
 if (FLUIDSYNTH_INCLUDE_DIR AND FLUIDSYNTH_LIBRARIES)
   # Already in cache, be silent
-  set (FluidSynth_FIND_QUIETLY TRUE)
+  set (FLUIDSYNTH_FIND_QUIETLY TRUE)
 endif ()
 
 if(APPLE)
-find_path(FLUIDSYNTH_INCLUDE_DIR fluidsynth.h HINTS 
- /Library/Frameworks/FluidSynth.framework/Headers 
-  ${FLUIDSYNTH_INCLUDE_DIR_HINT})
+  find_path(FLUIDSYNTH_INCLUDE_DIR fluidsynth.h HINTS 
+    /Library/Frameworks/FluidSynth.framework/Headers 
+    ${FLUIDSYNTH_INCLUDE_DIR_HINT})
 else()
-find_path (FLUIDSYNTH_INCLUDE_DIR fluidsynth.h)
+  find_path (FLUIDSYNTH_INCLUDE_DIR fluidsynth.h)
 endif()
 
 if(APPLE)
-find_library(FLUIDSYNTH_LIBRARIES NAMES FluidSynth HINTS /Library/Frameworks/FluidSynth.framework/
- ${FLUIDSYNTH_LIBRARY_DIR_HINT})
+  find_library(FLUIDSYNTH_LIBRARIES NAMES FluidSynth HINTS 
+    /Library/Frameworks/FluidSynth.framework/ 
+    ${FLUIDSYNTH_LIBRARY_DIR_HINT})
 else()
-find_library (FLUIDSYNTH_LIBRARIES NAMES fluidsynth libfluidsynth)
+  find_library (FLUIDSYNTH_LIBRARIES NAMES fluidsynth libfluidsynth)
 endif()
 
 mark_as_advanced (FLUIDSYNTH_LIBRARIES FLUIDSYNTH_INCLUDE_DIR)
@@ -30,4 +31,4 @@ mark_as_advanced (FLUIDSYNTH_LIBRARIES FLUIDSYNTH_INCLUDE_DIR)
 # handle the QUIETLY and REQUIRED arguments and set FLUIDSYNTH_FOUND to TRUE if 
 # all listed variables are TRUE
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(FluidSynth DEFAULT_MSG FLUIDSYNTH_LIBRARIES FLUIDSYNTH_INCLUDE_DIR)
+find_package_handle_standard_args(FLUIDSYNTH DEFAULT_MSG FLUIDSYNTH_LIBRARIES FLUIDSYNTH_INCLUDE_DIR)
