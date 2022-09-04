@@ -73,6 +73,7 @@ jobs:
           7z x ${{ matrix.csound-bin }} 
           $files = get-childitem -Filter *.exe .
           foreach ($file in $files) { Start-Process $file.Fullname -ArgumentList "/SILENT" }
+          ls "C:\Program Files\Csound6_x64"
 
       - name: Install Csound (unix)
         if: "!startsWith(matrix.os, 'windows')"
