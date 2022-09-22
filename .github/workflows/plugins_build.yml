@@ -24,14 +24,17 @@ jobs:
           - os: "windows-latest"
             mono: ""
             csound-bin: "csound-6.17.0-windows-x64-installer.zip"
+            packages: cuda
 
           # - os: "ubuntu-latest"
           #   mono: "mono"
           #   csound-bin: ""
+          #   packages: cuda
 
           # - os: "macos-latest"
           #   mono: "mono"
           #   csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
+          #   packages: cuda
 
     steps:
       - name: Checkout Source Code

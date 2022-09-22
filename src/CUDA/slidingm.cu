@@ -28,12 +28,16 @@
 //
 
 #include <stdio.h>
-#include <unistd.h>
+#if defined(WIN32)
+#  include <io.h>
+#else 
+#  include <unistd.h>
+#endif
 #include <string.h>
 #include <inttypes.h>
 #include <math.h>
 #include <inttypes.h>
-#include <sys/time.h>
+// #include <sys/time.h>
 #include <csdl.h>
 
 //#define RB
@@ -45,6 +49,7 @@ typedef double real;
 #endif
 
 #define real(x) x
+#define M_PI 3.14159265358979323846
 #define TWO_PI (2.0*M_PI)
 #define NBATCH (256)
 
