@@ -24,7 +24,9 @@
  */
 
 #include "WebSocketOpcode.h"
-#include <sys/param.h>
+#ifndef _MSC_VER
+#   include <sys/param.h>
+#endif
 #include <stdio.h>
 #include <libwebsockets.h>
 #include <stdlib.h>

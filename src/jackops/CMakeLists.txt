@@ -1,25 +1,31 @@
 option(BUILD_JACK_OPCODES "Build the JACK related opcodes" ON)
+
 find_library(JACK_LIBRARY jack)
 find_library(JACKDMP_LIBRARY jackdmp)
 find_path (JACK_INCLUDE_DIR jack/jack.h HINTS /usr/local/include)
-set(JACK_LIB ${JACK_LIBRARY})
-if(NOT JACK_LIB)
-  set(JACK_LIB ${JACKDMP_LIBRARY})
-endif()
 
 check_deps(BUILD_JACK_OPCODES JACK_LIB)
-if(BUILD_JACK_OPCODES)
+
+if(BUILD_JACK_OPCODES AND JACK_LIB)
+
+    set(JACK_LIB ${JACK_LIBRARY})
+    if(NOT JACK_LIB)
+        set(JACK_LIB ${JACKDMP_LIBRARY})
+    endif()
+
     set(jack_LIBS ${PTHREAD_LIBRARY})
+
     if(JACKDMP_LIBRARY)
         list(APPEND jack_LIBS ${JACKDMP_LIBRARY})
     else()
         list(APPEND jack_LIBS ${JACK_LIBRARY})
     endif()
+
     make_plugin(jacko jacko.cpp "${jack_LIBS}")
     target_include_directories(jacko PRIVATE ${CSOUND_INCLUDE_DIRS})
     target_include_directories(jacko PRIVATE ${JACK_INCLUDE_DIR})
-    set_target_properties(jacko PROPERTIES COMPILE_FLAGS
-   "-std=c++11")
+    set_target_properties(jacko PROPERTIES COMPILE_FLAGS "-std=c++11")
+
     make_plugin(jackTransport jackTransport.c "${jack_LIBS}")
     target_include_directories(jackTransport PRIVATE ${CSOUND_INCLUDE_DIRS})
     target_include_directories(jackTransport PRIVATE ${JACK_INCLUDE_DIR})

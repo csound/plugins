@@ -1,16 +1,16 @@
 {
-  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
-  "name": "csound-plugins",
-  "version-string": "6.16.2",
-  "builtin-baseline": "8563627bf17c6b76460a35c0e668557be2f8bbdc",
-  "dependencies": [
-    "cuda",
-    "eigen3",
-    "hdf5",
-    "libstk",
-    "fltk",
-    "fluidsynth",
-    "hdf5",
-    "zlib"
-  ]
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+    "name": "csound-plugins",
+    "version-string": "6.16.2",
+    "builtin-baseline": "8563627bf17c6b76460a35c0e668557be2f8bbdc",
+    "dependencies": [
+        "cuda",
+        "eigen3",
+        "fltk",
+        "fluidsynth",
+        "hdf5",
+        "libstk",
+        "libwebsockets",
+        "zlib"
+    ]
 }

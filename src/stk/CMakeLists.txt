@@ -1,8 +1,6 @@
 option(BUILD_STK_OPCODES "Build the stk opcodes" ON)
 
 if(BUILD_STK_OPCODES)
-    
-
     if(DEFAULT_STK_RAWWAVE_PATH)
         set(rawwave_path "-DDEFAULT_RAWWAVE_PATH=\"${DEFAULT_STK_RAWWAVE_PATH}\"")
     endif()
@@ -39,7 +37,7 @@ if(BUILD_STK_OPCODES)
                 else()
                 target_link_libraries(stkops ${STK_LIBRARIES} ${PTHREAD_LIBRARY})
                 endif()
-                
+
                 target_compile_definitions(stkops PRIVATE ${rawwave_path})
             endif()
         else()
@@ -67,7 +65,7 @@ if(BUILD_STK_OPCODES)
         check_deps(BUILD_STK_OPCODES STK_FOUND STK_INCLUDE_DIR)
 
         make_plugin(stkops "${stk_srcs}")
-        target_include_directories(stkops PRIVATE 
+        target_include_directories(stkops PRIVATE
             ${CSOUND_INCLUDE_DIRS}
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/include/stk
