@@ -25,15 +25,10 @@ project(Csound-plugins)
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_COMPILER_IS_CLANG 1)
 endif()
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
-
-# C++11 needed
-if(NOT MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-endif()
 
 set(APIVERSION "6.0")
 
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
@@ -151,7 +146,7 @@ if(LINUX)
     else()
         set(LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
     endif()
-    
+
     message(STATUS "LIBRARY INSTALL DIR: ${LIBRARY_INSTALL_DIR}")
 endif()
 
@@ -243,7 +238,7 @@ function(make_plugin libname srcs)
       #  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
     install(TARGETS ${libname}
-        LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}" 
+        LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}"
         ARCHIVE DESTINATION "${PLUGIN_INSTALL_DIR}" )
 endfunction(make_plugin)
 
