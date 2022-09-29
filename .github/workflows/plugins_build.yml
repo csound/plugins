@@ -59,7 +59,7 @@ jobs:
         run: |
           # Install CUDA SDK
           brew tap homebrew/cask-drivers
-          brew cask install nvidia-cuda
+          brew install --cask nvidia-cuda-toolkit
           # export PATH=/Developer/NVIDIA/CUDA-11.7/bin${PATH:+:${PATH}}
           # export DYLD_LIBRARY_PATH=/Developer/NVIDIA/CUDA-11.7/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}
 
