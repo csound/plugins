@@ -53,7 +53,7 @@ jobs:
 
       - name: Install system packages (mac)
         if: "startsWith(matrix.os, 'macos')"
-        run: homebrew install ${{ matrix.packages }}
+        run: brew install ${{ matrix.packages }}
 
       - name: Bootstrap VCPKG (windows)
         if: startsWith(matrix.os, 'windows')
