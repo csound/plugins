@@ -12,8 +12,9 @@ check_deps(USE_FLTK FLTK_FOUND)
 
 if(USE_FLTK)
     set(widgets_SRCS FL_graph.cpp winFLTK.c widgets.cpp)
+
     make_plugin(widgets "${widgets_SRCS}" "${FLTK_LIBRARIES}")
-    target_include_directories(widgets PRIVATE ${CSOUND_INCLUDE_DIRS})
+    target_include_directories(widgets PRIVATE ${CSOUND_INCLUDE_DIRS} ${FLTK_INCLUDE_DIR})
 
     if(USE_VCPKG)
         target_link_libraries(widgets PRIVATE fltk fltk_gl fltk_forms fltk_images)
@@ -22,12 +23,11 @@ if(USE_FLTK)
             ${FLTK_BASE_LIBRARY} ${FLTK_FORMS_LIBRARY} ${FLTK_IMAGES_LIBRARY}
         )
     endif()
-
-    target_include_directories(widgets PRIVATE ${FLTK_INCLUDE_DIR})
 endif()
 
 if(USE_FLTK)
-    set(virtual_SRCS virtual_keyboard/FLTKKeyboard.cpp
+    set(virtual_SRCS
+        virtual_keyboard/FLTKKeyboard.cpp
         virtual_keyboard/FLTKKeyboardWindow.cpp
         virtual_keyboard/FLTKKeyboardWidget.cpp
         virtual_keyboard/virtual_keyboard.cpp
@@ -38,6 +38,7 @@ if(USE_FLTK)
         virtual_keyboard/SliderData.cpp)
 
     make_plugin(virtual "${virtual_SRCS}" "${FLTK_LIBRARIES}")
+    target_include_directories(virtual PRIVATE ${CSOUND_INCLUDE_DIRS} ${FLTK_INCLUDE_DIR} ".")
 
     if (USE_VCPKG)
         target_link_libraries(virtual PRIVATE fltk fltk_gl fltk_forms fltk_images)
@@ -46,6 +47,4 @@ if(USE_FLTK)
             ${FLTK_BASE_LIBRARY} ${FLTK_FORMS_LIBRARY} ${FLTK_IMAGES_LIBRARY}
         )
     endif()
-
-    target_include_directories(virtual PRIVATE ${CSOUND_INCLUDE_DIRS} ${FLTK_INCLUDE_DIR} ".")
 endif()
