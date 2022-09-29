@@ -47,5 +47,5 @@ if(USE_FLTK)
         )
     endif()
 
-    target_include_directories(virtual PRIVATE ${CSOUND_INCLUDE_DIRS} ${FLTK_INCLUDE_DIR})
+    target_include_directories(virtual PRIVATE ${CSOUND_INCLUDE_DIRS} ${FLTK_INCLUDE_DIR} ".")
 endif()
