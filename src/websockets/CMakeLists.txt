@@ -1,6 +1,7 @@
 option(BUILD_WEBSOCKET_OPCODE "Build the websocket opcode" ON)
 
 if(USE_VCPKG)
+    find_package(libuv CONFIG)
     find_package(libwebsockets CONFIG)
 else()
     find_path(WEBSOCKETS_H libwebsockets.h /usr/local/include /usr/include)
@@ -19,10 +20,10 @@ if(BUILD_WEBSOCKET_OPCODE)
     target_include_directories(websocketIO PRIVATE ${CSOUND_INCLUDE_DIRS})
 
     if(USE_VCPKG)
-        target_link_libraries(websocketIO websockets)
+        target_link_libraries(websocketIO websockets uv_a)
     else()
         target_link_libraries(websocketIO ${websockets_library})
-        target_include_directories(websocketIO PRIVATE ${CSOUND_INCLUDE_DIRS} ${WEBSOCKETS_H})
+        target_include_directories(websocketIO PRIVATE ${WEBSOCKETS_H})
     endif()
 
     if(APPLE)
