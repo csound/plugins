@@ -29,9 +29,9 @@ jobs:
           #   mono: "mono"
           #   csound-bin: ""
 
-          - os: "macos-latest"
-            mono: "mono"
-            csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
+          # - os: "macos-latest"
+          #   mono: "mono"
+          #   csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
 
     steps:
       - name: Checkout Source Code
@@ -40,14 +40,9 @@ jobs:
           fetch-depth: 1
           submodules: true
 
-      - uses: Jimver/cuda-toolkit@v0.2.8
-        id: cuda-toolkit
-        with:
-          cuda: "11.7.0"
-
-      # - name: Install system packages (windows)
-      #   if: startsWith(matrix.os, 'windows')
-      #   run: chocolatey install cuda
+      - name: Install system packages (windows)
+        if: startsWith(matrix.os, 'windows')
+        run: chocolatey install cuda
 
       # - name: Install system packages (linux)
       #   if: "startsWith(matrix.os, 'ubuntu')"
