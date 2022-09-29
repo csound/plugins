@@ -6,10 +6,13 @@ option(USE_VCPKG "Use VCPKG to download and manage dependencies" OFF)
 if (USE_VCPKG)
     # Detect correct triplet based on CMake env
     if (WIN32)
+        set(VCPKG_HOST_TRIPLET "x64-windows-csound" CACHE STRING "")
         set(VCPKG_TARGET_TRIPLET "x64-windows-csound")
     elseif(APPLE)
+        set(VCPKG_HOST_TRIPLET "x64-osx" CACHE STRING "")
         set(VCPKG_TARGET_TRIPLET "x64-osx")
     elseif (UNIX)
+        set(VCPKG_HOST_TRIPLET "x64-linux" CACHE STRING "")
         set(VCPKG_TARGET_TRIPLET "x64-linux")
     endif()
 
