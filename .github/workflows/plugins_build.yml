@@ -31,10 +31,10 @@ jobs:
           #   csound-bin: ""
           #   packages: cuda
 
-          # - os: "macos-latest"
-          #   mono: "mono"
-          #   csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
-          #   packages: cuda
+          - os: "macos-latest"
+            mono: "mono"
+            csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
+            packages: cuda
 
     steps:
       - name: Checkout Source Code
@@ -43,11 +43,23 @@ jobs:
           fetch-depth: 1
           submodules: true
 
+      - name: Install system packages (windows)
+        if: startsWith(matrix.os, 'windows')
+        run: chocolatey install ${{ matrix.packages }}
+
+      - name: Install system packages (linux)
+        if: "startsWith(matrix.os, 'ubuntu')"
+        run: sudo apt-get install ${{ matrix.packages }}
+
+      - name: Install system packages (mac)
+        if: "startsWith(matrix.os, 'macos')"
+        run: homebrew install ${{ matrix.packages }}
+
       - name: Bootstrap VCPKG (windows)
         if: startsWith(matrix.os, 'windows')
         run: .\vcpkg\bootstrap-vcpkg.bat
 
-      - name: Bootstrap VCPKG (unix)
+      - name: Bootstrap VCPKG (linux/mac)
         if: "!startsWith(matrix.os, 'windows')"
         run: ./vcpkg/bootstrap-vcpkg.sh
 
@@ -62,7 +74,7 @@ jobs:
           -username "csound"
           -password "${{ secrets.GITHUB_TOKEN }}"
 
-      - uses: robinraju/release-downloader@v1.4
+      - uses: robinraju/release-downloader@v1.5
         with:
           repository: "csound/csound"
           tag: ${{ matrix.version }}
@@ -73,7 +85,7 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         working-directory: .\downloads
         run: |
-          7z x ${{ matrix.csound-bin }} 
+          7z x ${{ matrix.csound-bin }}
           Start-Process (Get-ChildItem -Filter *.exe .) -ArgumentList "/SP /SILENT /SUPPRESSMSGBOXES"
           ls "C:\Program Files\Csound6_x64"
 
