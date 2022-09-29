@@ -24,17 +24,14 @@ jobs:
           - os: "windows-latest"
             mono: ""
             csound-bin: "csound-6.17.0-windows-x64-installer.zip"
-            packages: cuda
 
           # - os: "ubuntu-latest"
           #   mono: "mono"
           #   csound-bin: ""
-          #   packages: cuda
 
           - os: "macos-latest"
             mono: "mono"
             csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
-            packages: cuda
 
     steps:
       - name: Checkout Source Code
@@ -45,15 +42,26 @@ jobs:
 
       - name: Install system packages (windows)
         if: startsWith(matrix.os, 'windows')
-        run: chocolatey install ${{ matrix.packages }}
+        run: chocolatey install cuda
 
       - name: Install system packages (linux)
         if: "startsWith(matrix.os, 'ubuntu')"
-        run: sudo apt-get install ${{ matrix.packages }}
+        run: |
+          # Install CUDA SDK
+          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/$arch/cuda-keyring_1.0-1_all.deb
+          sudo dpkg -i cuda-keyring_1.0-1_all.deb
+          sudo apt-get update
+          sudo apt-get install cuda
+          # export PATH=/usr/local/cuda-11.7/bin${PATH:+:${PATH}}
 
       - name: Install system packages (mac)
         if: "startsWith(matrix.os, 'macos')"
-        run: brew install ${{ matrix.packages }}
+        run: |
+          # Install CUDA SDK
+          brew tap homebrew/cask-drivers
+          brew cask install nvidia-cuda
+          # export PATH=/Developer/NVIDIA/CUDA-11.7/bin${PATH:+:${PATH}}
+          # export DYLD_LIBRARY_PATH=/Developer/NVIDIA/CUDA-11.7/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}
 
       - name: Bootstrap VCPKG (windows)
         if: startsWith(matrix.os, 'windows')
