@@ -25,13 +25,13 @@ jobs:
             mono: ""
             csound-bin: "csound-6.17.0-windows-x64-installer.zip"
 
-          # - os: "ubuntu-latest"
-          #   mono: "mono"
-          #   csound-bin: ""
+          - os: "ubuntu-latest"
+            mono: "mono"
+            csound-bin: ""
 
-          # - os: "macos-latest"
-          #   mono: "mono"
-          #   csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
+          - os: "macos-latest"
+            mono: "mono"
+            csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
 
     steps:
       - name: Checkout Source Code
@@ -40,28 +40,13 @@ jobs:
           fetch-depth: 1
           submodules: true
 
-      - name: Install system packages (windows)
-        if: startsWith(matrix.os, 'windows')
-        run: chocolatey install cuda
-
-      # - name: Install system packages (linux)
-      #   if: "startsWith(matrix.os, 'ubuntu')"
-      #   run: |
-      #     # Install CUDA SDK
-      #     wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/$arch/cuda-keyring_1.0-1_all.deb
-      #     sudo dpkg -i cuda-keyring_1.0-1_all.deb
-      #     sudo apt-get update
-      #     sudo apt-get install cuda
-      #     # export PATH=/usr/local/cuda-11.7/bin${PATH:+:${PATH}}
-
-      # - name: Install system packages (mac)
-      #   if: "startsWith(matrix.os, 'macos')"
-      #   run: |
-      #     # Install CUDA SDK
-      #     brew tap homebrew/cask-drivers
-      #     brew install --cask nvidia-cuda-toolkit
-      #     # export PATH=/Developer/NVIDIA/CUDA-11.7/bin${PATH:+:${PATH}}
-      #     # export DYLD_LIBRARY_PATH=/Developer/NVIDIA/CUDA-11.7/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}
+      - uses: robinraju/release-downloader@v1.5
+        if: "!startsWith(matrix.os, 'macos')"
+        with:
+          repository: "csound/csound"
+          tag: ${{ matrix.version }}
+          fileName: ${{ matrix.csound-bin }}
+          out-file-path: "downloads"
 
       - name: Bootstrap VCPKG (windows)
         if: startsWith(matrix.os, 'windows')
@@ -81,13 +66,6 @@ jobs:
           -name "GitHub"
           -username "csound"
           -password "${{ secrets.GITHUB_TOKEN }}"
-
-      - uses: robinraju/release-downloader@v1.5
-        with:
-          repository: "csound/csound"
-          tag: ${{ matrix.version }}
-          fileName: ${{ matrix.csound-bin }}
-          out-file-path: "downloads"
 
       - name: Install Csound (windows)
         if: startsWith(matrix.os, 'windows')
