@@ -1,4 +1,4 @@
-option(BUILD_CUDA_OPCODES "Build the CUDA GPU opcodes" ON)
+option(BUILD_CUDA_OPCODES "Build the CUDA GPU opcodes" OFF)
 
 function(make_cuda_plugin libname srcs)
     SET(LIB_TYPE_DYNAMIC) #set the lib type

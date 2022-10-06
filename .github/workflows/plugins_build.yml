@@ -18,16 +18,16 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, macos-latest]
         version: ["6.17.0"]
         include:
           - os: "windows-latest"
             mono: ""
             csound-bin: "csound-6.17.0-windows-x64-installer.zip"
 
-          - os: "ubuntu-latest"
-            mono: "mono"
-            csound-bin: ""
+          # - os: "ubuntu-latest"
+          #   mono: "mono"
+          #   csound-bin: ""
 
           - os: "macos-latest"
             mono: "mono"
@@ -41,7 +41,6 @@ jobs:
           submodules: true
 
       - uses: robinraju/release-downloader@v1.5
-        if: "!startsWith(matrix.os, 'macos')"
         with:
           repository: "csound/csound"
           tag: ${{ matrix.version }}
@@ -82,7 +81,7 @@ jobs:
           ./downloads/
 
       - name: Generate CMake build
-        run: cmake -S . -B build -DUSE_VCPKG=1
+        run: cmake -B build -DUSE_VCPKG=1
 
       - name: Build plugins
         run: cmake --build build --config Release
