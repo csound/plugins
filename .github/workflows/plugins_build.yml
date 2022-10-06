@@ -76,6 +76,7 @@ jobs:
 
       - name: Install Csound (unix)
         if: "!startsWith(matrix.os, 'windows')"
+        working-directory: .\downloads
         run: |
           7z x ${{ matrix.csound-bin }}
           ./downloads/
