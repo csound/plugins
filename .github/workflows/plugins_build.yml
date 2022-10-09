@@ -18,7 +18,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
         version: ["6.17.0"]
         include:
           - os: "windows-latest"
@@ -35,13 +35,13 @@ jobs:
 
     steps:
       - name: Checkout Source Code
-        if: startsWith(matrix.os, 'windows')
         uses: actions/checkout@v1
         with:
           fetch-depth: 1
           submodules: true
 
       - uses: robinraju/release-downloader@v1.5
+        if: startsWith(matrix.os, 'windows')
         with:
           repository: "csound/csound"
           tag: ${{ matrix.version }}
@@ -83,13 +83,6 @@ jobs:
           7z x ${{ matrix.csound-bin }}
           Start-Process (Get-ChildItem -Filter *.exe .) -ArgumentList "/SP /SILENT /SUPPRESSMSGBOXES"
           ls "C:\Program Files\Csound6_x64"
-
-      - name: Install Csound (unix)
-        if: "!startsWith(matrix.os, 'windows')"
-        working-directory: ./downloads
-        run: |
-          7z x ${{ matrix.csound-bin }}
-          ./downloads/
 
       - name: Generate CMake build
         run: cmake -B build -DUSE_VCPKG=1
