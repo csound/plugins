@@ -18,23 +18,24 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest]
         version: ["6.17.0"]
         include:
           - os: "windows-latest"
             mono: ""
             csound-bin: "csound-6.17.0-windows-x64-installer.zip"
 
-          # - os: "ubuntu-latest"
-          #   mono: "mono"
-          #   csound-bin: ""
+          - os: "ubuntu-latest"
+            mono: "mono"
+            csound-bin: ""
 
           - os: "macos-latest"
             mono: "mono"
-            csound-bin: "csound-MacOS_x86_64-6.17.0.dmg"
+            csound-bin: ""
 
     steps:
       - name: Checkout Source Code
+        if: startsWith(matrix.os, 'windows')
         uses: actions/checkout@v1
         with:
           fetch-depth: 1
@@ -47,13 +48,22 @@ jobs:
           fileName: ${{ matrix.csound-bin }}
           out-file-path: "downloads"
 
-      - name: Bootstrap VCPKG (windows)
+      - name: Setup platform (windows)
         if: startsWith(matrix.os, 'windows')
         run: .\vcpkg\bootstrap-vcpkg.bat
 
-      - name: Bootstrap VCPKG (linux/mac)
-        if: "!startsWith(matrix.os, 'windows')"
-        run: ./vcpkg/bootstrap-vcpkg.sh
+      - name: Setup platform (linux)
+        if: "startsWith(matrix.os, 'ubuntu')"
+        run: |
+          ./vcpkg/bootstrap-vcpkg.sh
+          sudo apt-get update
+          sudo apt-get install csound
+
+      - name: Setup platform (macos)
+        if: "startsWith(matrix.os, 'macos')"
+        run: |
+          ./vcpkg/bootstrap-vcpkg.sh
+          brew install csound
 
       - name: Setup VCPKG cache
         shell: bash
@@ -76,7 +86,7 @@ jobs:
 
       - name: Install Csound (unix)
         if: "!startsWith(matrix.os, 'windows')"
-        working-directory: .\downloads
+        working-directory: ./downloads
         run: |
           7z x ${{ matrix.csound-bin }}
           ./downloads/
