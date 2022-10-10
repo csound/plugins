@@ -54,7 +54,7 @@ jobs:
         run: |
           7z x ${{ matrix.csound-bin }}
           Start-Process (Get-ChildItem -Filter *.exe .) -ArgumentList "/SP /SILENT /SUPPRESSMSGBOXES"
-          ls "C:\Program Files\Csound6_x64"
+          ls "C:\Program Files\csound"
 
       - name: Setup platform (windows)
         if: startsWith(matrix.os, 'windows')
