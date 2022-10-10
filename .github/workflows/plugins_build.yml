@@ -48,6 +48,14 @@ jobs:
           fileName: ${{ matrix.csound-bin }}
           out-file-path: "downloads"
 
+      - name: Install Csound (windows)
+        if: startsWith(matrix.os, 'windows')
+        working-directory: .\downloads
+        run: |
+          7z x ${{ matrix.csound-bin }}
+          Start-Process (Get-ChildItem -Filter *.exe .) -ArgumentList "/SP /SILENT /SUPPRESSMSGBOXES"
+          ls "C:\Program Files\Csound6_x64"
+
       - name: Setup platform (windows)
         if: startsWith(matrix.os, 'windows')
         run: .\vcpkg\bootstrap-vcpkg.bat
@@ -75,14 +83,6 @@ jobs:
           -name "GitHub"
           -username "csound"
           -password "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Install Csound (windows)
-        if: startsWith(matrix.os, 'windows')
-        working-directory: .\downloads
-        run: |
-          7z x ${{ matrix.csound-bin }}
-          Start-Process (Get-ChildItem -Filter *.exe .) -ArgumentList "/SP /SILENT /SUPPRESSMSGBOXES"
-          ls "C:\Program Files\Csound6_x64"
 
       - name: Generate CMake build
         run: cmake -B build -DUSE_VCPKG=1

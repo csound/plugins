@@ -4,7 +4,6 @@
     "version-string": "6.16.2",
     "builtin-baseline": "57d3194e702a2959e86a6748999ad71fc24f7922",
     "dependencies": [
-        "cuda",
         "eigen3",
         "fltk",
         "fluidsynth",
