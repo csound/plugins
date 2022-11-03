@@ -230,12 +230,12 @@ int pconv_perf(CSOUND *csound, PCONV *p){
        pconvol<<<p->blocks,p->threads>>>(out, in, coef, wp, dftsize, nparts, end);
        if (cudaDeviceSynchronize() != cudaSuccess)
         csound->Message(csound,"Cuda error: Failed to synchronize\n");
-       csound->Message(csound,"done convolution\n");
+       //csound->Message(csound,"done convolution\n");
 
        /* transform output */
        if(cufftExecC2R(p->iplan,(cufftComplex*)out,out) 
           != CUFFT_SUCCESS) csound->Message(csound, "cuda fft error\n");
-       csound->Message(csound,"done inverse transform\n");
+       //csound->Message(csound,"done inverse transform\n");
 
        /* overlap-add */
        olapadd<<<p->oblocks,p->othreads>>>(buf,out,parts);
