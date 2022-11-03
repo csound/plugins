@@ -144,9 +144,9 @@ int pconv_init(CSOUND *csound, PCONV *p){
       float *pp = p->coef + (nparts - 1 - i)*(dftsize+2);
     cudaMemcpy(pp, tmp, sizeof(float)*dftsize, 
                cudaMemcpyHostToDevice);
-    csound->Message(csound,"CUDA init: copy buffer %d to device",i);
+    csound->Message(csound,"CUDA init: copy buffer %d to device\n",i);
     cufftExecR2C(p->plan,pp,(cufftComplex*)pp);
-   csound->Message(csound,"CUDA init: done transform %d",i);
+   csound->Message(csound,"CUDA init: done transform %d\n",i);
    }
 
   cudaDeviceSynchronize();
@@ -198,6 +198,7 @@ int pconv_perf(CSOUND *csound, PCONV *p){
     memset(&asig[nsmps], '\0', early*sizeof(MYFLT));
   }
 
+  csound->Message(csound,"pconv perf count: %d\n", cnt);  
   for(n = offset; n < nsmps; n++){
     bufin[cnt] = (float) asig[n];
     aout[n] = (MYFLT) bufout[cnt]/dftsize;
