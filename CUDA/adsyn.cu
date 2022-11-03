@@ -177,7 +177,7 @@ static int destroy_cudadsyn(CSOUND *csound, void *pp){
 
 
 static OENTRY localops[] = {
-  {"cudasynth", sizeof(CUDADSYN),0, 5, "a", "fkko", (SUBR) init_cudadsyn, NULL,
+  {"cudasynth", sizeof(CUDADSYN),0, 3, "a", "fkko", (SUBR) init_cudadsyn, 
    (SUBR) perf_cudadsyn}
 };
 
