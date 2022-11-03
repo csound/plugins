@@ -254,7 +254,7 @@ int pconv_perf(CSOUND *csound, PCONV *p){
 }
 
 static OENTRY localops[] = {
-  {"cudapconv", sizeof(PCONV),0, 5, "a", "aii", (SUBR) pconv_init, 
+  {"cudapconv", sizeof(PCONV),0, 3, "a", "aii", (SUBR) pconv_init, 
     (SUBR) pconv_perf},
 };
 
