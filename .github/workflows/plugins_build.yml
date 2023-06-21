@@ -18,7 +18,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest]
         version: ["6.17.0"]
         include:
           - os: "windows-latest"
