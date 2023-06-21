@@ -27,8 +27,8 @@ jobs:
           # - os: "ubuntu-latest"
           #   mono: "mono"
 
-          - os: "macos-latest"
-            mono: "mono"
+          # - os: "macos-latest"
+          #   mono: "mono"
 
     steps:
       - name: Checkout Source Code
