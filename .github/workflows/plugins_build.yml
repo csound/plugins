@@ -41,9 +41,14 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         run: |
           .\vcpkg\bootstrap-vcpkg.bat
-          choco feature enable logEnvironmentValues
-          choco install csound --version=6.17.0
-          type C:\ProgramData\chocolatey\logs\chocolatey.log
+          # choco feature enable logEnvironmentValues
+          # choco install csound --version=6.17.0
+          # type C:\ProgramData\chocolatey\logs\chocolatey.log
+
+      - name: Choco help
+        uses: crazy-max/ghaction-chocolatey@v2
+        with:
+          args: install csound --version=6.17.0
 
         # - name: Setup platform (linux)
         #   if: startsWith(matrix.os, 'ubuntu')
@@ -71,8 +76,8 @@ jobs:
 
       - name: Print Csound version
         run: |
-          $env:PATH
           $env:OPCODE6DIR64
+          $env:PATH
           ls 'C:\Program Files\csound\'
           csound --version
 
