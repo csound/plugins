@@ -37,6 +37,25 @@ jobs:
           fetch-depth: 1
           submodules: true
 
+      - name: Setup platform (windows)
+        if: startsWith(matrix.os, 'windows')
+        run: |
+          .\vcpkg\bootstrap-vcpkg.bat
+          choco install csound --version=6.17.0
+
+        # - name: Setup platform (linux)
+        #   if: startsWith(matrix.os, 'ubuntu')
+        #   run: |
+        #     ./vcpkg/bootstrap-vcpkg.sh
+        #     sudo apt-get update
+        #     sudo apt-get install libcsound64-dev
+
+        # - name: Setup platform (macos)
+        #   if: startsWith(matrix.os, 'macos')
+        #   run: |
+        #     ./vcpkg/bootstrap-vcpkg.sh
+        #     brew install csound
+
       - name: Setup VCPKG cache
         shell: bash
         run: >
@@ -47,25 +66,6 @@ jobs:
           -name "GitHub"
           -username "csound"
           -password "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Setup platform (windows)
-        if: startsWith(matrix.os, 'windows')
-        run: |
-          .\vcpkg\bootstrap-vcpkg.bat
-          choco install csound --version=6.17.0
-
-      # - name: Setup platform (linux)
-      #   if: startsWith(matrix.os, 'ubuntu')
-      #   run: |
-      #     ./vcpkg/bootstrap-vcpkg.sh
-      #     sudo apt-get update
-      #     sudo apt-get install libcsound64-dev
-
-      # - name: Setup platform (macos)
-      #   if: startsWith(matrix.os, 'macos')
-      #   run: |
-      #     ./vcpkg/bootstrap-vcpkg.sh
-      #     brew install csound
 
       - name: Print Csound version
         run: csound --version
