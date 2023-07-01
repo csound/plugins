@@ -43,6 +43,7 @@ jobs:
           .\vcpkg\bootstrap-vcpkg.bat
           choco install csound --version=6.17.0
           Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
+          type C:\ProgramData\chocolatey\logs\chocolatey.log
 
         # - name: Setup platform (linux)
         #   if: startsWith(matrix.os, 'ubuntu')
@@ -78,3 +79,6 @@ jobs:
 
       - name: Build plugins
         run: cmake --build build --config Release
+
+      - name: Package binaries
+        run:
