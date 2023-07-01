@@ -16,10 +16,10 @@ jobs:
   build_package:
     runs-on: ${{ matrix.os }}
 
-    env:
-      OPCODE6DIR64: "C:/Program Files/csound/plugins64"
-      PYTHONPATH: "C:/Program Files/csound/bin"
-      RAWWAVE_PATH: "C:/Program Files/csound/samples"
+    # env:
+    #   OPCODE6DIR64: "C:/Program Files/csound/plugins64"
+    #   PYTHONPATH: "C:/Program Files/csound/bin"
+    #   RAWWAVE_PATH: "C:/Program Files/csound/samples"
 
     strategy:
       matrix:
@@ -28,10 +28,8 @@ jobs:
         include:
           - os: "windows-latest"
             mono: ""
-
           # - os: "ubuntu-latest"
           #   mono: "mono"
-
           # - os: "macos-latest"
           #   mono: "mono"
 
@@ -46,10 +44,11 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         run: |
           echo "C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:/Program Files/csound/plugins64" | Out-File -FilePath $env:OPCODE6DIR64 -Encoding utf8 -Append
+          echo "C:/Program Files/csound/bin" | Out-File -FilePath $env:PYTHONPATH -Encoding utf8 -Append
+          echo "C:/Program Files/csound/samples" | Out-File -FilePath $env:RAWWAVE_PATH -Encoding utf8 -Append
           .\vcpkg\bootstrap-vcpkg.bat
-          choco feature enable logEnvironmentValues
           choco install csound --version=6.17.0
-          type C:\ProgramData\chocolatey\logs\chocolatey.log
 
         # - name: Setup platform (linux)
         #   if: startsWith(matrix.os, 'ubuntu')
@@ -74,13 +73,6 @@ jobs:
           -name "GitHub"
           -username "csound"
           -password "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Print Csound version
-        run: |
-          $env:OPCODE6DIR64
-          $env:PATH
-          ls 'C:\Program Files\csound\'
-          csound --version
 
       - name: Generate CMake build
         run: cmake -B build -DUSE_VCPKG=1
