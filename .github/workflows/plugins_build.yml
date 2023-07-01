@@ -69,7 +69,9 @@ jobs:
           -password "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Print Csound version
-        run: csound --version
+        run: |
+          ls 'C:\Program Files\csound\'
+          csound --version
 
       - name: Generate CMake build
         run: cmake -B build -DUSE_VCPKG=1
