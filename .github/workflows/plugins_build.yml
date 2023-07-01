@@ -37,12 +37,22 @@ jobs:
           fetch-depth: 1
           submodules: true
 
+      - name: Setup VCPKG cache
+        shell: bash
+        run: >
+          ${{ matrix.mono }} `./vcpkg/vcpkg fetch nuget | tail -n 1`
+          sources add
+          -source "https://nuget.pkg.github.com/csound/index.json"
+          -storepasswordincleartext
+          -name "GitHub"
+          -username "csound"
+          -password "${{ secrets.GITHUB_TOKEN }}"
+
       - name: Setup platform (windows)
         if: startsWith(matrix.os, 'windows')
         run: |
           .\vcpkg\bootstrap-vcpkg.bat
           choco install csound --version=6.17.0
-          refreshenv
 
       # - name: Setup platform (linux)
       #   if: startsWith(matrix.os, 'ubuntu')
@@ -57,16 +67,8 @@ jobs:
       #     ./vcpkg/bootstrap-vcpkg.sh
       #     brew install csound
 
-      - name: Setup VCPKG cache
-        shell: bash
-        run: >
-          ${{ matrix.mono }} `./vcpkg/vcpkg fetch nuget | tail -n 1`
-          sources add
-          -source "https://nuget.pkg.github.com/csound/index.json"
-          -storepasswordincleartext
-          -name "GitHub"
-          -username "csound"
-          -password "${{ secrets.GITHUB_TOKEN }}"
+      - name: Print Csound version
+        run: csound --version
 
       - name: Generate CMake build
         run: cmake -B build -DUSE_VCPKG=1
