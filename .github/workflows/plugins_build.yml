@@ -44,7 +44,6 @@ jobs:
           choco feature enable logEnvironmentValues
           choco install csound --version=6.17.0
           type C:\ProgramData\chocolatey\logs\chocolatey.log
-          csound --version
 
         # - name: Setup platform (linux)
         #   if: startsWith(matrix.os, 'ubuntu')
