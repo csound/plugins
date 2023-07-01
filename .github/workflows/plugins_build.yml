@@ -72,6 +72,7 @@ jobs:
       - name: Print Csound version
         run: |
           $env:PATH
+          $env:OPCODE6DIR64
           ls 'C:\Program Files\csound\'
           csound --version
 
