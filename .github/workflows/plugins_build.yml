@@ -71,6 +71,7 @@ jobs:
 
       - name: Print Csound version
         run: |
+          Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
           ls 'C:\Program Files\csound\'
           csound --version
 
