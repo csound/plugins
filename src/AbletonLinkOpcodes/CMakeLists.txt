@@ -1,6 +1,5 @@
 # Build Ableton Link Opcodes
 option(BUILD_ABLETON_LINK_OPCODES "Build the Ableton link opcodes" ON)
-check_deps(BUILD_ABLETON_LINK_OPCODES ABLETON_LINK_HOME)
 
 if(BUILD_ABLETON_LINK_OPCODES)
     message(STATUS "Ableton Link home: ${ABLETON_LINK_HOME}")
@@ -27,9 +26,8 @@ if(BUILD_ABLETON_LINK_OPCODES)
 
         if(WIN32)
             if(USE_VCPKG)
-                include_directories($ENV{INCLUDE})
-                include(${ABLETON_LINK_HOME}\\AbletonLinkConfig.cmake)
-                target_link_libraries(ableton_link_opcodes Ableton::Link)
+                find_package(AbletonLink CONFIG REQUIRED PATH_SUFFIXES share/ableton-link)
+                target_link_libraries(ableton_link_opcodes PRIVATE Ableton::Link)
             else()
                 set_target_properties(ableton_link_opcodes
                     PROPERTIES

@@ -4,6 +4,7 @@
     "version-string": "6.16.2",
     "builtin-baseline": "f6a5d4e8eb7476b8d7fc12a56dff300c1c986131",
     "dependencies": [
+        "ableton-link",
         "eigen3",
         "fltk",
         "fluidsynth",
