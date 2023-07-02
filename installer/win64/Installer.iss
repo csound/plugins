@@ -46,11 +46,27 @@ Name: "norwegian"; MessagesFile: "compiler:Languages\Norwegian.isl"
 Source: "..\..\build\src\AbletonLinkOpcodes\Release\ableton_link_opcodes.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "..\..\build\src\chua\Release\chua.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 ; Source: "..\..\build\src\faustcsound\Release\faustcsound.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+; Source: "C:\Program Files\Faust\lib\faust.dll"; DestDir: "{autopf64}\Csound6_x64\bin\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "..\..\build\src\image\Release\image.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "..\..\build\src\py\Release\py.dll"; DestDir: "{app}\plugins64"; Flags: ignoreversion; Components: core; Permissions: users-full;
-Source: "..\..\build\src\widgets\Release\widgets.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
-; Source: "C:\Program Files\Faust\lib\faust.dll"; DestDir: "{autopf64}\Csound6_x64\bin\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+Source: "..\..\build\src\stk\Release\stkops.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+Source: "..\..\build\src\websockets\Release\websocketIO.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 
+; widgets
+Source: "..\..\build\src\widgets\Release\virtual.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+Source: "..\..\build\src\widgets\Release\widgets.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+
+; fluidsynth
+Source: "..\..\build\src\fluidOpcodes\Release\fluidOpcodes.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+Source: "..\..\build\src\fluidOpcodes\Release\glib-2.0-0.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+Source: "..\..\build\src\fluidOpcodes\Release\iconv-2.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+Source: "..\..\build\src\fluidOpcodes\Release\intl-8.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+Source: "..\..\build\src\fluidOpcodes\Release\libfluidsynth-3.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+Source: "..\..\build\src\fluidOpcodes\Release\pcre2-8.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+
+; hdf5
+Source: "..\..\build\src\hdf5\Release\hdf5ops.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+Source: "..\..\build\src\hdf5\Release\zlib1.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 
 [Tasks]
 ;Name: modifypath; Description: &Add application directory to your PATH environment variable (recommended);
