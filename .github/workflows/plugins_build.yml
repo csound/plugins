@@ -1,0 +1,89 @@
+name: Csound plugins build
+
+env:
+  VCPKG_BINARY_SOURCES: "clear;nuget,GitHub,readwrite"
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build_package:
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CSOUND_VERSION: 6.17.2
+
+    strategy:
+      matrix:
+        os: [windows-latest]
+        version: ["6.17.0"]
+        include:
+          - os: "windows-latest"
+            mono: ""
+          # - os: "ubuntu-latest"
+          #   mono: "mono"
+          # - os: "macos-latest"
+          #   mono: "mono"
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+          submodules: true
+
+      - name: Setup platform (windows)
+        if: startsWith(matrix.os, 'windows')
+        run: |
+          echo "C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "OPCODE6DIR64=C:/Program Files/csound/plugins64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "PYTHONPATH=C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "RAWWAVE_PATH=C:/Program Files/csound/samples" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          .\vcpkg\bootstrap-vcpkg.bat
+          choco install csound --version=6.17.0
+
+        # - name: Setup platform (linux)
+        #   if: startsWith(matrix.os, 'ubuntu')
+        #   run: |
+        #     ./vcpkg/bootstrap-vcpkg.sh
+        #     sudo apt-get update
+        #     sudo apt-get install libcsound64-dev
+
+        # - name: Setup platform (macos)
+        #   if: startsWith(matrix.os, 'macos')
+        #   run: |
+        #     ./vcpkg/bootstrap-vcpkg.sh
+        #     brew install csound
+
+      - name: Setup VCPKG cache
+        shell: bash
+        run: >
+          ${{ matrix.mono }} `./vcpkg/vcpkg fetch nuget | tail -n 1`
+          sources add
+          -source "https://nuget.pkg.github.com/csound/index.json"
+          -storepasswordincleartext
+          -name "GitHub"
+          -username "csound"
+          -password "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Generate CMake build
+        run: cmake -B build -DUSE_VCPKG=1
+
+      - name: Build plugins
+        run: cmake --build build --config Release
+
+      - name: Build installer
+        run: iscc /o. .\installer\win64\Installer.iss
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v2
+        with:
+          name: Csound_win_x64-${{env.CSOUND_VERSION}}.${{github.run_number}}-plugins-installer
+          path: ./csound6-plugins-win_x86_64-*.exe
+          if-no-files-found: error

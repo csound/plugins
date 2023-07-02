@@ -1,25 +1,47 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5)
+cmake_policy(SET CMP0077 NEW)
+
+option(USE_VCPKG "Use VCPKG to download and manage dependencies" OFF)
+
+if (USE_VCPKG)
+    # Detect correct triplet based on CMake env
+    if (WIN32)
+        set(VCPKG_HOST_TRIPLET "x64-windows-csound" CACHE STRING "")
+        set(VCPKG_TARGET_TRIPLET "x64-windows-csound")
+        set(CSOUND_INCLUDE_DIR_HINT "C:/Program Files/Csound6_x64")
+    elseif(APPLE)
+        set(VCPKG_HOST_TRIPLET "x64-osx" CACHE STRING "")
+        set(VCPKG_TARGET_TRIPLET "x64-osx")
+    elseif (UNIX)
+        set(VCPKG_HOST_TRIPLET "x64-linux" CACHE STRING "")
+        set(VCPKG_TARGET_TRIPLET "x64-linux")
+    endif()
+
+    set(VCPKG_FEATURE_FLAGS versions)
+    set(X_VCPKG_APPLOCAL_DEPS_INSTALL ON)
+    set(VCPKG_OVERLAY_TRIPLETS ${CMAKE_CURRENT_SOURCE_DIR}/)
+    set(VCPKG_OVERLAY_PORTS ${CMAKE_CURRENT_SOURCE_DIR}/)
+    set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
+        CACHE STRING "Vcpkg toolchain file")
+endif()
+
 project(Csound-plugins)
+
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_COMPILER_IS_CLANG 1)
-endif()
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
-
-# C++11 needed
-if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
 set(APIVERSION "6.0")
 
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
-"${CMAKE_SOURCE_DIR}/cmake/Modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 find_package(CSOUND)
+
 if(NOT CSOUND_INCLUDE_DIRS)
-      message(FATAL_ERROR "Csound header files are required")
+    message(FATAL_ERROR "Csound header files are required")
 endif()
 
 include(TestBigEndian)
@@ -36,7 +58,7 @@ endif()
 ##/Library/Frameworks/CsoundLib64.framework/Versions/Current/Resources/Opcodes64
 
 if(APPLE)
-     message(STATUS "Building on OSX")
+    message(STATUS "Building on OSX")
     set(OSX_VERSION " ")
 endif()
 
@@ -50,11 +72,11 @@ option(REQUIRE_PTHREADS "For non-Windows systems, set whether Csound will use th
 
 # in Release configuration, set NDEBUG
 if(${CMAKE_BUILD_TYPE} MATCHES "Release")
-message("-----> Release mode")
+    message("-----> Release mode")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG")
 elseif(${CMAKE_BUILD_TYPE} MATCHES "Debug")
-message("-----> Debug mode")
+    message("-----> Debug mode")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBETA")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DBETA")
 endif()
@@ -72,9 +94,11 @@ endif()
 if(NOT MSVC AND REQUIRE_PTHREADS)
   # Use ladder of if's to support older CMake versions (i.e., travis)
   find_library(PTHREAD_LIBRARY winpthread-1)
+
   if(NOT PTHREAD_LIBRARY)
     find_library(PTHREAD_LIBRARY pthread)
   endif()
+
   if(NOT PTHREAD_LIBRARY)
     find_library(PTHREAD_LIBRARY pthreadGC2)
   endif()
@@ -100,9 +124,11 @@ endif()
 set(BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 check_c_compiler_flag(-fvisibility=hidden HAS_VISIBILITY_HIDDEN)
 check_cxx_compiler_flag(-fvisibility=hidden HAS_CXX_VISIBILITY_HIDDEN)
+
 if (HAS_VISIBILITY_HIDDEN)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 endif()
+
 if (HAS_CXX_VISIBILITY_HIDDEN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 endif()
@@ -111,45 +137,43 @@ check_c_compiler_flag(-std=gnu99 HAS_GNU99)
 if (HAS_GNU99)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 endif()
+
 if (HAS_CXX_VISIBILITY_HIDDEN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 endif()
 
 if(LINUX)
-option(USE_LIB64 "Set to on to set installation directory for
-libraries to lib64" OFF)
-if(USE_LIB64)
-    set(LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib64")
-    add_definitions("-DLIB64")
-else()
-    set(LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-endif()
-message(STATUS "LIBRARY INSTALL DIR: ${LIBRARY_INSTALL_DIR}")
+    option(USE_LIB64 "Set to on to set installation directory for libraries to lib64" OFF)
+
+    if(USE_LIB64)
+        set(LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib64")
+        add_definitions("-DLIB64")
+    else()
+        set(LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+    endif()
+
+    message(STATUS "LIBRARY INSTALL DIR: ${LIBRARY_INSTALL_DIR}")
 endif()
 
 # plugin install directories (CS_USER_PLUGIN on MacOs/Windows)
 if(USE_DOUBLE)
     message(STATUS "Building with 64-bit floats")
     if(APPLE)
-     set(PLUGIN_INSTALL_DIR
-       "$ENV{HOME}/Library/csound/${APIVERSION}/plugins64" CACHE PATH "Plugin install path")
+        set(PLUGIN_INSTALL_DIR "$ENV{HOME}/Library/csound/${APIVERSION}/plugins64")
     elseif(LINUX)
-      set(PLUGIN_INSTALL_DIR
-      "${LIBRARY_INSTALL_DIR}/csound/plugins64-${APIVERSION}")
-     elseif(WINDOWS)
-      set(PLUGIN_INSTALL_DIR "${env.LOCALAPPDATA}/csound/${APIVERSION}/plugins64")
+        set(PLUGIN_INSTALL_DIR "${LIBRARY_INSTALL_DIR}/csound/plugins64-${APIVERSION}")
+    elseif(MSVC)
+        set(PLUGIN_INSTALL_DIR "$ENV{LOCALAPPDATA}/csound/${APIVERSION}/plugins64")
     endif()
 else()
     message(STATUS "Building with 32-bit floats")
     if(APPLE)
-        set(PLUGIN_INSTALL_DIR
-    "$ENV{HOME}/Library/csound/${APIVERSION}/plugins" CACHE PATH "Plugin install path")
+        set(PLUGIN_INSTALL_DIR "$ENV{HOME}/Library/csound/${APIVERSION}/plugins")
     elseif(LINUX)
-      set(PLUGIN_INSTALL_DIR
-      "${LIBRARY_INSTALL_DIR}/csound/plugins-${APIVERSION}")
-     elseif(WINDOWS)
-      set(PLUGIN_INSTALL_DIR "${env.LOCALAPPDATA}/csound/${APIVERSION}/plugins")
-      endif()
+        set(PLUGIN_INSTALL_DIR "${LIBRARY_INSTALL_DIR}/csound/plugins-${APIVERSION}")
+    elseif(MSVC)
+        set(PLUGIN_INSTALL_DIR "$ENV{LOCALAPPDATA}/csound/${APIVERSION}/plugins")
+    endif()
 endif()
 
 message("-- Csound headers: ${CSOUND_INCLUDE_DIR}")
@@ -213,13 +237,8 @@ function(make_plugin libname srcs)
         math(EXPR i "${i}+1")
     endwhile()
 
-   # set_target_properties(${libname} PROPERTIES
-    #    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-     #   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      #  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-
     install(TARGETS ${libname}
-        LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}" 
+        LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}"
         ARCHIVE DESTINATION "${PLUGIN_INSTALL_DIR}" )
 endfunction(make_plugin)
 
@@ -276,20 +295,20 @@ if(WIN32)
     add_definitions(-DWIN32)
 endif()
 
-add_subdirectory(chua)
-add_subdirectory(faustcsound)
-add_subdirectory(image)
-add_subdirectory(py)
-add_subdirectory(widgets)
-add_subdirectory(AbletonLinkOpcodes)
-add_subdirectory(stk)
-add_subdirectory(CUDA)
-add_subdirectory(opencl)
-add_subdirectory(websockets)
-add_subdirectory(hdf5)
-add_subdirectory(linear_algebra)
-add_subdirectory(mp3)
-add_subdirectory(wiimote)
-add_subdirectory(p5glove)
-add_subdirectory(jackops)
-add_subdirectory(fluidOpcodes)
+add_subdirectory(./src/chua)
+add_subdirectory(./src/faustcsound)
+add_subdirectory(./src/image)
+add_subdirectory(./src/py)
+add_subdirectory(./src/widgets)
+add_subdirectory(./src/AbletonLinkOpcodes)
+add_subdirectory(./src/stk)
+add_subdirectory(./src/CUDA)
+add_subdirectory(./src/opencl)
+add_subdirectory(./src/websockets)
+add_subdirectory(./src/hdf5)
+add_subdirectory(./src/linear_algebra)
+add_subdirectory(./src/mp3)
+add_subdirectory(./src/wiimote)
+add_subdirectory(./src/p5glove)
+add_subdirectory(./src/jackops)
+add_subdirectory(./src/fluidOpcodes)
