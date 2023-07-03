@@ -1,21 +1,25 @@
 # Find Faust2
-
 include(FindPackageHandleStandardArgs)
 
-find_path(
-  FAUST_INCLUDE_DIR faust/dsp/llvm-dsp.h
+find_path(FAUST_INCLUDE_DIR faust/dsp/llvm-dsp.h
   HINTS
-  /opt/lib/faust/architecture/
-  /usr/lib/faust/architecture/
-  /usr/local/lib/faust/architecture/
-  "${FAUST_INCLUDE_DIR_HINT}"
-  )
+    C:/Program Files/Faust/include/
+    /opt/lib/faust/architecture/
+    /usr/lib/faust/architecture/
+    /usr/local/lib/faust/architecture/
+    "${FAUST_INCLUDE_DIR_HINT}"
+)
 
-set(FAUST_NAMES ${FAUST_NAMES} libfaust.so libfaust.dylib faust.dll faust libfaust)
 find_library(FAUST_LIBRARY
-  NAMES ${FAUST_NAMES}
-  HINTS "${FAUST_LIB_DIR_HINT}")
-
+    NAMES
+        libfaust.so
+        libfaust.dylib
+        faust.dll
+        faust
+        libfaust
+    HINTS
+        "${FAUST_LIB_DIR_HINT}"
+)
 
 find_package_handle_standard_args(FAUST FAUST_INCLUDE_DIR FAUST_LIBRARY)
 
@@ -27,7 +31,13 @@ if(FAUST_FOUND)
         # This is a static build of faust, hence
         # we have to add all the LLVM flags...
 
-        find_program(LLVM_CONFIG llvm-config HINTS /usr/bin /usr/local/bin /usr/local/opt/llvm/bin)
+        find_program(LLVM_CONFIG llvm-config
+            HINTS
+                /usr/bin
+                /usr/local/bin
+                /usr/local/opt/llvm/bin
+        )
+
         if(NOT LLVM_CONFIG)
             message(WARNING "Using a static Faust library requires LLVM tooling to be present in the path.")
             UNSET(FAUST_FOUND)
@@ -42,7 +52,6 @@ if(FAUST_FOUND)
           find_package(OpenSSL REQUIRED)
           set(FAUST_LIBRARIES ${FAUST_LIBRARIES} dl ${OPENSSL_LIBRARIES} ncurses z ${LLVM_LDFLAGS} ${LLVM_LIBS} )
         endif()
-        
       endif()
 else()
     set(FAUST_LIBRARIES)
