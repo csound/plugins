@@ -45,12 +45,14 @@ Name: "norwegian"; MessagesFile: "compiler:Languages\Norwegian.isl"
 [Files]
 Source: "..\..\build\src\AbletonLinkOpcodes\Release\ableton_link_opcodes.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "..\..\build\src\chua\Release\chua.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
-; Source: "..\..\build\src\faustcsound\Release\faustcsound.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
-; Source: "C:\Program Files\Faust\lib\faust.dll"; DestDir: "{autopf64}\Csound6_x64\bin\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "..\..\build\src\image\Release\image.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "..\..\build\src\py\Release\py.dll"; DestDir: "{app}\plugins64"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "..\..\build\src\stk\Release\stkops.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 Source: "..\..\build\src\websockets\Release\websocketIO.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+
+; faust
+Source: "..\..\build\src\faustcsound\Release\faustcsound.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
+Source: "C:\Program Files\Faust\lib\faust.dll"; DestDir: "{autopf64}\Csound6_x64\bin\"; Flags: ignoreversion; Components: core; Permissions: users-full;
 
 ; widgets
 Source: "..\..\build\src\widgets\Release\virtual.dll"; DestDir: "{app}\plugins64\"; Flags: ignoreversion; Components: core; Permissions: users-full;
