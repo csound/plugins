@@ -51,7 +51,7 @@ jobs:
           choco install csound --version=6.17.0
 
           # Faust
-          Invoke-WebRequest $env.FAUST_URL -OutFile faustInstaller.exe
+          Invoke-WebRequest $env:FAUST_URL -OutFile faustInstaller.exe
           ./faustInstaller.exe /S
           echo "C:\Program Files\Faust\;C:\Program Files\Faust\lib" >> $GITHUB_ENV
 
