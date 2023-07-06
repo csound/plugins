@@ -82,20 +82,25 @@ int mp3out_init(CSOUND *csound, MP3OUT* p)
     lame_set_brate(gfp,bitrate);
     lame_set_mode(gfp,mode);
     lame_set_quality(gfp,quality);   /* 2=high  5 = medium  7=low */
-    if (UNLIKELY(ret_code = lame_init_params(gfp)) <0)
-      return csound->InitError(csound,
-                               Str("Failed to initialise LAME %d\n"), ret_code);
+
+    if (UNLIKELY(ret_code = lame_init_params(gfp)) < 0) {
+        return csound->InitError(csound,
+            Str("Failed to initialise LAME %d\n"), ret_code);
+    }
+
     p->fout = fopen(p->filename->data, "w+b");
-    if (p->fout ==NULL)
-      return
-        csound->InitError(csound, Str("mp3out %s: failed to open file"),
-                          p->filename->data);
+    if (p->fout == NULL) {
+        return csound->InitError(csound, Str("mp3out %s: failed to open file"), p->filename->data);
+    }
+
     csound->AuxAlloc(csound,
                      2*nsmps*sizeof(MYFLT)+(p->mp3buffer_size=3*nsmps/2+7200),
                      &p->auxch);
+
     p->mp3buffer = p->auxch.auxp;
-    p->leftpcm = p->auxch.auxp+p->mp3buffer_size;
+    p->leftpcm = (char*)p->auxch.auxp + p->mp3buffer_size;
     p->rightpcm = p->leftpcm + nsmps;
+
     csound->RegisterDeinitCallback(csound, p,
                                    (int32_t (*)(CSOUND*, void*)) mp3out_cleanup);
     return OK;
@@ -106,17 +111,24 @@ int mp3out_perf(CSOUND *csound, MP3OUT *p)
     int bytes;
     unsigned int i, nsmps = csound->GetKsmps(csound);
     MYFLT zdbfs = csound->Get0dBFS(csound);
+
     for (i = 0; i<nsmps; i++) { /* Normalise if necessary */
       p->leftpcm[i] =  p->al[i]/zdbfs;
       p->rightpcm[i] = p->ar[i]/zdbfs;
     }
+
     bytes = lame_encode_buffer_ieee_MYFLT(p->gfp,
          p->leftpcm, p->rightpcm,
          nsmps, p->mp3buffer,  p->mp3buffer_size);
-    if (bytes>=0) fwrite(p->mp3buffer, 1, bytes, p->fout);
-    else if (bytes<0)
-      return csound->PerfError(csound, &(p->h),
-                               Str("mp3out: write error %d\n"), bytes);
+
+    if (bytes >= 0) {
+        fwrite(p->mp3buffer, 1, bytes, p->fout);
+    }
+    else if (bytes < 0) {
+        return csound->PerfError(csound, &(p->h),
+            Str("mp3out: write error %d\n"), bytes);
+    }
+
     return OK;
 }
 

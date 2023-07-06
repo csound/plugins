@@ -11,6 +11,7 @@
         "hdf5",
         "libstk",
         "libwebsockets",
+        "mp3lame",
         "zlib"
     ]
 }
