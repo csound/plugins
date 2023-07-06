@@ -78,6 +78,9 @@ jobs:
           -name "GitHub"
           -username "csound"
           -password "${{ secrets.GITHUB_TOKEN }}"
+          ${{ matrix.mono }} `./vcpkg/vcpkg fetch nuget | tail -n 1` \
+            setapikey "${{ secrets.GITHUB_TOKEN }}" \
+            -source "https://nuget.pkg.github.com/csound/index.json"
 
       - name: Generate CMake build
         run: cmake -B build -DUSE_VCPKG=1
