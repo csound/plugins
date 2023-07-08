@@ -49,8 +49,6 @@ jobs:
           echo "RAWWAVE_PATH=C:/Program Files/csound/samples" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           .\vcpkg\bootstrap-vcpkg.bat
           choco install csound --version=6.17.0
-
-          # Faust
           Invoke-WebRequest $env:FAUST_URL -OutFile faustInstaller.exe
           ./faustInstaller.exe /S
           echo $GITHUB_ENV
