@@ -24,8 +24,8 @@ jobs:
         os: [windows-latest]
         version: ["6.17.0"]
         include:
-          - os: "windows-latest"
-            mono: ""
+          # - os: "windows-latest"
+          #   mono: ""
           - os: "ubuntu-latest"
             mono: "mono"
           # - os: "macos-latest"
@@ -56,6 +56,7 @@ jobs:
       - name: Setup platform (linux)
         if: startsWith(matrix.os, 'ubuntu')
         run: |
+          sudo apt-get install g++ build-essential
           ./vcpkg/bootstrap-vcpkg.sh
           sudo apt-get update
           sudo apt-get install libcsound64-dev
