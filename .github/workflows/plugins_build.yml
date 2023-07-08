@@ -43,15 +43,14 @@ jobs:
         env:
           FAUST_URL: https://github.com/grame-cncm/faust/releases/download/2.60.3/Faust-2.60.3-win64.exe
         run: |
+          Invoke-WebRequest $env:FAUST_URL -OutFile faustInstaller.exe
+          ./faustInstaller.exe /S
           echo "C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "OPCODE6DIR64=C:/Program Files/csound/plugins64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "PYTHONPATH=C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "RAWWAVE_PATH=C:/Program Files/csound/samples" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           .\vcpkg\bootstrap-vcpkg.bat
           choco install csound --version=6.17.0
-          Invoke-WebRequest $env:FAUST_URL -OutFile faustInstaller.exe
-          ls .
-          ./faustInstaller.exe /S
           echo $GITHUB_ENV
           ls 'C:\Program Files\Faust\'
           echo "C:\Program Files\Faust\;C:\Program Files\Faust\lib" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
