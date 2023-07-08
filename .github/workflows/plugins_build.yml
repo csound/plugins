@@ -53,6 +53,7 @@ jobs:
           # Faust
           Invoke-WebRequest $env:FAUST_URL -OutFile faustInstaller.exe
           ./faustInstaller.exe /S
+          echo $GITHUB_ENV
           echo "C:\Program Files\Faust\;C:\Program Files\Faust\lib" >> $GITHUB_ENV
 
         # - name: Setup platform (linux)
