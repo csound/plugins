@@ -26,8 +26,8 @@ jobs:
         include:
           - os: "windows-latest"
             mono: ""
-          # - os: "ubuntu-latest"
-          #   mono: "mono"
+          - os: "ubuntu-latest"
+            mono: "mono"
           # - os: "macos-latest"
           #   mono: "mono"
 
@@ -45,22 +45,20 @@ jobs:
         run: |
           Invoke-WebRequest $env:FAUST_URL -OutFile faustInstaller.exe
           ./faustInstaller.exe /S
+          echo "C:/Program Files/Faust;C:/Program Files/Faust/lib" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "OPCODE6DIR64=C:/Program Files/csound/plugins64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "PYTHONPATH=C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "RAWWAVE_PATH=C:/Program Files/csound/samples" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           .\6.x\vcpkg\bootstrap-vcpkg.bat
           choco install csound --version=6.17.0
-          echo $GITHUB_ENV
-          ls 'C:\Program Files\Faust\'
-          echo "C:\Program Files\Faust\;C:\Program Files\Faust\lib" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-        # - name: Setup platform (linux)
-        #   if: startsWith(matrix.os, 'ubuntu')
-        #   run: |
-        #     ./vcpkg/bootstrap-vcpkg.sh
-        #     sudo apt-get update
-        #     sudo apt-get install libcsound64-dev
+      - name: Setup platform (linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          ./vcpkg/bootstrap-vcpkg.sh
+          sudo apt-get update
+          sudo apt-get install libcsound64-dev
 
         # - name: Setup platform (macos)
         #   if: startsWith(matrix.os, 'macos')
