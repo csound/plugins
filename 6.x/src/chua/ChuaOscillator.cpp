@@ -122,7 +122,7 @@
 //     d = sys_variables(12);
 //     gnor = a*(x.^3) + b*(x.^2) + c*x + d;
 
-#include "OpcodeBase.hpp"
+#include "../common/OpcodeBase.hpp"
 #include <cmath>
 #include <Eigen/Dense>
 

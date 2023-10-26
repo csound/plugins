@@ -456,7 +456,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 * 5. At the end of processing, the module deinitialization
 *    function erases all Jack-related state.
 */
-#include "OpcodeBase.hpp"
+#include "../common/OpcodeBase.hpp"
 #include <atomic>
 #include <csound.h>
 #include <cstdio>
@@ -549,7 +549,7 @@ struct JackoState {
                         status);
         if (!jackClient) {
             csound->Message(csound,
-                            "Could not create Jack client \"%s\" -- is Jack server \"%s\" running? Status: %d\n", 
+                            "Could not create Jack client \"%s\" -- is Jack server \"%s\" running? Status: %d\n",
                             clientName, serverName, status);
             csound->LongJmp(csound, 1);
         } else {

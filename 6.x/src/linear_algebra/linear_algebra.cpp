@@ -365,7 +365,7 @@ extern "C" {
 #undef WR
 #endif
 
-#include "OpcodeBase.hpp"
+#include "../common/OpcodeBase.hpp"
 #include <complex>
 #include <gmm/gmm.h>
 #include <sstream>
