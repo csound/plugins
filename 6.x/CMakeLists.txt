@@ -40,7 +40,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 find_package(CSOUND)
 
-if(NOT CSOUND_INCLUDE_DIRS)
+if(NOT CSOUND_FOUND AND NOT CSOUND_INCLUDE_DIRS)
     message(FATAL_ERROR "Csound header files are required")
 endif()
 

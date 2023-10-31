@@ -4,8 +4,13 @@ option(BUILD_ABLETON_LINK_OPCODES "Build the Ableton link opcodes" OFF)
 if(BUILD_ABLETON_LINK_OPCODES)
     message(STATUS "Ableton Link home: ${ABLETON_LINK_HOME}")
 
+    if(USE_VCPKG)
+        find_package(AbletonLink CONFIG REQUIRED PATH_SUFFIXES share/ableton-link)
+    endif()
+
     if(APPLE)
         make_plugin(ableton_link_opcodes ableton_link_opcodes.cpp)
+        target_link_libraries(ableton_link_opcodes PRIVATE Ableton::Link)
         set_target_properties(ableton_link_opcodes
             PROPERTIES
                 COMPILE_FLAGS "-std=c++11 -stdlib=libc++ -Wno-multichar -DLINK_PLATFORM_MACOSX=1"
@@ -17,6 +22,7 @@ if(BUILD_ABLETON_LINK_OPCODES)
 
         if(COMPILER_SUPPORTS_CXX11)
             make_plugin(ableton_link_opcodes ableton_link_opcodes.cpp)
+            target_link_libraries(ableton_link_opcodes PRIVATE Ableton::Link)
             set_target_properties(ableton_link_opcodes PROPERTIES COMPILE_FLAGS "-std=gnu++11 -Wno-multichar -DLINK_PLATFORM_LINUX=1")
         else()
             message(STATUS "Not building ableton_link_opcodes as no C++11 support found.")
@@ -26,7 +32,6 @@ if(BUILD_ABLETON_LINK_OPCODES)
 
         if(WIN32)
             if(USE_VCPKG)
-                find_package(AbletonLink CONFIG REQUIRED PATH_SUFFIXES share/ableton-link)
                 target_link_libraries(ableton_link_opcodes PRIVATE Ableton::Link)
             else()
                 set_target_properties(ableton_link_opcodes

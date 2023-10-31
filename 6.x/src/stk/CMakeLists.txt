@@ -10,7 +10,8 @@ if(BUILD_STK_OPCODES)
         find_package(unofficial-libstk CONFIG REQUIRED)
         target_link_libraries(stkops PRIVATE unofficial::libstk::libstk)
         target_include_directories(stkops PRIVATE ${CSOUND_INCLUDE_DIRS})
-        message(STATUS "Building STK opcodes for MSVC")
+
+        message(STATUS "Building STK opcodes with VCPKG")
     else()
         find_package(STK)
 

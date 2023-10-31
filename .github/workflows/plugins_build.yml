@@ -87,10 +87,12 @@ jobs:
       - name: Build plugins
         run: cmake --build build --config Release
 
-      - name: Build installer
+      - name: Build installer (windows)
+        if: startsWith(matrix.os, 'windows')
         run: iscc /o. .\installer\win64\Installer.iss
 
-      - name: Upload installer
+      - name: Upload installer (windows)
+        if: startsWith(matrix.os, 'windows')
         uses: actions/upload-artifact@v2
         with:
           name: Csound_win_x64-${{env.CSOUND_VERSION}}.${{github.run_number}}-plugins-installer

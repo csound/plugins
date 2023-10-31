@@ -9,6 +9,7 @@
         "fltk",
         "fluidsynth",
         "hdf5",
+        "libuv",
         "libstk",
         "libwebsockets",
         "mp3lame",

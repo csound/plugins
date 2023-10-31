@@ -309,7 +309,7 @@ void freeifaddrs(struct ifaddrs* addrs) {
 }
 #endif  // defined(ANDROID)
 #include <ableton/Link.hpp>
-#include <OpcodeBase.hpp>
+#include "../common/OpcodeBase.hpp"
 
 /**
  * A B L E T O N   L I N K   O P C O D E S
