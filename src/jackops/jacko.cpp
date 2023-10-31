@@ -847,7 +847,7 @@ struct JackoInfo : public OpcodeBase<JackoInfo> {
         }
         std::free(connections);
       }
-      std::free(ports);
+      ///std::free(ports);
     }
     return OK;
   }
@@ -1087,37 +1087,37 @@ struct JackoMidiInConnect : public OpcodeBase<JackoMidiInConnect> {
     csoundPortName = csound->strarg2name(
         csound, (char *)0, ScsoundPortName->data, (char *)"", (int)1);
     std::sprintf(csoundFullPortName, "%s:%s", clientName, csoundPortName);
+    csoundPort = jack_port_by_name(jackoState->jackClient, csoundFullPortName);
+    if (csoundPort) {
+        log(csound, "Found Csound port \"%s\".\n", csoundFullPortName);
+    } else {
+        csoundPort =
+            jack_port_register(jackoState->jackClient, csoundPortName,
+                             JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput, 0);
+            if (csoundPort) {
+                log(csound, "Created Csound port \"%s\".\n", csoundFullPortName);
+            } else {
+            warn(csound, Str("Could not create Csound port \"%s\".\n"),
+                csoundFullPortName);
+        }
+    }
     externalPortName = csound->strarg2name(
         csound, (char *)0, SexternalPortName->data, (char *)"csound", (int)1);
-    csoundPort = jack_port_by_name(jackoState->jackClient, csoundFullPortName);
-    if (!csoundPort) {
-      csoundPort =
-          jack_port_register(jackoState->jackClient, csoundPortName,
-                             JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
-      if (csoundPort) {
-        log(csound, "Created Jack port \"%s\".\n", csoundFullPortName);
-      } else {
-        warn(csound, Str("Could not create Jack port \"%s\".\n"),
-             csoundFullPortName);
-      }
-    }
-    externalPort = jack_port_by_name(jackoState->jackClient, externalPortName);
-    result = jack_connect(jackoState->jackClient, jack_port_name(externalPort),
-                          jack_port_name(csoundPort));
+    result = jack_connect(jackoState->jackClient, externalPortName, csoundPortName);
     if (result == EEXIST) {
       log(csound, "Connection from \"%s\" to \"%s\" already exists.\n",
           externalPortName, csoundFullPortName);
     } else if (result) {
       warn(csound,
-           Str("Could not create Jack connection from \"%s\" to \"%s\": "
+           Str("Could not create Jack MIDI connection from \"%s\" to \"%s\": "
                "status %d.\n"),
            externalPortName, csoundFullPortName, result);
       return result;
     } else {
-      log(csound, "Created Jack connection from \"%s\" to \"%s\".\n",
+      log(csound, "Created Jack MIDI connection from \"%s\" to \"%s\".\n",
           externalPortName, csoundFullPortName);
     }
-    jackoState->midiInPorts[csoundPortName] = csoundPort;
+    jackoState->midiOutPorts[csoundPortName] = csoundPort;
     return result;
   }
 };
@@ -1144,34 +1144,35 @@ struct JackoMidiOutConnect : public OpcodeBase<JackoMidiOutConnect> {
     csoundPortName = csound->strarg2name(
         csound, (char *)0, ScsoundPortName->data, (char *)"", (int)1);
     std::sprintf(csoundFullPortName, "%s:%s", clientName, csoundPortName);
+    csoundPort = jack_port_by_name(jackoState->jackClient, csoundFullPortName);
+    if (csoundPort) {
+        log(csound, "Found Csound port \"%s\".\n", csoundFullPortName);
+    } else {
+        csoundPort =
+            jack_port_register(jackoState->jackClient, csoundPortName,
+                             JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput, 0);
+            if (csoundPort) {
+                log(csound, "Created Csound port \"%s\".\n", csoundFullPortName);
+            } else {
+            warn(csound, Str("Could not create Csound port \"%s\".\n"),
+                csoundFullPortName);
+        }
+    }
     externalPortName = csound->strarg2name(
         csound, (char *)0, SexternalPortName->data, (char *)"csound", (int)1);
-    csoundPort = jack_port_by_name(jackoState->jackClient, csoundFullPortName);
-    if (!csoundPort) {
-      csoundPort =
-          jack_port_register(jackoState->jackClient, csoundPortName,
-                             JACK_DEFAULT_MIDI_TYPE, JackPortIsOutput, 0);
-      if (csoundPort) {
-        log(csound, "Created Jack port \"%s\".\n", csoundFullPortName);
-      } else {
-        warn(csound, Str("Could not create Jack port \"%s\".\n"),
-             csoundFullPortName);
-      }
-    }
-    externalPort = jack_port_by_name(jackoState->jackClient, externalPortName);
-    result = jack_connect(jackoState->jackClient, jack_port_name(csoundPort),
-                          jack_port_name(externalPort));
+    result = jack_connect(jackoState->jackClient, csoundPortName,
+                         externalPortName);
     if (result == EEXIST) {
       log(csound, "Connection from \"%s\" to \"%s\" already exists.\n",
           csoundFullPortName, externalPortName);
     } else if (result) {
       warn(csound,
-           Str("Could not create Jack connection from \"%s\" to \"%s\": "
+           Str("Could not create Jack MIDI connection from \"%s\" to \"%s\": "
                "status %d.\n"),
            csoundFullPortName, externalPortName, result);
       return result;
     } else {
-      log(csound, "Created Jack connection from \"%s\" to \"%s\".\n",
+      log(csound, "Created Jack MIDI connection from \"%s\" to \"%s\".\n",
           csoundFullPortName, externalPortName);
     }
     jackoState->midiOutPorts[csoundPortName] = csoundPort;
