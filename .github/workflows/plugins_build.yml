@@ -56,10 +56,10 @@ jobs:
       - name: Setup platform (linux)
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          sudo apt-get install g++ build-essential
-          ./vcpkg/bootstrap-vcpkg.sh
           sudo apt-get update
+          sudo apt-get install g++ build-essential
           sudo apt-get install libcsound64-dev
+          ./vcpkg/bootstrap-vcpkg.sh
 
         # - name: Setup platform (macos)
         #   if: startsWith(matrix.os, 'macos')
