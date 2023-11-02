@@ -59,13 +59,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install g++ build-essential
           sudo apt-get install libcsound64-dev
-          ./vcpkg/bootstrap-vcpkg.sh
 
         # - name: Setup platform (macos)
         #   if: startsWith(matrix.os, 'macos')
         #   run: |
         #     ./vcpkg/bootstrap-vcpkg.sh
         #     brew install csound
+
+      - name: Bootstrap VCPKG (non-windows)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ./vcpkg/bootstrap-vcpkg.sh
 
       - name: Setup VCPKG cache
         shell: bash
