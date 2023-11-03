@@ -12,9 +12,10 @@ in the Jacko plugin, but it does not affect the performance.
 Csound not only writes a soundfile using -o, but also sends realtime audio and 
 MIDI to other Jack clients using Jack connections.
 
-Test MIDI output with:
+Before running this piece, in a terminal execute:
 
 zynaddsubfx --input JACK --output JACK --auto-connect --sample-rate 48000 --buffer-size 128
+
 
 </CsLicense>
 <CsOptions>
@@ -42,15 +43,13 @@ prints "Final ports and connections:\n"
 JackoInfo
 JackoOn                                                                        
 
-instr 1	
+instr 1
 print p1, p2, p3, p4, p5
 i_frequency = cpsmidinn(p4)
 i_amplitude = ampdb(p5)
 print i_frequency, i_amplitude
-prints "We want to hear something just to prove Jack is indeed routing audio."
 a_out oscil i_amplitude, i_frequency
 ga_audio_out += a_out;
-prints "\nHi Michael!\n"
 endin
 
 ; Sends notes to an external MIDI synthesizer.
