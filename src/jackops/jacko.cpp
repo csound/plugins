@@ -526,11 +526,13 @@ struct JackoState {
   pthread_mutex_t csoundPerformanceThreadConditionMutex;
   pthread_mutexattr_t csoundPerformanceThreadConditionMutexAttribute;
   pthread_cond_t csoundPerformanceThreadCondition;
+  size_t sample_size;
   JackoState(CSOUND *csound_, const char *serverName_, const char *clientName_)
       : csound(csound_), serverName(serverName_), clientName(clientName_),
         jacko_is_driving(false), jack_active(false), is_closed(true) {
     int result = 0;
     csound = csound_;
+    sample_size = sizeof(jack_default_audio_sample_t);    
     csoundFramesPerTick = csound->GetKsmps(csound);
     csoundFramesPerSecond = csound->GetSr(csound);
     pthread_mutexattr_init(&csoundPerformanceThreadConditionMutexAttribute);
@@ -622,6 +624,9 @@ struct JackoState {
   }
   int JackProcessCallback(jack_nframes_t frames) {
     IGN(frames);
+      if (frames != csoundFramesPerTick) {
+          csound->Message(csound, "JackProcessCallback: frames (%d) != csoundFramesPerTick (%d)\n", frames, csoundFramesPerTick);
+      }
     int result = 0;
     // We must call PerformKsmps here ONLY after the original
     // Csound jacko_is_driving thread is waiting on its condition.
@@ -1069,6 +1074,7 @@ struct JackoAudioOut : public OpcodeBase<JackoAudioOut> {
     jack_default_audio_sample_t *buffer =
         (jack_default_audio_sample_t *)jack_port_get_buffer(
             csoundPort, csoundFramesPerTick);
+    memset(buffer, 0, csoundFramesPerTick * jackoState->sample_size);
     for (size_t frame = 0; frame < csoundFramesPerTick; ++frame) {
       buffer[frame] = asignal[frame];
     }
@@ -1287,16 +1293,15 @@ struct JackoNoteOut : public OpcodeNoteoffBase<JackoNoteOut> {
     csoundPortName = csound->strarg2name(
         csound, (char *)0, ScsoundPortName->data, (char *)"", (int)1);
     csoundPort = jackoState->midiOutPorts[csoundPortName];
-    status = (char)144;
     channel = (char)*ichannel;
     key = (char)*ikey;
     velocity = (char)*ivelocity;
     buffer = jackoState->getMidiOutBuffer(csoundPort);
     jack_midi_data_t *data = jack_midi_event_reserve(buffer, 0, 3);
-    data[0] = (status + channel);
+    data[0] = (144 + channel);
     data[1] = key;
     data[2] = velocity;
-    // log(csound, "noteon:  %3d %3d %3d\n", data[0], data[1], data[2]);
+    log(csound, "noteon:  %3d %3d %3d\n", data[0], data[1], data[2]);
     return result;
   }
   int noteoff(CSOUND *csound) {
@@ -1307,10 +1312,10 @@ struct JackoNoteOut : public OpcodeNoteoffBase<JackoNoteOut> {
     int result = OK;
     buffer = jackoState->getMidiOutBuffer(csoundPort);
     jack_midi_data_t *data = jack_midi_event_reserve(buffer, 0, 3);
-    data[0] = (status + channel);
+    data[0] = (128 + channel);
     data[1] = key;
     data[2] = 0;
-    // log(csound, "noteoff: %3d %3d %3d\n", data[0], data[1], data[2]);
+    log(csound, "noteoff: %3d %3d %3d\n", data[0], data[1], data[2]);
     return result;
   }
 };
