@@ -1074,7 +1074,6 @@ struct JackoAudioOut : public OpcodeBase<JackoAudioOut> {
     jack_default_audio_sample_t *buffer =
         (jack_default_audio_sample_t *)jack_port_get_buffer(
             csoundPort, csoundFramesPerTick);
-    memset(buffer, 0, csoundFramesPerTick * jackoState->sample_size);
     for (size_t frame = 0; frame < csoundFramesPerTick; ++frame) {
       buffer[frame] = asignal[frame];
     }
