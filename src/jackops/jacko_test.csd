@@ -70,8 +70,9 @@ endin
 
 instr 1000
 print p1, p2, p3
-; Uncomment the following line to test if Jacko hangs Csound.
+; Uncomment the following two lines to test if Jacko hangs Csound.
 event "e", 0, 0, 0.1
+prints "Ending Csound performance with 'e' event\n"
 endin
 
 </CsInstruments>
