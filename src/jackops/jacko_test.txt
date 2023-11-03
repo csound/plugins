@@ -50,8 +50,6 @@ print i_frequency, i_amplitude
 prints "We want to hear something just to prove Jack is indeed routing audio."
 a_out oscil i_amplitude, i_frequency
 ga_audio_out += a_out;
-; Uncomment the following line to test if Jacko hangs Csound.
-; event "e", 0, 0, 0.1
 prints "\nHi Michael!\n"
 endin
 
@@ -70,12 +68,20 @@ JackoAudioOut "audio_out_right", ga_audio_out
 ga_audio_out = 0
 endin
 
+instr 1000
+print p1, p2, p3
+; Uncomment the following line to test if Jacko hangs Csound.
+event "e", 0, 0, 0.1
+endin
+
 </CsInstruments>
 <CsScore>
-i1    5 3 63 60
-i801 10 3 69 60	
-i1	 15 3 72 60	
-i900  0 -1
+f 0 60
+i1     5  3 63 60
+i801  10  3 69 60	
+i1	  15  3 72 60	
+i900   0 -1
+i1000 20  1
 e
 </CsScore>
 

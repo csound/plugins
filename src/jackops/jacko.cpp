@@ -510,7 +510,7 @@ struct JackoState {
   jack_client_t *jackClient;
   std::atomic<bool> jacko_is_driving;
   std::atomic<bool> jack_active;
-  std::atomic<bool> is_closed;
+  std::atomic<bool> jacko_finished;
   jack_nframes_t csoundFramesPerTick;
   jack_nframes_t jackFramesPerTick;
   jack_nframes_t csoundFramesPerSecond;
@@ -529,7 +529,7 @@ struct JackoState {
   size_t sample_size;
   JackoState(CSOUND *csound_, const char *serverName_, const char *clientName_)
       : csound(csound_), serverName(serverName_), clientName(clientName_),
-        jacko_is_driving(false), jack_active(false), is_closed(true) {
+        jacko_is_driving(false), jack_active(false), jacko_finished(true) {
     int result = 0;
     csound = csound_;
     sample_size = sizeof(jack_default_audio_sample_t);    
@@ -579,7 +579,7 @@ struct JackoState {
     csound->SetExternalMidiInOpenCallback(csound, midiDeviceOpen_);
     csound->SetExternalMidiReadCallback(csound, midiRead_);
     csound->RegisterSenseEventCallback(csound, SenseEventCallback_, this);
-    is_closed = false;
+    jacko_finished = false;
     result |= jack_set_process_callback(jackClient, JackProcessCallback_, this);
     result |= jack_activate(jackClient);
     if (!result) {
@@ -597,6 +597,9 @@ struct JackoState {
   }
   int SenseEventCallback() {
     int result = 0;
+      if (jacko_finished) {
+          return result;
+      }
     // Here we must wait once and only once, in order to put
     // the original Csound processing thread to sleep --
     // but we must NOT put the Jack processing callback
@@ -662,8 +665,8 @@ struct JackoState {
       // We break here when the Csound performance is complete, and close
       // the Jack connection in a separate thread.
       if (finished /* && jack_active */) {
+        jacko_finished = true;
         jack_active = false;
-        is_closed = true;
         jacko_is_driving = false;
         csound->Message(csound, "%s", Str("Jacko performance finished.\n"));
         //~ // Create a thread to run the close routine.
@@ -676,7 +679,7 @@ struct JackoState {
   }
   int close() {
     jack_active = false;
-    is_closed = true;
+    jacko_finished = true;
     csound->Message(csound, "%s", Str("JackoState::close...\n"));
     jacko_is_driving = false;
     int result = OK;
@@ -778,7 +781,7 @@ static int midiRead_(CSOUND *csound, void *userData, unsigned char *midiData,
                      int midiN) {
   IGN(csound);
   JackoState *jackoState_ = (JackoState *)userData;
-  if (jackoState_->is_closed == true) {
+  if (jackoState_->jacko_finished == true) {
     return 0;
   }
   int midiI = 0;
@@ -858,9 +861,9 @@ struct JackoInfo : public OpcodeBase<JackoInfo> {
             }
           }
         }
-        ///std::free(connections);
+        std::free(connections);
       }
-      ///std::free(ports);
+      std::free(ports);
     }
     return OK;
   }
@@ -977,7 +980,7 @@ struct JackoAudioIn : public OpcodeBase<JackoAudioIn> {
   }
   int audio(CSOUND *csound) {
     IGN(csound);
-    if (jackoState->is_closed == true) {
+    if (jackoState->jacko_finished == true) {
         return OK;
     }
     jack_default_audio_sample_t *buffer =
@@ -1068,7 +1071,7 @@ struct JackoAudioOut : public OpcodeBase<JackoAudioOut> {
   }
   int audio(CSOUND *csound) {
     IGN(csound);
-    if (jackoState->is_closed == true) {
+    if (jackoState->jacko_finished == true) {
         return OK;
     }
     jack_default_audio_sample_t *buffer =
@@ -1233,7 +1236,7 @@ struct JackoMidiOut : public OpcodeBase<JackoMidiOut> {
   }
   int kontrol(CSOUND *csound) {
     IGN(csound);
-    if (jackoState->is_closed == true) {
+    if (jackoState->jacko_finished == true) {
         return OK;
     }
     int result = OK;
@@ -1305,7 +1308,7 @@ struct JackoNoteOut : public OpcodeNoteoffBase<JackoNoteOut> {
   }
   int noteoff(CSOUND *csound) {
     IGN(csound);
-    if (jackoState->is_closed == true) {
+    if (jackoState->jacko_finished == true) {
         return OK;
     }
     int result = OK;
@@ -1337,7 +1340,7 @@ struct JackoTransport : public OpcodeBase<JackoTransport> {
     return kontrol(csound);
   }
   int kontrol(CSOUND *csound) {
-    if (jackoState->is_closed == true) {
+    if (jackoState->jacko_finished == true) {
         return OK;
     }
     int result = OK;
@@ -1455,7 +1458,7 @@ PUBLIC int csoundModuleDestroy(CSOUND *csound) {
   JackoState *jackoState = 0;
   csound::QueryGlobalPointer(csound, "jackoState", jackoState);
   if (jackoState) {
-    if (jackoState->is_closed == false) {
+    if (jackoState->jacko_finished == false) {
         jackoState->close();
     }
     delete jackoState;
