@@ -668,7 +668,7 @@ struct JackoState {
                 jacko_has_finished = true;
                 ///jack_active = false;
                 jacko_is_driving = false;
-                csound->Message(csound, "%s", Str("Jacko performance finished.\n"));
+                csound->Message(csound, "%s", Str("Csound performance driven by Jack has finished.\n"));
 //~ // Create a thread to run the close routine.
                 result = pthread_create(&closeThread, 0,
                                         &JackoState::closeThreadRoutine_, this);
