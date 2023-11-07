@@ -1,7 +1,7 @@
 /*
 jacko.cpp:
 
-Copyright (C) 2010nby Michael Gogins
+Copyright (C) 2010, 2023 by Michael Gogins
 
 This file is part of Csound.
 
@@ -22,24 +22,27 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 */
 
 /**
-* T H E   J A C K   O P C O D E S
+* T H E   J A C K O   O P C O D E S
 * Michael Gogins
 *
-* The Jack opcodes can be used to connect any number
-* of Csound instances, instruments, or user-defined
-* opcodes to any number of Jack ports
-* in any number of external Jack servers.
-* Audio and MIDI signal types are supported
+* The Jacko opcodes can be used to connect any number of Csound instances, 
+* instruments, or user-defined opcodes to any number of Jack ports in any 
+* number of external Jack servers. Both audio and MIDI signal types are 
+* supported.
 *
-* Sending MIDI and/or audio to external Jack clients,
-* such as synthesizers, and receiving audio and/or
-* MIDI back from them, is supported.
+* Sending MIDI and/or audio to external Jack clients, such as synthesizers, 
+* and receiving audio and/or MIDI back from them, is supported.
 *
-* Receiving MIDI and/or audio from external Jack clients,
-* such as sequencers, and sending MIDI and/or audio
-* back to them, is supported.
+* Receiving MIDI and/or audio from external Jack clients, such as sequencers, 
+* and sending MIDI and/or audio back to them, is supported.
 *
 * Other uses also are supported.
+*
+* The Jacko opcodes do not read or write the Csound input or output buffers; 
+* the opcodes read Jack inputs to Csound audio rate variables, and write 
+* audio rate variables to Jack outputs. This provides increased flexibility.
+*
+* NOTE: Using Jacko with `-+rtaudio=jack`is not advisable.
 *
 * O P C O D E S
 *
@@ -68,8 +71,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 * and to Jack output ports, must be properly
 * determined by sequence of instrument and
 * opcode definition within the Csound orchestra.
-*
-* NOTE: Using Jacko with `-+rtaudio=jack`is not advisable.
 *
 * Syntax
 *
@@ -460,6 +461,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 #include <csound.h>
 #include <cstdio>
 #include <time.h>
+#include <condition_variable>
 #include <cstdlib>
 #include <cstring>
 #include <errno.h>
@@ -467,9 +469,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 #include <jack/midiport.h>
 #include <list>
 #include <map>
-#include <pthread.h>
+#include <mutex>
+/// #include <pthread.h>
 #include <set>
 #include <string>
+#include <thread>
 #include <vector>
 
 using namespace csound;
@@ -488,7 +492,6 @@ struct JackoState;
 * There is one and only one JackoState instance per instance of Csound.
 * It is created by and only by the JackoInit opcode.
 */
-// static JackoState *jackoState = 0;
 
 static void SenseEventCallback_(CSOUND *csound, void *data);
 static int JackProcessCallback_(jack_nframes_t frames, void *data);
@@ -523,10 +526,9 @@ struct JackoState {
     std::map<std::string, jack_port_t *> midiOutPorts;
     std::list<unsigned char> midiInputQueue;
     jack_position_t jack_position;
-    pthread_t closeThread;
-    pthread_mutex_t csoundPerformanceThreadConditionMutex;
-    pthread_mutexattr_t csoundPerformanceThreadConditionMutexAttribute;
-    pthread_cond_t csoundPerformanceThreadCondition;
+    std::thread *closeThread;
+    std::mutex csoundPerformanceThreadConditionMutex;
+    std::condition_variable csoundPerformanceThreadCondition;
     size_t sample_size;
     JackoState(CSOUND *csound_, const char *serverName_, const char *clientName_)
         : csound(csound_), serverName(serverName_), clientName(clientName_),
@@ -536,13 +538,6 @@ struct JackoState {
         sample_size = sizeof(jack_default_audio_sample_t);
         csoundFramesPerTick = csound->GetKsmps(csound);
         csoundFramesPerSecond = csound->GetSr(csound);
-        pthread_mutexattr_init(&csoundPerformanceThreadConditionMutexAttribute);
-        pthread_mutexattr_settype(&csoundPerformanceThreadConditionMutexAttribute,
-                                  PTHREAD_MUTEX_RECURSIVE);
-        result |=
-            pthread_mutex_init(&csoundPerformanceThreadConditionMutex,
-                               &csoundPerformanceThreadConditionMutexAttribute);
-        result |= pthread_cond_init(&csoundPerformanceThreadCondition, 0);
         std::memset(&jack_position, 0, sizeof(jack_position_t));
         jack_options_t jack_options =
             (jack_options_t)(JackServerName | JackNoStartServer | JackUseExactName);
@@ -611,13 +606,12 @@ struct JackoState {
 // until the Csound performance is complete.
             csound->Message(csound,
                             "%s", Str("Jacko is now driving Csound performance...\n"));
-            result |= pthread_mutex_lock(&csoundPerformanceThreadConditionMutex);
+            std::unique_lock lock(csoundPerformanceThreadConditionMutex);
             while (jacko_is_driving.load() == true) {
-                result |= pthread_cond_wait(&csoundPerformanceThreadCondition,
-                                            &csoundPerformanceThreadConditionMutex);
+                csoundPerformanceThreadCondition.wait(lock);
             }
             jacko_is_driving = false;
-            result |= pthread_mutex_unlock(&csoundPerformanceThreadConditionMutex);
+            lock.unlock();
             csound->Message(csound,
                             "%s", Str("Jacko has quit driving Csound performance.\n"));
             return 1;
@@ -668,16 +662,14 @@ struct JackoState {
                 ///jack_active = false;
                 jacko_is_driving = false;
                 csound->Message(csound, "%s", Str("Csound performance driven by Jack has finished.\n"));
-//~ // Create a thread to run the close routine.
-                result = pthread_create(&closeThread, 0,
-                                        &JackoState::closeThreadRoutine_, this);
+// Create a thread to run the close routine.
+                closeThread = new std::thread(&JackoState::closeThreadRoutine, this);
                 return finished;
             }
         }
         return result;
     }
     int close() {
-        ///jack_active = false;
         jacko_has_finished = true;
         csound->Message(csound, "%s", Str("JackoState::close...\n"));
         jacko_is_driving = false;
@@ -709,10 +701,9 @@ struct JackoState {
         csound->Message(csound, "%s", Str("Jack ports unregistered.\n"));
         result |= jack_client_close(jackClient);
         csound->Message(csound, "%s", Str("Jack client closed.\n"));
-        result |= pthread_cond_broadcast(&csoundPerformanceThreadCondition);
-        result |= pthread_cond_destroy(&csoundPerformanceThreadCondition);
-        result |= pthread_mutex_unlock(&csoundPerformanceThreadConditionMutex);
-        result |= pthread_mutex_destroy(&csoundPerformanceThreadConditionMutex);
+        std::unique_lock lock(csoundPerformanceThreadConditionMutex);
+        csoundPerformanceThreadCondition.notify_one();
+        lock.unlock();
         audioOutPorts.clear();
         audioInPorts.clear();
         midiInPorts.clear();
