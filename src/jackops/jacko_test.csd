@@ -19,7 +19,6 @@ zynaddsubfx --input JACK --output JACK --auto-connect --sample-rate 48000 --buff
 
 </CsLicense>
 <CsOptions>
-;-o jacko.wav
 </CsOptions>
 <CsInstruments>
 ; Sampling rate must be the same as for Jack.
@@ -35,13 +34,14 @@ ga_audio_out init 0
 JackoInit "default", "csound6"                    
 prints "Initial ports and connections:\n"
 JackoInfo
+JackoAudioInConnect "system:capture_1", "audio_in_left"
+JackoAudioInConnect "system:capture_2", "audio_in_right"
 JackoAudioOutConnect "audio_out_left", "system:playback_1"
 JackoAudioOutConnect "audio_out_right", "system:playback_2"
 JackoMidiInConnect "system:midi_capture_1", "midiin"
 JackoMidiOutConnect "midiout", "zynaddsubfx:midi_input"
 prints "Final ports and connections:\n"
 JackoInfo
-JackoOn                                                                        
 
 instr 1
 print p1, p2, p3, p4, p5
@@ -62,6 +62,11 @@ endin
 instr 900 
 print p1, p2, p3
 outs ga_audio_out, ga_audio_out
+; Input test is only to see if connection is created.
+audio_in_left_ init 0
+audio_in_right_ init 0
+audio_in_left_ JackoAudioIn "audio_in_left"
+audio_in_right_ JackoAudioIn "audio_in_right"
 JackoAudioOut "audio_out_left",  ga_audio_out
 JackoAudioOut "audio_out_right", ga_audio_out
 ga_audio_out = 0
@@ -76,10 +81,10 @@ endin
 
 </CsInstruments>
 <CsScore>
-f 0 60
-i1     5  3 63 60
-i801  10  3 69 60	
-i1	  15  3 72 60	
+f      0 60
+i1     5  3 63  20
+i801  10  3 69 100	
+i1	  15  3 72  20	
 i900   0 -1
 i1000 20  1
 e

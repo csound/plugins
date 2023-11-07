@@ -12,9 +12,12 @@ if(BUILD_JACK_OPCODES AND JACK_LIB)
     make_plugin(jacko jacko.cpp "${jack_LIBS}")
     target_include_directories(jacko PRIVATE ${CSOUND_INCLUDE_DIRS})
     target_include_directories(jacko PRIVATE ${JACK_INCLUDE_DIR})
-    set_target_properties(jacko PROPERTIES COMPILE_FLAGS "-std=c++11")
-
+    set_property(TARGET jacko PROPERTY CXX_STANDARD 20)
+    set_property(TARGET jacko PROPERTY CXX_STANDARD_REQUIRED On)
+    set_property(TARGET jacko PROPERTY CXX_EXTENSIONS Off)
+    
     make_plugin(jackTransport jackTransport.c "${jack_LIBS}")
     target_include_directories(jackTransport PRIVATE ${CSOUND_INCLUDE_DIRS})
     target_include_directories(jackTransport PRIVATE ${JACK_INCLUDE_DIR})
+    
 endif()

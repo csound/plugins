@@ -69,6 +69,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 * determined by sequence of instrument and
 * opcode definition within the Csound orchestra.
 *
+* NOTE: Using Jacko with `-+rtaudio=jack`is not advisable.
+*
 * Syntax
 *
 * JackoInit SclientName, ServerName
@@ -509,7 +511,6 @@ struct JackoState {
     const char *clientName;
     jack_client_t *jackClient;
     std::atomic<bool> jacko_is_driving;
-    ///std::atomic<bool> jack_active;
     std::atomic<bool> jacko_has_finished;
     jack_nframes_t csoundFramesPerTick;
     jack_nframes_t jackFramesPerTick;
@@ -591,7 +592,6 @@ struct JackoState {
                 jack_get_client_name(jackClient), result);
             return;
         }
-// jackInitialized = true;
     }
     ~JackoState() {
     }
@@ -604,7 +604,7 @@ struct JackoState {
 // the original Csound processing thread to sleep --
 // but we must NOT put the Jack processing callback
 // to sleep when it comes here!
-        if (jacko_is_driving == false) {
+        if (jacko_is_driving.load() == false) {
             jacko_is_driving = true;
 // While Jack is processing, wait here.
 // The Jack process callback will then call csoundPerformKsmps
@@ -612,12 +612,11 @@ struct JackoState {
             csound->Message(csound,
                             "%s", Str("Jacko is now driving Csound performance...\n"));
             result |= pthread_mutex_lock(&csoundPerformanceThreadConditionMutex);
-            while (jacko_is_driving == true) {
+            while (jacko_is_driving.load() == true) {
                 result |= pthread_cond_wait(&csoundPerformanceThreadCondition,
                                             &csoundPerformanceThreadConditionMutex);
             }
             jacko_is_driving = false;
-            ///jack_active = false;
             result |= pthread_mutex_unlock(&csoundPerformanceThreadConditionMutex);
             csound->Message(csound,
                             "%s", Str("Jacko has quit driving Csound performance.\n"));
@@ -634,7 +633,7 @@ struct JackoState {
 // We must call PerformKsmps here ONLY after the original
 // Csound jacko_is_driving thread is waiting on its condition.
         jackFrameTime = jack_last_frame_time(jackClient);
-        if (jacko_is_driving == true) {
+        if (jacko_is_driving.load() == true) {
 // Enqueue any MIDI messages pending in input ports.
             for (std::map<std::string, jack_port_t *>::iterator it =
                         midiInPorts.begin();
@@ -929,7 +928,7 @@ struct JackoAudioInConnect : public OpcodeBase<JackoAudioInConnect> {
         } else {
             csoundPort =
                 jack_port_register(jackoState->jackClient, csoundPortName,
-                                   JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+                                   JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
             if (csoundPort) {
                 log(csound, "Created Csound audio in port \"%s\".\n", csoundFullPortName);
             } else {
@@ -939,20 +938,20 @@ struct JackoAudioInConnect : public OpcodeBase<JackoAudioInConnect> {
         }
         externalPortName = csound->strarg2name(
                                csound, (char *)0, SexternalPortName->data, (char *)"csound", (int)1);
-        result = jack_connect(jackoState->jackClient, csoundPortName,
-                              externalPortName);
+        result = jack_connect(jackoState->jackClient, externalPortName,
+                              csoundFullPortName);
         if (result == EEXIST) {
             log(csound, "Jack audio connection from \"%s\" to \"%s\" already exists.\n",
                 csoundFullPortName, externalPortName);
         } else if (result) {
             warn(csound,
                  Str("Could not create Jack audio connection from \"%s\" to \"%s\": "
-                     "status %d.\n"),
-                 csoundFullPortName, externalPortName, result);
+                     "status %d %s.\n"),
+                 externalPortName, csoundFullPortName, errno, std::strerror(errno));
             return result;
         } else {
             log(csound, "Created Jack audio connection from \"%s\" to \"%s\".\n",
-                csoundFullPortName, externalPortName);
+                externalPortName, csoundFullPortName);
         }
         jackoState->audioInPorts[csoundPortName] = csoundPort;
         return result;
@@ -1038,8 +1037,8 @@ struct JackoAudioOutConnect : public OpcodeBase<JackoAudioOutConnect> {
         } else if (result) {
             warn(csound,
                  Str("Could not create Jack connection from \"%s\" to \"%s\": "
-                     "status %d.\n"),
-                 csoundFullPortName, externalPortName, result);
+                     "status %d %s.\n"),
+                 csoundFullPortName, externalPortName, errno, std::strerror(errno));
             return result;
         } else {
             log(csound, "Created Jack connection from \"%s\" to \"%s\".\n",
