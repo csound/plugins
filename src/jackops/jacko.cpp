@@ -25,21 +25,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 * T H E   J A C K O   O P C O D E S
 * Michael Gogins
 *
-* The Jacko opcodes can be used to connect any number of Csound instances, 
-* instruments, or user-defined opcodes to any number of Jack ports in any 
-* number of external Jack servers. Both audio and MIDI signal types are 
+* The Jacko opcodes can be used to connect any number of Csound instances,
+* instruments, or user-defined opcodes to any number of Jack ports in any
+* number of external Jack servers. Both audio and MIDI signal types are
 * supported.
 *
-* Sending MIDI and/or audio to external Jack clients, such as synthesizers, 
+* Sending MIDI and/or audio to external Jack clients, such as synthesizers,
 * and receiving audio and/or MIDI back from them, is supported.
 *
-* Receiving MIDI and/or audio from external Jack clients, such as sequencers, 
+* Receiving MIDI and/or audio from external Jack clients, such as sequencers,
 * and sending MIDI and/or audio back to them, is supported.
 *
 * Other uses also are supported.
 *
-* The Jacko opcodes do not read or write the Csound input or output buffers; 
-* the opcodes read Jack inputs to Csound audio rate variables, and write 
+* The Jacko opcodes do not read or write the Csound input or output buffers;
+* the opcodes read Jack inputs to Csound audio rate variables, and write
 * audio rate variables to Jack outputs. This provides increased flexibility.
 *
 * NOTE: Using Jacko with `-+rtaudio=jack`is not advisable.
@@ -545,30 +545,29 @@ struct JackoState {
         jackClient =
             jack_client_open(clientName, jack_options, &status, serverName);
         csound->Message(csound,
-                        Str("jack_client_open: status: %d\n"),
+                        "jack_client_open: status: %d\n",
                         status);
         if (!jackClient) {
             csound->Message(csound,
-                            Str("Could not create Jack client \"%s\" -- "
-                                "is Jack server \"%s\" running? Status: %d\n"),
+                            "Could not create Jack client \"%s\" -- is Jack server \"%s\" running? Status: %d\n", 
                             clientName, serverName, status);
             csound->LongJmp(csound, 1);
         } else {
             csound->Message(
-                csound, Str("Created Jack client \"%s\" for Jack server \"%s\". Status: %d\n"),
+                csound, "Created Jack client \"%s\" for Jack server \"%s\". Status: %d\n",
                 clientName, serverName, status);
         }
         jackFramesPerTick = jack_get_buffer_size(jackClient);
         if (csoundFramesPerTick != jackFramesPerTick) {
             csound->Message(
-                csound, Str("Jack buffer size %d != Csound ksmps %d, exiting...\n"),
+                csound, "Jack buffer size %d != Csound ksmps %d, exiting...\n",
                 jackFramesPerTick, csoundFramesPerTick);
             csound->LongJmp(csound, 1);
         }
         jackFramesPerSecond = jack_get_sample_rate(jackClient);
         if (csoundFramesPerSecond != jackFramesPerSecond) {
             csound->Message(
-                csound, Str("Jack sampling rate %d != Csound sr %d, exiting...\n"),
+                csound, "Jack sampling rate %d != Csound sr %d, exiting...\n",
                 jackFramesPerSecond, csoundFramesPerSecond);
             csound->LongJmp(csound, 1);
         }
@@ -579,11 +578,11 @@ struct JackoState {
         result |= jack_set_process_callback(jackClient, JackProcessCallback_, this);
         result |= jack_activate(jackClient);
         if (!result) {
-            csound->Message(csound, Str("Activated Jack client \"%s\".\n"),
+            csound->Message(csound, "Activated Jack client \"%s\".\n",
                             jack_get_client_name(jackClient));
         } else {
             csound->Message(
-                csound, Str("Failed to activate Jack client \"%s\": status %d.\n"),
+                csound, "Failed to activate Jack client \"%s\": status %d.\n",
                 jack_get_client_name(jackClient), result);
             return;
         }
@@ -605,7 +604,7 @@ struct JackoState {
 // The Jack process callback will then call csoundPerformKsmps
 // until the Csound performance is complete.
             csound->Message(csound,
-                            "%s", Str("Jacko is now driving Csound performance...\n"));
+                            "%s", "Jacko is now driving Csound performance...\n");
             std::unique_lock lock(csoundPerformanceThreadConditionMutex);
             while (jacko_is_driving.load() == true) {
                 csoundPerformanceThreadCondition.wait(lock);
@@ -613,7 +612,7 @@ struct JackoState {
             jacko_is_driving = false;
             lock.unlock();
             csound->Message(csound,
-                            "%s", Str("Jacko has quit driving Csound performance.\n"));
+                            "%s", "Jacko has quit driving Csound performance.\n");
             return 1;
         }
         return result;
@@ -659,9 +658,8 @@ struct JackoState {
 // the Jack connection in a separate thread.
             if (finished /* && jack_active */) {
                 jacko_has_finished = true;
-                ///jack_active = false;
                 jacko_is_driving = false;
-                csound->Message(csound, "%s", Str("Csound performance driven by Jack has finished.\n"));
+                csound->Message(csound, "%s", "Csound performance driven by Jack has finished.\n");
 // Create a thread to run the close routine.
                 closeThread = new std::thread(&JackoState::closeThreadRoutine, this);
                 return finished;
@@ -671,12 +669,12 @@ struct JackoState {
     }
     int close() {
         jacko_has_finished = true;
-        csound->Message(csound, "%s", Str("JackoState::close...\n"));
+        csound->Message(csound, "%s", "JackoState::close...\n");
         jacko_is_driving = false;
         int result = OK;
 // Try not to do thread related operations more than once...
         result = jack_deactivate(jackClient);
-        csound->Message(csound, "%s", Str("Jack client deactivated.\n"));
+        csound->Message(csound, "%s", "Jack client deactivated.\n");
 // Jack documentation says deactivating the client does the following also:
         for (std::map<std::string, jack_port_t *>::iterator it =
                     audioInPorts.begin();
@@ -698,9 +696,9 @@ struct JackoState {
                 it != midiOutPorts.end(); ++it) {
             result = jack_port_unregister(jackClient, it->second);
         }
-        csound->Message(csound, "%s", Str("Jack ports unregistered.\n"));
+        csound->Message(csound, "%s", "Jack ports unregistered.\n");
         result |= jack_client_close(jackClient);
-        csound->Message(csound, "%s", Str("Jack client closed.\n"));
+        csound->Message(csound, "%s", "Jack client closed.\n");
         std::unique_lock lock(csoundPerformanceThreadConditionMutex);
         csoundPerformanceThreadCondition.notify_one();
         lock.unlock();
@@ -708,7 +706,7 @@ struct JackoState {
         audioInPorts.clear();
         midiInPorts.clear();
         midiOutPorts.clear();
-        csound->Message(csound, "%s", Str("JackoState::close.\n"));
+        csound->Message(csound, "%s", "JackoState::close.\n");
         return result;
     }
     void *closeThreadRoutine() {
@@ -870,10 +868,10 @@ struct JackoFreewheel : public OpcodeBase<JackoFreewheel> {
         int result = jack_set_freewheel(jackoState->jackClient, freewheel);
         if (result) {
             warn(csound,
-                 Str("Failed to set Jack freewheeling mode to \"%s\": error %d.\n"),
+                 "Failed to set Jack freewheeling mode to \"%s\": error %d.\n",
                  (freewheel ? "on" : "off"), result);
         } else {
-            log(csound, Str("Set Jack freewheeling mode to \"%s\".\n"),
+            log(csound, "Set Jack freewheeling mode to \"%s\".\n",
                 (freewheel ? "on" : "off"));
         }
         return result;
@@ -886,7 +884,7 @@ struct JackoOn : public OpcodeBase<JackoOn> {
         int result = OK;
         JackoState *jackoState = 0;
         csound::QueryGlobalPointer(csound, "jackoState", jackoState);
-        log(csound, Str("JackoOn is deprecated and now is a no-op.\n"));
+        log(csound, "JackoOn is deprecated and now is a no-op.\n");
         return result;
     }
 };
@@ -923,7 +921,7 @@ struct JackoAudioInConnect : public OpcodeBase<JackoAudioInConnect> {
             if (csoundPort) {
                 log(csound, "Created Csound audio in port \"%s\".\n", csoundFullPortName);
             } else {
-                warn(csound, Str("Could not create Csound audio in port \"%s\".\n"),
+                warn(csound, "Could not create Csound audio in port \"%s\".\n",
                      csoundFullPortName);
             }
         }
@@ -936,8 +934,8 @@ struct JackoAudioInConnect : public OpcodeBase<JackoAudioInConnect> {
                 csoundFullPortName, externalPortName);
         } else if (result) {
             warn(csound,
-                 Str("Could not create Jack audio connection from \"%s\" to \"%s\": "
-                     "status %d %s.\n"),
+                 "Could not create Jack audio connection from \"%s\" to \"%s\": "
+                 "status %d %s.\n",
                  externalPortName, csoundFullPortName, errno, std::strerror(errno));
             return result;
         } else {
@@ -1015,7 +1013,7 @@ struct JackoAudioOutConnect : public OpcodeBase<JackoAudioOutConnect> {
             if (csoundPort) {
                 log(csound, "Created Csound audio out port \"%s\".\n", csoundFullPortName);
             } else {
-                warn(csound, Str("Could not create Csound audio out port \"%s\".\n"),
+                warn(csound, "Could not create Csound audio out port \"%s\".\n",
                      csoundFullPortName);
             }
         }
@@ -1027,8 +1025,8 @@ struct JackoAudioOutConnect : public OpcodeBase<JackoAudioOutConnect> {
                 csoundFullPortName, externalPortName);
         } else if (result) {
             warn(csound,
-                 Str("Could not create Jack connection from \"%s\" to \"%s\": "
-                     "status %d %s.\n"),
+                 "Could not create Jack connection from \"%s\" to \"%s\": "
+                 "status %d %s.\n",
                  csoundFullPortName, externalPortName, errno, std::strerror(errno));
             return result;
         } else {
@@ -1106,7 +1104,7 @@ struct JackoMidiInConnect : public OpcodeBase<JackoMidiInConnect> {
             if (csoundPort) {
                 log(csound, "Created Csound MIDI in port \"%s\".\n", csoundFullPortName);
             } else {
-                warn(csound, Str("Could not create Csound MIDI in port \"%s\".\n"),
+                warn(csound, "Could not create Csound MIDI in port \"%s\".\n",
                      csoundFullPortName);
             }
         }
@@ -1118,8 +1116,8 @@ struct JackoMidiInConnect : public OpcodeBase<JackoMidiInConnect> {
                 externalPortName, csoundFullPortName);
         } else if (result) {
             warn(csound,
-                 Str("Could not create Jack MIDI connection from \"%s\" to \"%s\": "
-                     "status %d.\n"),
+                 "Could not create Jack MIDI connection from \"%s\" to \"%s\": "
+                 "status %d.\n",
                  externalPortName, csoundFullPortName, result);
             return result;
         } else {
@@ -1163,7 +1161,7 @@ struct JackoMidiOutConnect : public OpcodeBase<JackoMidiOutConnect> {
             if (csoundPort) {
                 log(csound, "Created Csound MIDI out port \"%s\".\n", csoundFullPortName);
             } else {
-                warn(csound, Str("Could not create Csound out MIDI port \"%s\".\n"),
+                warn(csound, "Could not create Csound out MIDI port \"%s\".\n",
                      csoundFullPortName);
             }
         }
@@ -1176,8 +1174,8 @@ struct JackoMidiOutConnect : public OpcodeBase<JackoMidiOutConnect> {
                 csoundFullPortName, externalPortName);
         } else if (result) {
             warn(csound,
-                 Str("Could not create Jack MIDI connection from \"%s\" to \"%s\": "
-                     "status %d.\n"),
+                 "Could not create Jack MIDI connection from \"%s\" to \"%s\": "
+                 "status %d.\n",
                  csoundFullPortName, externalPortName, result);
             return result;
         } else {

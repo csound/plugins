@@ -21,9 +21,9 @@ zynaddsubfx --input JACK --output JACK --auto-connect --sample-rate 48000 --buff
 <CsOptions>
 </CsOptions>
 <CsInstruments>
-; Sampling rate must be the same as for Jack.
+; Sampling rate must be the same as Jack's.
 sr=48000
-; ksmps must be the same as for Jack's frames/period.
+; ksmps must be the same as Jack's frames/period.
 ksmps=128
 nchnls=2
 0dbfs=40000
@@ -82,9 +82,9 @@ endin
 </CsInstruments>
 <CsScore>
 f      0 60
-i1     5  3 63  20
+i1     5  3 63  10
 i801  10  3 69 100	
-i1	  15  3 72  20	
+i1	  15  3 72  10	
 i900   0 -1
 i1000 20  1
 e
