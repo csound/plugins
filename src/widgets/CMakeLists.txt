@@ -19,7 +19,7 @@ if(USE_FLTK)
     if(USE_VCPKG)
         target_link_libraries(widgets PRIVATE fltk fltk_gl fltk_forms fltk_images)
     else()
-        target_link_libraries(widgets
+        target_link_libraries(widgets PRIVATE
             ${FLTK_BASE_LIBRARY} ${FLTK_FORMS_LIBRARY} ${FLTK_IMAGES_LIBRARY}
         )
     endif()
@@ -43,7 +43,7 @@ if(USE_FLTK)
     if (USE_VCPKG)
         target_link_libraries(virtual PRIVATE fltk fltk_gl fltk_forms fltk_images)
     else()
-        target_link_libraries(virtual
+        target_link_libraries(virtual PRIVATE
             ${FLTK_BASE_LIBRARY} ${FLTK_FORMS_LIBRARY} ${FLTK_IMAGES_LIBRARY}
         )
     endif()
