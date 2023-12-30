@@ -21,11 +21,11 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, ubuntu-latest]
         version: ["6.17.0"]
         include:
-          # - os: "windows-latest"
-          #   mono: ""
+          - os: "windows-latest"
+            mono: ""
           - os: "ubuntu-latest"
             mono: "mono"
           # - os: "macos-latest"
