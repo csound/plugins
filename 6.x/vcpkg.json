@@ -6,7 +6,6 @@
     "dependencies": [
         "ableton-link",
         "eigen3",
-        "fltk",
         "fluidsynth",
         "hdf5",
         "libuv",
