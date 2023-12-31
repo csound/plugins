@@ -57,9 +57,6 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           ./vcpkg/bootstrap-vcpkg.sh
-          # sudo apt-get update
-          # sudo apt-get install g++ build-essential
-          # sudo apt-get install libcsound64-dev
 
         # - name: Setup platform (macos)
         #   if: startsWith(matrix.os, 'macos')
