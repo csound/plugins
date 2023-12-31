@@ -1,7 +1,7 @@
 name: Csound plugins build
 
-# env:
-# VCPKG_BINARY_SOURCES: "clear;nuget,GitHub,readwrite"
+env:
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
 on:
   push:
