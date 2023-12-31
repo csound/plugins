@@ -456,7 +456,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 * 5. At the end of processing, the module deinitialization
 *    function erases all Jack-related state.
 */
-#include "../common/OpcodeBase.hpp"
+#include "OpcodeBase.hpp"
 #include <atomic>
 #include <csound.h>
 #include <cstdio>

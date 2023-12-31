@@ -38,7 +38,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include "../common/OpcodeBase.hpp"
+#include "OpcodeBase.hpp"
 #include "csdl.h"
 #include <fluidsynth.h>
 #include <fluidsynth/version.h>

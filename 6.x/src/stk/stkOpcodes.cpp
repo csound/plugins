@@ -81,7 +81,7 @@
 using namespace stk;
 
 #define __BUILDING_LIBCSOUND
-#include "../common/OpcodeBase.hpp"
+#include "OpcodeBase.hpp"
 #include <csoundCore.h>
 
 using namespace csound;
