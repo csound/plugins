@@ -17,7 +17,6 @@ endif()
 
 if(BUILD_WEBSOCKET_OPCODE)
  	make_plugin(websocketIO WebSocketOpcode.c)
-    target_include_directories(websocketIO PRIVATE ${CSOUND_INCLUDE_DIRS})
 
     if(USE_VCPKG)
         target_link_libraries(websocketIO websockets $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>)

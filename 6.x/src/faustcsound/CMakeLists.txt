@@ -13,7 +13,6 @@ if(BUILD_FAUST_OPCODES AND FAUST_FOUND)
         )
     endif()
 
-    target_include_directories(faustcsound PRIVATE ${CSOUND_INCLUDE_DIRS})
     target_link_libraries(faustcsound ${PTHREAD_LIBRARY})
     target_compile_definitions(faustcsound PRIVATE "-DFAUSTFLOAT=MYFLT")
 

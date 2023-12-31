@@ -9,7 +9,6 @@ if(BUILD_STK_OPCODES)
         make_plugin(stkops stkOpcodes.cpp)
         find_package(unofficial-libstk CONFIG REQUIRED)
         target_link_libraries(stkops PRIVATE unofficial::libstk::libstk)
-        target_include_directories(stkops PRIVATE ${CSOUND_INCLUDE_DIRS})
 
         message(STATUS "Building STK opcodes with VCPKG")
     else()
@@ -24,7 +23,7 @@ if(BUILD_STK_OPCODES)
 
             if(STK_INCLUDE_DIR)
                 make_plugin(stkops stkOpcodes.cpp)
-                target_include_directories(stkops PRIVATE ${CSOUND_INCLUDE_DIRS} ${STK_INCLUDE_DIR})
+                target_include_directories(stkops PRIVATE ${STK_INCLUDE_DIR})
                 message(STATUS "Building STK opcodes.")
 
                 if(BUILD_STATIC_LIBRARY)
@@ -67,10 +66,9 @@ if(BUILD_STK_OPCODES)
 
         make_plugin(stkops "${stk_srcs}")
         target_include_directories(stkops PRIVATE
-            ${CSOUND_INCLUDE_DIRS}
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/include/stk
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            "${CMAKE_CURRENT_SOURCE_DIR}/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/include/stk"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src"
         )
         set(stkdefs "-D__STK_REALTIME__")
 

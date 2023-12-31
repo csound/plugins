@@ -11,7 +11,7 @@ check_deps(BUILD_CHUA_OPCODES EIGEN3_FOUND)
 
 if(BUILD_CHUA_OPCODES AND EIGEN3_FOUND)
     make_plugin(chua ChuaOscillator.cpp)
-    target_include_directories(chua PRIVATE ${EIGEN3_INCLUDE_DIR} ${CSOUND_INCLUDE_DIRS})
+    target_include_directories(chua PRIVATE ${EIGEN3_INCLUDE_DIR})
 
     if(USE_VCPKG)
         target_link_libraries(chua PRIVATE Eigen3::Eigen)

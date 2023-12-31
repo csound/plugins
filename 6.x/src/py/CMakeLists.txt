@@ -12,7 +12,6 @@ if(BUILD_PYTHON_OPCODES)
     message("-- Python libraries: ${PYTHON_LIBRARIES}")
 
     make_plugin(py src/pythonopcodes.c)
-    target_include_directories(py PRIVATE ${CSOUND_INCLUDE_DIRS})
     target_include_directories(py PRIVATE ${PYTHON_INCLUDE_DIRS})
     target_link_libraries(py ${PYTHON_LIBRARIES})
 endif()

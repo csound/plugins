@@ -46,7 +46,6 @@ if(BUILD_ABLETON_LINK_OPCODES)
 
     target_include_directories(ableton_link_opcodes
         PRIVATE
-            ${CSOUND_INCLUDE_DIRS}
             ${ABLETON_LINK_HOME}/include
             ${ABLETON_LINK_HOME}/modules/asio-standalone/asio/include
     )
