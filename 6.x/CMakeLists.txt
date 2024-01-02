@@ -37,7 +37,6 @@ set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-
 include(TestBigEndian)
 include(CheckFunctionExists)
 include(CheckCCompilerFlag)
