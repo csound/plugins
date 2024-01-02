@@ -12,14 +12,19 @@ if(APPLE)
   find_library(ssl_library NAMES ssl)
   find_library(crypto_library NAMES crypto)
 
-  check_deps(BUILD_WEBSOCKET_OPCODE websockets_library ssl_library crypto_library WEBSOCKETS_H)
+  check_deps(BUILD_WEBSOCKET_OPCODE ssl_library crypto_library )
 endif()
+
+check_deps(BUILD_WEBSOCKET_OPCODE WEBSOCKETS_H websockets_library)
 
 if(BUILD_WEBSOCKET_OPCODE)
  	make_plugin(websocketIO WebSocketOpcode.c)
 
     if(USE_VCPKG)
-        target_link_libraries(websocketIO websockets $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>)
+        target_link_libraries(websocketIO
+            websockets
+            $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>
+        )
     else()
         target_link_libraries(websocketIO ${websockets_library})
         target_include_directories(websocketIO PRIVATE ${WEBSOCKETS_H})
