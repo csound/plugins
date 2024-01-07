@@ -1,10 +1,12 @@
 # Build faustcsound opcodes
 option(BUILD_FAUST_OPCODES "Build the Faust opcodes" ON)
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads)
 find_package(FAUST)
-check_deps(BUILD_FAUST_OPCODES FAUST_FOUND)
 
-if(BUILD_FAUST_OPCODES AND FAUST_FOUND)
+check_deps(BUILD_FAUST_OPCODES FAUST_FOUND Threads_FOUND)
+if(BUILD_FAUST_OPCODES)
     make_plugin(faustcsound faustgen.cpp)
 
     if(APPLE)
@@ -13,24 +15,8 @@ if(BUILD_FAUST_OPCODES AND FAUST_FOUND)
         )
     endif()
 
-    target_link_libraries(faustcsound ${PTHREAD_LIBRARY})
-    target_compile_definitions(faustcsound PRIVATE "-DFAUSTFLOAT=MYFLT")
-
-    if(PTHREAD_LIBRARY)
-        target_compile_definitions(faustcsound PRIVATE "-DHAVE_PTHREAD")
-    endif()
-
-    if(APPLE)
-        if(${OSX_VERSION} STREQUAL "10.6")
-            target_link_libraries(faustcsound ${FAUST_LIBRARIES})
-        else()
-            target_compile_options(faustcsound PRIVATE "-stdlib=libc++")
-            target_link_libraries(faustcsound ${FAUST_LIBRARIES} -stdlib=libc++)
-        endif()
-    else()
-        target_link_libraries(faustcsound ${FAUST_LIBRARIES})
-    endif()
-
     target_include_directories(faustcsound PRIVATE ${FAUST_INCLUDE_DIR})
-    message("-- FAUST INCLUDE DIR: ${FAUST_INCLUDE_DIR}")
+    target_compile_definitions(faustcsound PRIVATE "-DFAUSTFLOAT=MYFLT")
+    target_compile_features(faustcsound PRIVATE cxx_std_11)
+    target_link_libraries(faustcsound Threads::Threads ${FAUST_LIBRARIES})
 endif()
