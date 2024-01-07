@@ -3,11 +3,11 @@ cmake_policy(SET CMP0077 NEW)
 
 option(USE_VCPKG "Use VCPKG to download and manage dependencies" OFF)
 
-if (USE_VCPKG)
+if(USE_VCPKG)
     # Detect correct triplet based on CMake env
     if (WIN32)
-        set(VCPKG_HOST_TRIPLET "x64-windows-csound" CACHE STRING "")
-        set(VCPKG_TARGET_TRIPLET "x64-windows-csound")
+        set(VCPKG_HOST_TRIPLET "x64-windows-static-md" CACHE STRING "")
+        set(VCPKG_TARGET_TRIPLET "x64-windows-static-md")
     elseif(APPLE)
         set(VCPKG_HOST_TRIPLET "x64-osx" CACHE STRING "")
         set(VCPKG_TARGET_TRIPLET "x64-osx")
@@ -18,17 +18,14 @@ if (USE_VCPKG)
 
     set(VCPKG_FEATURE_FLAGS versions)
     set(X_VCPKG_APPLOCAL_DEPS_INSTALL ON)
-    set(VCPKG_OVERLAY_TRIPLETS ${CMAKE_CURRENT_SOURCE_DIR}/)
-    set(VCPKG_OVERLAY_PORTS ${CMAKE_CURRENT_SOURCE_DIR}/)
-    set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
+    set(VCPKG_OVERLAY_TRIPLETS "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(CMAKE_TOOLCHAIN_FILE
+        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
         CACHE STRING "Vcpkg toolchain file")
 endif()
 
 project(Csound-plugins)
-
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    set(CMAKE_COMPILER_IS_CLANG 1)
-endif()
 
 set(APIVERSION "6.0")
 
@@ -45,7 +42,7 @@ include(CheckCXXCompilerFlag)
 ### COMPILER OPTIMIZATION FLAGS
 option(USE_COMPILER_OPTIMIZATIONS "Use the default Csound compiler optimization flags" ON)
 if(USE_COMPILER_OPTIMIZATIONS)
-    include(${CMAKE_SOURCE_DIR}/cmake/CompilerOptimizations.cmake)
+    include("${CMAKE_SOURCE_DIR}/cmake/CompilerOptimizations.cmake")
 endif()
 
 ##/Library/Frameworks/CsoundLib64.framework/Versions/Current/Resources/Opcodes64
