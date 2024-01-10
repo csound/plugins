@@ -9,7 +9,7 @@ else()
     endif()
 endif()
 
-if(NOT Ableton::Link)
+if(NOT TARGET Ableton::Link)
     message(STATUS "Could not find Ableton::Link")
     set(BUILD_ABLETON_LINK_OPCODES OFF)
 endif()
@@ -24,10 +24,13 @@ if(BUILD_ABLETON_LINK_OPCODES)
     )
 
     target_compile_features(ableton_link_opcodes PUBLIC cxx_std_11)
-    target_compile_options(ableton_link_opcodes PRIVATE "-Wno-multichar")
+
+    if(UNIX)
+        target_compile_options(ableton_link_opcodes PRIVATE "-Wno-multichar")
+    endif()
 
     if(WIN32)
-        target_link_libraries(ableton_link_opcodes wsock32 ws2_32 iphlpapi)
+        target_link_libraries(ableton_link_opcodes PRIVATE wsock32 ws2_32 iphlpapi)
     endif()
 
     install(TARGETS ableton_link_opcodes
