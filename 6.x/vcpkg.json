@@ -6,7 +6,10 @@
     "dependencies": [
         "ableton-link",
         "eigen3",
-        "fluidsynth",
+        {
+            "name": "fluidsynth",
+            "platform": "!windows"
+        },
         {
             "name": "fltk",
             "platform": "!linux"
