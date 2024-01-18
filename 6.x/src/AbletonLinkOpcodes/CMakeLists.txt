@@ -3,15 +3,15 @@ option(BUILD_ABLETON_LINK_OPCODES "Build the Ableton link opcodes" OFF)
 
 if(USE_VCPKG)
     find_package(AbletonLink CONFIG REQUIRED)
+
+    if(NOT TARGET Ableton::Link)
+        message(STATUS "Could not find Ableton::Link")
+        set(BUILD_ABLETON_LINK_OPCODES OFF)
+    endif()
 else()
     if(NOT "${ABLETON_LINK_HOME}" STREQUAL "")
         include("${ABLETON_LINK_HOME}/AbletonLinkConfig.cmake")
     endif()
-endif()
-
-if(NOT TARGET Ableton::Link)
-    message(STATUS "Could not find Ableton::Link")
-    set(BUILD_ABLETON_LINK_OPCODES OFF)
 endif()
 
 if(BUILD_ABLETON_LINK_OPCODES)
@@ -37,4 +37,6 @@ if(BUILD_ABLETON_LINK_OPCODES)
         LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}"
         ARCHIVE DESTINATION "${LIBRARY_INSTALL_DIR}"
     )
+
+    message(STATUS "Building Ableton opcodes")
 endif()

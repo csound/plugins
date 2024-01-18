@@ -19,4 +19,6 @@ if(BUILD_FAUST_OPCODES)
     target_compile_definitions(faustcsound PRIVATE "-DFAUSTFLOAT=MYFLT")
     target_compile_features(faustcsound PRIVATE cxx_std_11)
     target_link_libraries(faustcsound Threads::Threads ${FAUST_LIBRARIES})
+
+    message(STATUS "Building faust opcodes")
 endif()

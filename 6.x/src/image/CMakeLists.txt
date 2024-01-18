@@ -3,14 +3,14 @@ option(BUILD_IMAGE_OPCODES "Build the image opcodes" ON)
 
 if(USE_VCPKG)
     find_package(PNG REQUIRED)
+
+    if(NOT TARGET PNG::PNG)
+        message(STATUS "Could not find libpng")
+        set(BUILD_IMAGE_OPCODES OFF)
+    endif()
 else()
     find_package(PNG)
     check_deps(BUILD_IMAGE_OPCODES PNG_FOUND)
-endif()
-
-if(NOT TARGET PNG::PNG)
-    message(STATUS "Could not find libpng")
-    set(BUILD_IMAGE_OPCODES OFF)
 endif()
 
 if(BUILD_IMAGE_OPCODES)
@@ -23,4 +23,6 @@ if(BUILD_IMAGE_OPCODES)
         target_include_directories(image PRIVATE ${PNG_INCLUDE_DIR})
         target_link_libraries(image ${PNG_LIBRARIES})
     endif()
+
+    message(STATUS "Building Image opcodes")
 endif()
