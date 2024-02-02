@@ -1,14 +1,21 @@
 {
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
     "name": "csound-plugins",
-    "version-string": "6.16.2",
-    "builtin-baseline": "f6a5d4e8eb7476b8d7fc12a56dff300c1c986131",
+    "version-string": "6.16.3",
+    "builtin-baseline": "c9140a3b500812ad3206317885860d9553b93f13",
     "dependencies": [
         "ableton-link",
         "eigen3",
-        "fltk",
-        "fluidsynth",
+        {
+            "name": "fluidsynth"
+        },
+        {
+            "name": "fltk",
+            "platform": "!linux"
+        },
         "hdf5",
+        "libuv",
+        "libpng",
         "libstk",
         "libwebsockets",
         "mp3lame",

@@ -10,7 +10,7 @@ function(make_cuda_plugin libname srcs)
         math(EXPR i "${i}+1")
     endwhile()
 
-    target_include_directories(${libname} PRIVATE ${CSOUND_INCLUDE_DIRS})
+    target_include_directories(${libname} PRIVATE "${CMAKE_SOURCE_DIR}/csound")
 
     # set_target_properties(${libname} PROPERTIES
     #     RUNTIME_OUTPUT_DIRECTORY ${BUILD_PLUGINS_DIR}

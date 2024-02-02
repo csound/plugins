@@ -549,7 +549,7 @@ struct JackoState {
                         status);
         if (!jackClient) {
             csound->Message(csound,
-                            "Could not create Jack client \"%s\" -- is Jack server \"%s\" running? Status: %d\n", 
+                            "Could not create Jack client \"%s\" -- is Jack server \"%s\" running? Status: %d\n",
                             clientName, serverName, status);
             csound->LongJmp(csound, 1);
         } else {
