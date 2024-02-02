@@ -63,19 +63,12 @@ jobs:
         #     ./vcpkg/bootstrap-vcpkg.sh
         #     brew install csound
 
-      - name: Setup VCPKG cache
-        shell: bash
-        run: |
-          ${{ matrix.mono }} `./6.x/vcpkg/vcpkg fetch nuget | tail -n 1` \
-          sources add \
-          -source "https://nuget.pkg.github.com/csound/index.json" \
-          -storepasswordincleartext \
-          -name "GitHub" \
-          -username "csound" \
-          -password "${{ secrets.GITHUB_TOKEN }}"
-          ${{ matrix.mono }} `./6.x/vcpkg/vcpkg fetch nuget | tail -n 1` \
-            setapikey "${{ secrets.GITHUB_TOKEN }}" \
-            -source "https://nuget.pkg.github.com/csound/index.json"
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Generate CMake build
         run: cmake 6.x/. -B build -DUSE_VCPKG=1
