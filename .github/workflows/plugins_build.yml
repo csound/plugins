@@ -49,7 +49,7 @@ jobs:
           echo "OPCODE6DIR64=C:/Program Files/csound/plugins64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "PYTHONPATH=C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "RAWWAVE_PATH=C:/Program Files/csound/samples" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          .\vcpkg\bootstrap-vcpkg.bat
+          .\6.x\vcpkg\bootstrap-vcpkg.bat
           choco install csound --version=6.17.0
           echo $GITHUB_ENV
           ls 'C:\Program Files\Faust\'
