@@ -40,10 +40,7 @@ static CS_NOINLINE void create_private_namespace_if_needed(OPDS *o)
   snprintf(insds, 32, "PYLOCAL:%p", o->insdshead);
   if(csound->QueryGlobalVariable(csound,insds) == NULL) {
     csound->CreateGlobalVariable(csound,insds, sizeof(PyObject *));
-  }
-  
-  if (GETPYLOCAL(o->insdshead) == 0) {
-      SETPYLOCAL(o->insdshead, PyDict_New());
+    SETPYLOCAL(o->insdshead, PyDict_New());
 #ifdef DEBUG_PY_NAMESPACES
       printf("Creating private namespace %p for %p\n",
              (void*) GETPYLOCAL(o->insdshead), (void*) o->insdshead);
