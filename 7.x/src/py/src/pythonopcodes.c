@@ -37,7 +37,7 @@ static CS_NOINLINE void create_private_namespace_if_needed(OPDS *o)
   /* PyLocal variable is now a global variable indexed by INSDS */
   char insds[32];
   CSOUND *csound = o->insdshead->csound;
-  snprintf(insds, 32, "%p", o->insdshead);
+  snprintf(insds, 32, "PYLOCAL:%p", o->insdshead);
   if(csound->QueryGlobalVariable(csound,insds) == NULL) {
     csound->CreateGlobalVariable(csound,insds, sizeof(PyObject *));
   }

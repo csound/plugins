@@ -83,7 +83,7 @@ jobs:
             -source "https://nuget.pkg.github.com/csound/index.json"
 
       - name: Generate CMake build
-        run: cmake -B build -DUSE_VCPKG=1
+        run: cmake 6.x/. -B build -DUSE_VCPKG=1
 
       - name: Build plugins
         run: cmake --build build --config Release

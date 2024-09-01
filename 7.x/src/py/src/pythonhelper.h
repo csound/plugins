@@ -33,7 +33,7 @@
 static inline PyObject *GetPyLocal(INSDS *ids){
   char insds[32];
   CSOUND *csound = ids->csound;
-  snprintf(insds, 32, "%p", ids);
+  snprintf(insds, 32, "PYLOCAL:%p", ids);
   PyObject **p = (PyObject **) csound->QueryGlobalVariable(csound,insds);
   return *p;
 }
@@ -41,7 +41,7 @@ static inline PyObject *GetPyLocal(INSDS *ids){
 static inline void SetPyLocal(INSDS *ids, void *pp){
   char insds[32];
   CSOUND *csound = ids->csound;
-  snprintf(insds, 32, "%p", ids);
+  snprintf(insds, 32, "PYLOCAL:%p", ids);
   PyObject **p = (PyObject **) csound->QueryGlobalVariable(csound,insds);
   *p = (PyObject *) pp;
 }
