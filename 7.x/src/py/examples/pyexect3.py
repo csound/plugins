@@ -1,1 +1,1 @@
-print 'zi'
+print('zi')

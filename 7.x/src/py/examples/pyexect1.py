@@ -1,1 +1,1 @@
-print 'zum'
+print('zum')

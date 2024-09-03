@@ -15,8 +15,8 @@ p = _CSOUND_
 print("\\n  --> Python version number: {}\\n".format(sys.version_info[0]))
 cs = ctcsound.Csound(pointer_=p)
 for i in range(800):
-        cs.scoreEvent('i', [1, i * .2,     0.05, 6.8 + random() * 3,   70.0])
-        cs.scoreEvent('i', [1, i * .2,     0.05, 8.8 + random() * 3,   70.0])
+        cs.event(ctcsound.CS_INSTR_EVENT, [1, i*0.2, 0.05, 6.8 + random()*3, 70.0])
+        cs.event(ctcsound.CS_INSTR_EVENT, [1, i*0.2, 0.05, 8.8 + random()*3, 70.0])
 }}
 
 instr 1

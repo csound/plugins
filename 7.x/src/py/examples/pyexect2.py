@@ -1,1 +1,1 @@
-print 'pa'
+print('pa')
