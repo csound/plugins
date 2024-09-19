@@ -276,7 +276,6 @@ void *init_faustcompile_thread(void *pp) {
   char *ccode = csound->Strdup(csound, p->code->data);
   char *extra;
   MYFLT test = *p->extra;
-  int32_t ret;
   strcpy(cmd, p->args->data);
 #ifdef USE_DOUBLE
   strcat(cmd, " -double");
@@ -305,7 +304,6 @@ void *init_faustcompile_thread(void *pp) {
     csound->Free(csound, cmd);
     csound->Free(csound, ccode);
     csound->Free(csound, pp);
-    ret = -1;
     return NULL;
   }
 
@@ -348,7 +346,7 @@ int32_t init_faustcompile(CSOUND *csound, faustcompile *p) {
   data->p = p;
   *p->hptr = -1.0;
   p->lock = csound->Create_Mutex(0);
- 
+
   /* New API function allows thread stack to be defined - new in Csound 6.17 */
   thread = (uintptr_t)
     csound->CreateThread2((uintptr_t (*)(void *))init_faustcompile_thread, *p->stacksize * MBYTE, data);
@@ -824,16 +822,14 @@ void *init_faustgen_thread(void *pp) {
   p->factory = createDSPFactoryFromString(
                                           "faustop", (const char *)p->code->data, argc, argv, "", err_msg, 3);
   if (p->factory == NULL) {
-    int32_t ret = csound->InitError(csound, Str("Faust compilation problem: %s\n"),
-                                    err_msg.c_str());
+    csound->InitError(csound, Str("Faust compilation problem: %s\n"), err_msg.c_str());
     csound->Free(csound, pp);
     return NULL;
   }
 
   dsp = p->factory->createDSPInstance();
   if (dsp == NULL) {
-    int32_t ret = csound->InitError(csound, "%s",
-                                    Str("Faust instantiation problem\n"));
+    csound->InitError(csound, "%s", Str("Faust instantiation problem\n"));
     csound->Free(csound, pp);
     return NULL;
   }
@@ -866,22 +862,20 @@ void *init_faustgen_thread(void *pp) {
   dsp->buildUserInterface(ctls);
   dsp->init(csound->GetSr(csound));
   if (p->engine->getNumInputs() != p->INCOUNT - 1) {
-    int32_t ret;
-    ret = csound->InitError(csound, "%s", Str("wrong number of input args\n"));
+    csound->InitError(csound, "%s", Str("wrong number of input args\n"));
     delete p->engine;
     deleteDSPFactory(p->factory);
     p->factory = NULL;
     p->engine = NULL;
     csound->Free(csound, pp);
-    return NULL; 
+    return NULL;
   }
   if (p->engine->getNumOutputs() != p->OUTCOUNT - 1) {
-    int32_t ret;
-    ret = csound->InitError(csound,
-                            Str("wrong number of output args: need %d had %d\n"),
-                            p->engine->getNumOutputs(),
-                            p->OUTCOUNT - 1
-                            );
+    csound->InitError(csound,
+        Str("wrong number of output args: need %d had %d\n"),
+        p->engine->getNumOutputs(),
+        p->OUTCOUNT - 1
+    );
     delete p->engine;
     deleteDSPFactory(p->factory);
     csound->Free(csound, pp);
@@ -908,8 +902,7 @@ void *init_faustgen_thread(void *pp) {
 }
 
 int32_t init_faustgen(CSOUND *csound, faustgen *p) {
-  uintptr_t thread;  
-  int32_t *ret;
+  uintptr_t thread;
   hdata2 *data = (hdata2 *)csound->Malloc(csound, sizeof(hdata2));
   data->csound = csound;
   data->p = p;

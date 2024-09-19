@@ -2228,7 +2228,7 @@ static inline void displ(MYFLT val, MYFLT index, CSOUND *csound)
       (WIDGET_GLOBALS *)csound->QueryGlobalVariable(csound, "WIDGET_GLOBALS");
     if (index >= 0) {     // display current value of valuator
       char valString[MAXNAME];
-      sprintf(valString, "%.5g", val);
+      snprintf(valString, MAXNAME, "%.5g", val);
       ((Fl_Output*) (widgetGlobals->AddrSetValue[(long) index]).WidgAddress)->
         value(valString);
     }
@@ -2259,8 +2259,7 @@ static void fl_callbackExecButton(Fl_Button* w, void *a)
 
 #if defined(LINUX) || defined (MACOSX)
 
-
-    pid_t pId = vfork();
+    pid_t pId = fork();
     if (pId == 0) {
       char *th;
       char *v[40];
@@ -3664,7 +3663,7 @@ extern "C" {
         string stemp;
         if (tempname == " ") {
           char s[40];
-          sprintf(s, "%d", j);
+          snprintf(s, 40, "%d", j);
           stemp = s;
         }
         else
@@ -4257,7 +4256,7 @@ extern "C" {
           Fl_Button *w;
           char      *btName = new char[30];
           widgetGlobals->allocatedStrings.push_back(btName);
-          sprintf(btName, "%d", z);
+          snprintf(btName, 30, "%d", z);
           switch (type) {
           case 1:
             w = new Fl_Button(x, y, 10, 10, btName);
@@ -4475,7 +4474,7 @@ extern "C" {
       if (p->cysofar < cycles) {
         p->cysofar = cycles;
         char valString[MAXNAME];
-        sprintf(valString,"%.5g", *p->val);
+        snprintf(valString, MAXNAME, "%.5g", *p->val);
         ((Fl_Output*) (widgetGlobals->AddrSetValue[(long) *p->idisp]).WidgAddress)->
           value(valString );
       }
@@ -4496,7 +4495,7 @@ extern "C" {
         (WIDGET_GLOBALS *)csound->QueryGlobalVariable(csound, "WIDGET_GLOBALS");
       if (p->oldvalue != value) {
         char valString[MAXNAME];
-        sprintf(valString,"%.5g", *p->val);
+        snprintf(valString, MAXNAME, "%.5g", *p->val);
         ((Fl_Output*) (widgetGlobals->AddrSetValue[(long) *p->idisp]).WidgAddress)->
           value(valString );
         p->oldvalue = value;
@@ -4806,7 +4805,7 @@ extern "C" {
         string stemp;
         if (tempname == " ") {
           char s[40];
-          sprintf(s, "%d", j);
+          snprintf(s, 40, "%d", j);
           stemp = s;
         }
         else
@@ -5020,7 +5019,7 @@ extern "C" {
         string stemp;
         if (tempname == " ") {
           char s[40];
-          sprintf(s, "%d", j);
+          snprintf(s, 40, "%d", j);
           stemp = s;
         }
         else
@@ -5213,7 +5212,7 @@ extern "C" {
         string stemp;
         if (tempname == " ") {
           char s[40];
-          sprintf(s, "%d", j);
+          snprintf(s, 40, "%d", j);
           stemp = s;
         }
         else

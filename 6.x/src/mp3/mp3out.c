@@ -98,7 +98,7 @@ int mp3out_init(CSOUND *csound, MP3OUT* p)
                      &p->auxch);
 
     p->mp3buffer = p->auxch.auxp;
-    p->leftpcm = (char*)p->auxch.auxp + p->mp3buffer_size;
+    p->leftpcm = (double*)p->auxch.auxp + p->mp3buffer_size;
     p->rightpcm = p->leftpcm + nsmps;
 
     csound->RegisterDeinitCallback(csound, p,
