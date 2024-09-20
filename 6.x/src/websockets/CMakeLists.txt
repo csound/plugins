@@ -4,10 +4,7 @@ if(USE_VCPKG)
     find_package(libuv CONFIG REQUIRED)
     find_package(libwebsockets CONFIG REQUIRED)
 
-    if(NOT TARGET libwebsockets AND NOT TARGET libuv)
-        message(STATUS "Could not find libwebsockets or libuv")
-        set(BUILD_WEBSOCKET_OPCODE OFF)
-    endif()
+    check_deps(BUILD_WEBSOCKET_OPCODE libuv libwebsockets)
 elseif(APPLE)
     find_library(ssl_library NAMES ssl)
     find_library(crypto_library NAMES crypto)
@@ -25,7 +22,7 @@ if(BUILD_WEBSOCKET_OPCODE)
 
     if(USE_VCPKG)
         target_link_libraries(websocketIO
-            libwebsockets
+            websockets
             $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>
         )
     else()
