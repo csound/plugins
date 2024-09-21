@@ -55,7 +55,10 @@ jobs:
 
       - name: Setup platform (linux)
         if: startsWith(matrix.os, 'ubuntu')
-        run: ./vcpkg/bootstrap-vcpkg.sh
+        run: |
+          pwd
+          ls vcpkg
+          ./vcpkg/bootstrap-vcpkg.sh
 
         # - name: Setup platform (macos)
         #   if: startsWith(matrix.os, 'macos')
@@ -71,7 +74,7 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Generate CMake build
-        run: cmake 6.x/. -B build -DUSE_VCPKG=1
+        run: cmake -B build -DUSE_VCPKG=1
 
       - name: Build plugins
         run: cmake --build build --config Release
