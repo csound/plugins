@@ -55,10 +55,7 @@ jobs:
 
       - name: Setup platform (linux)
         if: startsWith(matrix.os, 'ubuntu')
-        run: |
-          pwd
-          ls vcpkg
-          ./vcpkg/bootstrap-vcpkg.sh
+        run: ./vcpkg/bootstrap-vcpkg.sh
 
         # - name: Setup platform (macos)
         #   if: startsWith(matrix.os, 'macos')
