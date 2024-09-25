@@ -7,9 +7,6 @@
         "ableton-link",
         "eigen3",
         {
-            "name": "fluidsynth"
-        },
-        {
             "name": "fltk",
             "platform": "!linux"
         },
