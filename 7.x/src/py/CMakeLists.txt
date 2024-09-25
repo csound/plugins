@@ -11,7 +11,7 @@ if(BUILD_PYTHON_OPCODES)
     message("-- Python include dirs: ${Python3_INCLUDE_DIRS}")
     message("-- Python libraries: ${PYTHON_LIBRARIES}")
 
-    make_plugin(py src/pythonopcodes.c)
+    make_plugin(py7 src/pythonopcodes.c)
     target_include_directories(py PRIVATE ${CSOUND_INCLUDE_DIRS})
     target_include_directories(py PRIVATE ${PYTHON_INCLUDE_DIRS})
     target_link_libraries(py ${PYTHON_LIBRARIES})
