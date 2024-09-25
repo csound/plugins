@@ -1,4 +1,4 @@
-option(BUILD_FLUID_OPCODES "Build the fluidsynth opcodes" ON)
+option(BUILD_FLUID_OPCODES "Build the fluidsynth opcodes" OFF)
 
 if(USE_VCPKG)
     find_package(FluidSynth CONFIG REQUIRED)
