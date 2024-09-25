@@ -1,7 +1,7 @@
 option(BUILD_FLUID_OPCODES "Build the fluidsynth opcodes" OFF)
 
 if(USE_VCPKG)
-    find_package(FluidSynth CONFIG REQUIRED)
+    find_package(FluidSynth CONFIG)
 
     if(NOT TARGET FluidSynth::libfluidsynth)
         message(STATUS "Could not find FluidSynth::libfluidsynth")
