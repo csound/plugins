@@ -53,11 +53,11 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: ./vcpkg/bootstrap-vcpkg.sh
 
-        # - name: Setup platform (macos)
-        #   if: startsWith(matrix.os, 'macos')
-        #   run: |
-        #     ./vcpkg/bootstrap-vcpkg.sh
-        #     brew install csound
+      - name: Setup platform (macos)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          ./vcpkg/bootstrap-vcpkg.sh
+          brew install csound
 
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
