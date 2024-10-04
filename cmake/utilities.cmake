@@ -38,25 +38,30 @@ endfunction()
 # and adds the appropriate install target
 #
 # libname - name of library to produce
+# version - version of the plugin, valid values are 6x and 7x
 # srcs - list of src files (must be quoted if a list)
 # extralibs (OPTIONAL) - extra libraries to link the plugin to
 #
 # NB - this was moved here as it needs some VARS defined above
 # for setting up the framework
-function(make_plugin libname srcs)
+function(make_plugin libname version srcs)
     if(APPLE)
         add_library(${libname} SHARED ${srcs})
     else()
         add_library(${libname} MODULE ${srcs})
     endif()
 
-    set(i 2)
+    set(i 3)
     while( ${i} LESS ${ARGC} )
         target_link_libraries(${libname} PRIVATE ${ARGV${i}})
         math(EXPR i "${i}+1")
     endwhile()
 
-    target_include_directories(${libname} PUBLIC "${CMAKE_SOURCE_DIR}/csound")
+    if (version STREQUAL "6x")
+        target_include_directories(${libname} PUBLIC "${CMAKE_SOURCE_DIR}/6.x/csound")
+    else()
+        target_include_directories(${libname} PUBLIC "${CMAKE_SOURCE_DIR}/7.x/csound")
+    endif()
 
     install(TARGETS ${libname}
         LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}"

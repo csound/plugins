@@ -6,7 +6,7 @@ if(BUILD_STK_OPCODES)
     endif()
 
     if(USE_VCPKG)
-        make_plugin(stkops stkOpcodes.cpp)
+        make_plugin(stkops "6x" stkOpcodes.cpp)
         find_package(unofficial-libstk CONFIG REQUIRED)
         target_link_libraries(stkops PRIVATE unofficial::libstk::libstk)
 
@@ -22,7 +22,7 @@ if(BUILD_STK_OPCODES)
             check_deps(BUILD_STK_OPCODES STK_INCLUDE_DIR)
 
             if(STK_INCLUDE_DIR)
-                make_plugin(stkops stkOpcodes.cpp)
+                make_plugin(stkops "6x" stkOpcodes.cpp)
                 target_include_directories(stkops PRIVATE ${STK_INCLUDE_DIR})
                 message(STATUS "Building STK opcodes.")
 
@@ -64,7 +64,7 @@ if(BUILD_STK_OPCODES)
         find_path(STK_INCLUDE_DIR Stk.h ./include)
         check_deps(BUILD_STK_OPCODES STK_FOUND STK_INCLUDE_DIR)
 
-        make_plugin(stkops "${stk_srcs}")
+        make_plugin(stkops "6x" "${stk_srcs}")
         target_include_directories(stkops PRIVATE
             "${CMAKE_CURRENT_SOURCE_DIR}/include"
             "${CMAKE_CURRENT_SOURCE_DIR}/include/stk"

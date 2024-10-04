@@ -27,7 +27,5 @@ endif()
 
 project(Csound-plugins)
 
-set(APIVERSION "6.0")
-
 add_subdirectory(./6.x)
 add_subdirectory(./7.x)

@@ -20,7 +20,7 @@ if(BUILD_HDF5_OPCODES)
     list(GET VERSION_LIST 1 HDF5_VERSION_MINOR)
     list(GET VERSION_LIST 2 HDF5_VERSION_PATCH)
 
-    make_plugin(hdf5ops HDF5IO.c)
+    make_plugin(hdf5ops "6x" HDF5IO.c)
 
     target_compile_definitions(hdf5ops PRIVATE
         -DHDF5_VERSION_MAJOR=${HDF5_VERSION_MAJOR}

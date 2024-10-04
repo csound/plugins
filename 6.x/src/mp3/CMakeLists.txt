@@ -14,9 +14,9 @@ endif()
 
 if(BUILD_MP3OUT_OPCODE)
     if(USE_VCPKG)
-        make_plugin(mp3out mp3out.c mp3lame::mp3lame)
+        make_plugin(mp3out "6x" mp3out.c mp3lame::mp3lame)
     else()
-        make_plugin(mp3out mp3out.c ${LAME_LIBRARY})
+        make_plugin(mp3out "6x" mp3out.c ${LAME_LIBRARY})
         target_include_directories(mp3out PRIVATE ${LAME_INCLUDE_DIR})
     endif()
 

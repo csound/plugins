@@ -7,7 +7,7 @@ find_package(FAUST)
 
 check_deps(BUILD_FAUST_OPCODES FAUST_FOUND Threads_FOUND)
 if(BUILD_FAUST_OPCODES)
-    make_plugin(faustcsound faustgen.cpp)
+    make_plugin(faustcsound "6x" faustgen.cpp)
 
     if(APPLE)
         set_target_properties(faustcsound PROPERTIES
@@ -18,7 +18,7 @@ if(BUILD_FAUST_OPCODES)
     target_include_directories(faustcsound PRIVATE ${FAUST_INCLUDE_DIR})
     target_compile_definitions(faustcsound PRIVATE "-DFAUSTFLOAT=MYFLT")
     target_compile_features(faustcsound PRIVATE cxx_std_11)
-    target_link_libraries(faustcsound Threads::Threads ${FAUST_LIBRARIES})
+    target_link_libraries(faustcsound PRIVATE Threads::Threads ${FAUST_LIBRARIES})
 
     message(STATUS "Building faust opcodes")
 endif()

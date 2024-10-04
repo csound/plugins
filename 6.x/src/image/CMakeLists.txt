@@ -14,7 +14,7 @@ else()
 endif()
 
 if(BUILD_IMAGE_OPCODES)
-    make_plugin(image imageOpcodes.c)
+    make_plugin(image "6x" imageOpcodes.c)
 
     if(USE_VCPKG)
         target_link_libraries(image PRIVATE PNG::PNG)

@@ -13,7 +13,7 @@ else()
 endif()
 
 if(BUILD_FLUID_OPCODES)
-    make_plugin(fluidOpcodes fluidOpcodes.cpp)
+    make_plugin(fluidOpcodes "6x" fluidOpcodes.cpp)
 
     if(USE_VCPKG)
         target_link_libraries(fluidOpcodes PRIVATE FluidSynth::libfluidsynth)

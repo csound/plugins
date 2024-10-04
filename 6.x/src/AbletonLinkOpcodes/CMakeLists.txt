@@ -15,7 +15,7 @@ else()
 endif()
 
 if(BUILD_ABLETON_LINK_OPCODES)
-    make_plugin(ableton_link_opcodes ableton_link_opcodes.cpp Ableton::Link)
+    make_plugin(ableton_link_opcodes "6x" ableton_link_opcodes.cpp Ableton::Link)
 
     target_include_directories(ableton_link_opcodes
         PRIVATE

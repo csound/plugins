@@ -14,7 +14,7 @@ else()
 endif()
 
 if(BUILD_CHUA_OPCODES)
-    make_plugin(chua ChuaOscillator.cpp)
+    make_plugin(chua "6x" ChuaOscillator.cpp)
 
     if(USE_VCPKG)
         target_link_libraries(chua PRIVATE Eigen3::Eigen)
