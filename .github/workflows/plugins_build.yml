@@ -47,7 +47,6 @@ jobs:
           echo "PYTHONPATH=C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "RAWWAVE_PATH=C:/Program Files/csound/samples" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           .\vcpkg\bootstrap-vcpkg.bat
-          choco install csound --version=6.17.0
 
       - name: Setup platform (linux)
         if: startsWith(matrix.os, 'ubuntu')
@@ -57,7 +56,6 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         run: |
           ./vcpkg/bootstrap-vcpkg.sh
-          brew install csound
 
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
