@@ -18,7 +18,7 @@ else()
 endif()
 
 if(BUILD_WEBSOCKET_OPCODE)
- 	make_plugin(websocketIO WebSocketOpcode.c)
+ 	make_plugin(websocketIO "6x" WebSocketOpcode.c)
 
     if(USE_VCPKG)
         target_link_libraries(websocketIO
