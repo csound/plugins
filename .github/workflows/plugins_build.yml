@@ -21,15 +21,11 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
-        version: ["6.17.0"]
+        os: [windows-latest, ubuntu-latest, "macos-latest"]
         include:
           - os: "windows-latest"
-            mono: ""
           - os: "ubuntu-latest"
-            mono: "mono"
-          # - os: "macos-latest"
-          #   mono: "mono"
+          - os: "macos-latest"
 
     steps:
       - name: Checkout Source Code
