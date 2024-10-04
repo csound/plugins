@@ -3,7 +3,7 @@ include(FindPackageHandleStandardArgs)
 
 find_path(FAUST_INCLUDE_DIR faust/dsp/llvm-dsp.h
   HINTS
-    C:/Program Files/Faust/include/
+    "C:/Program Files/Faust/include/"
     /opt/lib/faust/architecture/
     /usr/lib/faust/architecture/
     /usr/local/lib/faust/architecture/
