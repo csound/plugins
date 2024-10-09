@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.13.4)
 cmake_policy(SET CMP0077 NEW)
+cmake_policy(SET CMP0091 NEW)
 
 option(USE_VCPKG "Use VCPKG to download and manage dependencies" OFF)
 
@@ -19,8 +20,6 @@ if(USE_VCPKG)
 
     set(VCPKG_FEATURE_FLAGS versions)
     set(X_VCPKG_APPLOCAL_DEPS_INSTALL ON)
-    set(VCPKG_OVERLAY_TRIPLETS "${CMAKE_CURRENT_SOURCE_DIR}")
-    set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_SOURCE_DIR}")
     set(CMAKE_TOOLCHAIN_FILE
         "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
         CACHE STRING "Vcpkg toolchain file")
