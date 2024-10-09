@@ -71,13 +71,15 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Build installer (windows)
-        if: startsWith(matrix.os, 'windows')
-        run: iscc /o. .\installer\win64\Installer.iss
+        if: startsWith(matrix.os, 'windows') && github.ref == 'refs/heads/develop'
+        run: |
+          iscc /o. .\6.x\installer\win64\Installer.iss
+          # iscc /o. .\7.x\installer\win64\Installer.iss
 
       - name: Upload installer (windows)
-        if: startsWith(matrix.os, 'windows')
+        if: startsWith(matrix.os, 'windows') && github.ref == 'refs/heads/develop'
         uses: actions/upload-artifact@v4
         with:
           name: Csound_win_x64-${{env.CSOUND_VERSION}}.${{github.run_number}}-plugins-installer
-          path: ./csound6-plugins-win_x86_64-*.exe
+          path: ./6.x/csound6-plugins-win_x86_64-*.exe
           if-no-files-found: error
