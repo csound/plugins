@@ -4,8 +4,8 @@ find_package(GMM)
 check_deps(BUILD_LINEAR_ALGEBRA_OPCODES GMM_FOUND)
 
 if(BUILD_LINEAR_ALGEBRA_OPCODES AND GMM_FOUND)
-    make_plugin(linear_algebra linear_algebra.cpp)
-    target_include_directories(linear_algebra PRIVATE ${GMM_INCLUDE_DIR} ${CSOUND_INCLUDE_DIR})
+    make_plugin(linear_algebra "6x" linear_algebra.cpp)
+    target_include_directories(linear_algebra PRIVATE ${GMM_INCLUDE_DIR})
     target_compile_options(linear_algebra PRIVATE "-DGMM_VERSION")
 
     if (MSVC)

@@ -1,0 +1,21 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "csound-plugins",
+    "version-string": "1.0.0",
+    "builtin-baseline": "98aa6396292d57e737a6ef999d4225ca488859d5",
+    "dependencies": [
+        "ableton-link",
+        "eigen3",
+        {
+            "name": "fltk",
+            "platform": "!linux"
+        },
+        "hdf5",
+        "libuv",
+        "libpng",
+        "libstk",
+        "libwebsockets",
+        "mp3lame",
+        "zlib"
+    ]
+}

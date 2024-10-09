@@ -13,8 +13,8 @@ check_deps(USE_FLTK FLTK_FOUND)
 if(USE_FLTK)
     set(widgets_SRCS FL_graph.cpp winFLTK.c widgets.cpp)
 
-    make_plugin(widgets "${widgets_SRCS}" "${FLTK_LIBRARIES}")
-    target_include_directories(widgets PRIVATE ${CSOUND_INCLUDE_DIRS} ${FLTK_INCLUDE_DIR})
+    make_plugin(widgets "6x" "${widgets_SRCS}" "${FLTK_LIBRARIES}")
+    target_include_directories(widgets PRIVATE ${FLTK_INCLUDE_DIR})
 
     if(USE_VCPKG)
         target_link_libraries(widgets PRIVATE fltk fltk_gl fltk_forms fltk_images)
@@ -37,8 +37,8 @@ if(USE_FLTK)
         virtual_keyboard/SliderBank.cpp
         virtual_keyboard/SliderData.cpp)
 
-    make_plugin(virtual "${virtual_SRCS}" "${FLTK_LIBRARIES}")
-    target_include_directories(virtual PRIVATE ${CSOUND_INCLUDE_DIRS} ${FLTK_INCLUDE_DIR} ".")
+    make_plugin(virtual "6x" "${virtual_SRCS}" "${FLTK_LIBRARIES}")
+    target_include_directories(virtual PRIVATE ${FLTK_INCLUDE_DIR} ".")
 
     if (USE_VCPKG)
         target_link_libraries(virtual PRIVATE fltk fltk_gl fltk_forms fltk_images)

@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "lame.h": "c"
+        "lame.h": "c",
+        "pythonopcodes.h": "c",
+        "csdl.h": "c"
     }
 }

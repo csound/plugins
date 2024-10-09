@@ -6,11 +6,11 @@ if(BUILD_STK_OPCODES)
     endif()
 
     if(USE_VCPKG)
-        make_plugin(stkops stkOpcodes.cpp)
+        make_plugin(stkops "6x" stkOpcodes.cpp)
         find_package(unofficial-libstk CONFIG REQUIRED)
         target_link_libraries(stkops PRIVATE unofficial::libstk::libstk)
-        target_include_directories(stkops PRIVATE ${CSOUND_INCLUDE_DIRS})
-        message(STATUS "Building STK opcodes for MSVC")
+
+        message(STATUS "Building STK opcodes with VCPKG")
     else()
         find_package(STK)
 
@@ -22,8 +22,8 @@ if(BUILD_STK_OPCODES)
             check_deps(BUILD_STK_OPCODES STK_INCLUDE_DIR)
 
             if(STK_INCLUDE_DIR)
-                make_plugin(stkops stkOpcodes.cpp)
-                target_include_directories(stkops PRIVATE ${CSOUND_INCLUDE_DIRS} ${STK_INCLUDE_DIR})
+                make_plugin(stkops "6x" stkOpcodes.cpp)
+                target_include_directories(stkops PRIVATE ${STK_INCLUDE_DIR})
                 message(STATUS "Building STK opcodes.")
 
                 if(BUILD_STATIC_LIBRARY)
@@ -64,12 +64,11 @@ if(BUILD_STK_OPCODES)
         find_path(STK_INCLUDE_DIR Stk.h ./include)
         check_deps(BUILD_STK_OPCODES STK_FOUND STK_INCLUDE_DIR)
 
-        make_plugin(stkops "${stk_srcs}")
+        make_plugin(stkops "6x" "${stk_srcs}")
         target_include_directories(stkops PRIVATE
-            ${CSOUND_INCLUDE_DIRS}
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/include/stk
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            "${CMAKE_CURRENT_SOURCE_DIR}/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/include/stk"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src"
         )
         set(stkdefs "-D__STK_REALTIME__")
 
