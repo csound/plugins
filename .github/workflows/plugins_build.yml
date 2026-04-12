@@ -50,7 +50,9 @@ jobs:
 
       - name: Setup platform (linux)
         if: startsWith(matrix.os, 'ubuntu')
-        run: ./vcpkg/bootstrap-vcpkg.sh
+        run: |
+          sudo apt-get install curl zip unzip tar autoconf libtool autoconf-archive automake
+          ./vcpkg/bootstrap-vcpkg.sh
 
       - name: Setup platform (macos)
         if: startsWith(matrix.os, 'macos')
