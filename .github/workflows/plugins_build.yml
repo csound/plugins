@@ -25,7 +25,7 @@ jobs:
         include:
           - os: "windows-latest"
           - os: "ubuntu-latest"
-          - os: "macos-13"
+          - os: "macos-15-intel"
 
     steps:
       - name: Checkout Source Code
