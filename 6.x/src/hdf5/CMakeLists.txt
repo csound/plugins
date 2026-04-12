@@ -29,10 +29,7 @@ if(BUILD_HDF5_OPCODES)
     )
 
     if(USE_VCPKG)
-        target_link_libraries(hdf5ops PRIVATE
-            $<IF:$<TARGET_EXISTS:hdf5::hdf5-static>,hdf5::hdf5-static,hdf5::hdf5-shared>
-            $<IF:$<TARGET_EXISTS:hdf5::hdf5_hl-static>,hdf5::hdf5_hl-static,hdf5::hdf5_hl-shared>
-        )
+        target_link_libraries(hdf5ops PRIVATE hdf5::hdf5-static)
     else()
         message(STATUS "HDF5_INCLUDE_DIRS: ${HDF5_INCLUDE_DIRS}")
         message(STATUS "HDF5_LIBRARIES: ${HDF5_LIBRARIES}")
