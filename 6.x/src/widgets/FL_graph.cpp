@@ -205,9 +205,9 @@ void graph_box::draw()
         fl_line(win_x+w()/2, win_y, win_x+w()/2, win_y+win_h);
       }
       if (pol != NEGPOL)
-      sprintf(string, "%s  %" PRIi32 " points, max %5.3f", msg, npts, win->oabsmax);
+        snprintf(string, 400, "%s  %" PRIi32 " points, max %5.3f", msg, npts, win->oabsmax);
       else
-      sprintf(string, "%s  %" PRIi32 " points, max %5.3f", msg, npts, win->max);
+        snprintf(string, 400, "%s  %" PRIi32 " points, max %5.3f", msg, npts, win->max);
 
       ST(form)->label(string);
     }

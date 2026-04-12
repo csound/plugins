@@ -4,7 +4,6 @@ find_library (OpenCL_library NAMES OpenCL)
 check_deps(BUILD_OPENCL_OPCODES OpenCL_FOUND)
 
 if(BUILD_OPENCL_OPCODES AND OpenCL_FOUND)
-
     function(make_opencl_plugin libname srcs)
         if(APPLE)
             add_library(${libname} SHARED ${srcs})
@@ -18,12 +17,13 @@ if(BUILD_OPENCL_OPCODES AND OpenCL_FOUND)
             math(EXPR i "${i}+1")
         endwhile()
 
-        target_include_directories(${libname}  PRIVATE ${CSOUND_INCLUDE_DIRS})
+        target_include_directories(${libname} PRIVATE "${CMAKE_SOURCE_DIR}/csound")
 
         install(TARGETS ${libname}
-        LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}" )
+            LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}"
+        )
     endfunction()
 
     make_opencl_plugin(clop cladsynth.c)
-    target_link_libraries(clop ${OpenCL_library})
+    target_link_libraries(clop PRIVATE ${OpenCL_library})
 endif()

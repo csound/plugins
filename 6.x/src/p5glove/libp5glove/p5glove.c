@@ -11,19 +11,19 @@
 /*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or 
+ * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
- 
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -74,7 +74,7 @@ struct p5glove {
 			int v1,v2,h;
 		} ir[8];	/* IR Sensors values.  (-511 - 511) */
 
-		/* Computed from p5g_process_sample 
+		/* Computed from p5g_process_sample
 		 */
 		double position[3];	/* Position */
 
@@ -121,7 +121,7 @@ static int32_t get_bits_signed(uint8_t *data,int pos,int len)
 
 static void p5g_unpack_sample(struct p5glove *p5, uint8_t data[24])
 {
-	unsigned char tmp[24];
+	// unsigned char tmp[24];
 	int visible=1;
 	int i;
 
@@ -141,21 +141,21 @@ static void p5g_unpack_sample(struct p5glove *p5, uint8_t data[24])
 	 */
 
 	if (data[0] != 1) {
-printf("Odd. Sample [0]=%d\n",data[0]);
+        printf("Odd. Sample [0]=%d\n",data[0]);
 		return;
 	}
 
 	for (i=0; i < 5; i++) {
-		int value;
+		// int value;
 
-		switch (i) {
-			case 0: value = data[1] >> 2; break;
-			case 1: value = ((data[1] & 0x3) << 4) | (data[2] >> 4); break;
-			case 2: value = ((data[2] & 0xF) << 2) | (data[3] >> 6); break;
-			case 3: value = (data[3] & 0x3F); break;
-			case 4: value = data[4] >> 2; break;
-			default: value = 0; break;
-		}
+		// switch (i) {
+		// 	case 0: value = data[1] >> 2; break;
+		// 	case 1: value = ((data[1] & 0x3) << 4) | (data[2] >> 4); break;
+		// 	case 2: value = ((data[2] & 0xF) << 2) | (data[3] >> 6); break;
+		// 	case 3: value = (data[3] & 0x3F); break;
+		// 	case 4: value = data[4] >> 2; break;
+		// 	default: value = 0; break;
+		// }
 
 		p5->data.finger[i]=get_bits(data,8+6*i,6);
 	}
@@ -168,7 +168,7 @@ printf("Odd. Sample [0]=%d\n",data[0]);
 
 	for (i=0; i < 4; i++) {
 		int axis;
-		int value;
+		// int value;
 
 		axis = get_bits(data,44+4*i,4);
 		if (axis & 0x8)
@@ -212,7 +212,7 @@ static int p5glove_check_triangle(P5Glove p5,int led1,int led2,int led3)
 	double c;
 	int led[3];
 	int i;
-	
+
 	led[0]=led1;
 	led[1]=led2;
 	led[2]=led3;
@@ -220,7 +220,7 @@ static int p5glove_check_triangle(P5Glove p5,int led1,int led2,int led3)
 	for (i=0; i < 3; i++) {
 		c=p5glove_angle(p5->cal.led[led[i]],
 				p5->cal.led[led[(i+1)%3]],
-				p5->cal.led[led[(i+2)%3]])*180.0/M_PI; 
+				p5->cal.led[led[(i+2)%3]])*180.0/M_PI;
 
 		/* At too acute/obtune an angle? */
 		DPRINTF("Angle %d-%d-%d is %.4lf\n",led[i],led[(i+1)%3],led[(i+2)%3],c);
@@ -249,7 +249,7 @@ static int p5g_best_leds(P5Glove p5,int led[4],double pos[4][3])
 		if (p5->data.ir[i].visible)
 			led[p5->data.ir[i].visible-1]=i;
 
-	/* Hmm. No 'best' led. 
+	/* Hmm. No 'best' led.
 	 */
 	if (led[0] < 0)
 		return -ENOENT;
@@ -266,7 +266,7 @@ static int p5g_best_leds(P5Glove p5,int led[4],double pos[4][3])
 
 	/* If we have more than 2, we need to verify the data */
 	if (led[3] < 0)
-		leds=3;	
+		leds=3;
 	else {
 		p5g_process_led(p5,led[3],pos[3]);
 		leds=4;
@@ -282,8 +282,8 @@ static int p5g_best_leds(P5Glove p5,int led[4],double pos[4][3])
 			double dist = p5glove_dist(pos[i],pos[j]);
 			double err = fabs(dist-ref_dist)/ref_dist;
 
-			DPRINTF("%d - %d: %.4lf ",led[i],led[j],ref_dist);
-			DPRINTF("(%.4lf) [%.4lf]\n",led[i],led[j],dist,err);
+			DPRINTF("%d - %d: %.4lf ", led[i], led[j], ref_dist);
+			DPRINTF("(%d - %d) dist[%.4lf] err[%.4lf]\n", led[i], led[j], dist, err);
 
 			/* Max 9% error margin on distance */
 			if (err > 0.20) {
@@ -390,7 +390,7 @@ static int p5g_delta(P5Glove p5,int have_pos, int have_rot)
 		have_rot=0;
 
 	memcpy(&p5->prev,&p5->data,sizeof(p5->data));
-	return mask | 
+	return mask |
 		(have_pos ? P5GLOVE_DELTA_POSITION : 0) |
 		(have_rot ? P5GLOVE_DELTA_ROTATION : 0);
 }
@@ -398,7 +398,7 @@ static int p5g_delta(P5Glove p5,int have_pos, int have_rot)
 
 static int p5g_process_sample(P5Glove p5)
 {
-	int i,j,leds;
+	int i, leds;
 	int led[4] = {-1,-1,-1,-1};
 	double pos[4][3];
 	double pos_plane[3],ref_plane[3];
@@ -479,7 +479,7 @@ DPRINTF("Rotation axis :   [%.4lf, %.4lf, %.4lf]\n",p5->data.rotation.axis[0],p5
 	/* Now, apply the rotation angle to the position */
 	p5glove_vec_mat(p5->cal.led[led[0]],rot_matrix,pos[1]);
 
-	/* Then simply subtract the difference from the 
+	/* Then simply subtract the difference from the
 	 * reference position to get the *real* point */
 	for (i=0; i<3; i++)
 		p5->data.position[i] = pos[0][i] - pos[1][i];
@@ -547,19 +547,19 @@ static int p5glove_calibrate(struct p5glove *p5)
 	int8_t report12_buff[255];
 	int err;
 
-	memset(&p5->cal,0,sizeof(p5->cal));
-	report12_buff[0]=12;
-	err=GetUSBHIDFeature(p5->usb,report12_buff,sizeof(report12_buff));
+	memset(&p5->cal, 0, sizeof(p5->cal));
+	report12_buff[0] = 12;
+	err = GetUSBHIDFeature(p5->usb, (char*)report12_buff, sizeof(report12_buff));
 	if (err < 0) goto end;
 
-	err=p5g_parse_report12(p5,report12_buff);
+	err = p5g_parse_report12(p5, report12_buff);
 	if (err < 0) goto end;
 
-	report6_buff[0]=6;
-	err=GetUSBHIDFeature(p5->usb,report6_buff,sizeof(report6_buff));
+	report6_buff[0] = 6;
+	err = GetUSBHIDFeature(p5->usb, (char*)report6_buff, sizeof(report6_buff));
 	if (err < 0) goto end;
 
-	err=p5g_parse_report6(p5,report6_buff);
+	err = p5g_parse_report6(p5, report6_buff);
 
 #ifdef DEBUG_CALIB
 DPRINTF("Cal results:\n");
@@ -580,7 +580,7 @@ P5Glove p5glove_open(int glove_number)
 	struct p5glove *p5 = NULL;
 	USBHID usb;
 	int err;
-       
+
 	usb = OpenUSBHID (
 	    glove_number,				  /* nth matching device */
 	    0x0d7f,					  /* vendor id */
@@ -619,7 +619,7 @@ int p5glove_sample(P5Glove p5,int timeout)
 {
 	int err;
 	uint8_t data[24];
-	
+
 	if ( ReadUSBHID( p5->usb, data, 24 ) == 24 && data[0]==1) {
 		p5g_unpack_sample(p5, data);
 		err=p5g_process_sample(p5);
@@ -627,7 +627,7 @@ int p5glove_sample(P5Glove p5,int timeout)
 		errno = EACCES;
 		err = -1;
 	}
-    
+
 	return err;
 }
 

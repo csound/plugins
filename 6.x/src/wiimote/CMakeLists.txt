@@ -5,6 +5,6 @@ find_library(WIIUSE_LIB wiiuse)
 check_deps(BUILD_WIIMOTE_OPCODES WIIUSE_LIB)
 
 if(BUILD_WIIMOTE_OPCODES)
-    make_plugin(wiimote wiimote.c ${WIIUSE_LIB})
+    make_plugin(wiimote "6x" wiimote.c ${WIIUSE_LIB})
     target_include_directories(wiimote PRIVATE ${WIIUSE_INCLUDE_DIR} ${CSOUND_INCLUDE_DIR})
 endif()

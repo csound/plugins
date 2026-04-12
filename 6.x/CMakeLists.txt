@@ -1,48 +1,9 @@
-cmake_minimum_required(VERSION 3.5)
-cmake_policy(SET CMP0077 NEW)
-
-option(USE_VCPKG "Use VCPKG to download and manage dependencies" OFF)
-
-if (USE_VCPKG)
-    # Detect correct triplet based on CMake env
-    if (WIN32)
-        set(VCPKG_HOST_TRIPLET "x64-windows-csound" CACHE STRING "")
-        set(VCPKG_TARGET_TRIPLET "x64-windows-csound")
-        set(CSOUND_INCLUDE_DIR_HINT "C:/Program Files/Csound6_x64")
-    elseif(APPLE)
-        set(VCPKG_HOST_TRIPLET "x64-osx" CACHE STRING "")
-        set(VCPKG_TARGET_TRIPLET "x64-osx")
-    elseif (UNIX)
-        set(VCPKG_HOST_TRIPLET "x64-linux" CACHE STRING "")
-        set(VCPKG_TARGET_TRIPLET "x64-linux")
-    endif()
-
-    set(VCPKG_FEATURE_FLAGS versions)
-    set(X_VCPKG_APPLOCAL_DEPS_INSTALL ON)
-    set(VCPKG_OVERLAY_TRIPLETS ${CMAKE_CURRENT_SOURCE_DIR}/)
-    set(VCPKG_OVERLAY_PORTS ${CMAKE_CURRENT_SOURCE_DIR}/)
-    set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
-        CACHE STRING "Vcpkg toolchain file")
-endif()
-
-project(Csound-plugins)
-
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    set(CMAKE_COMPILER_IS_CLANG 1)
-endif()
-
-set(APIVERSION "6.0")
-
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-find_package(CSOUND)
-
-if(NOT CSOUND_INCLUDE_DIRS)
-    message(FATAL_ERROR "Csound header files are required")
-endif()
+set(APIVERSION "6.0")
 
 include(TestBigEndian)
 include(CheckFunctionExists)
@@ -52,7 +13,7 @@ include(CheckCXXCompilerFlag)
 ### COMPILER OPTIMIZATION FLAGS
 option(USE_COMPILER_OPTIMIZATIONS "Use the default Csound compiler optimization flags" ON)
 if(USE_COMPILER_OPTIMIZATIONS)
-    include(${CMAKE_SOURCE_DIR}/cmake/CompilerOptimizations.cmake)
+    include("${CMAKE_SOURCE_DIR}/cmake/CompilerOptimizations.cmake")
 endif()
 
 ##/Library/Frameworks/CsoundLib64.framework/Versions/Current/Resources/Opcodes64
@@ -182,70 +143,11 @@ if(APPLE)
 endif()
 message("-- Plugins to be installed at: ${PLUGIN_INSTALL_DIR}")
 
-# Checks if dependencies for an enabled target are fulfilled.
-# If FAIL_MISSING is true and the dependencies are not fulfilled,
-# it will abort the cmake run.
-# If FAIL_MISSING is false, it will set the option to OFF.
-# If the target is not enabled, it will do nothing.
-# example: check_deps(BUILD_NEW_PARSER FLEX_EXECUTABLE BISON_EXECUTABLE)
-function(check_deps option)
-    if(${option})
-        set(i 1)
-        while( ${i} LESS ${ARGC} )
-            set(dep ${ARGV${i}})
-            if(NOT ${dep})
-                if(FAIL_MISSING)
-                    message(FATAL_ERROR
-                        "${option} is enabled, but ${dep}=\"${${dep}}\"")
-                else()
-                    message(STATUS "${dep}=\"${${dep}}\", so disabling ${option}")
-                    set(${option} OFF PARENT_SCOPE)
-                    # Set it in the local scope too
-                    set(${option} OFF)
-                endif()
-            endif()
-            math(EXPR i "${i}+1")
-        endwhile()
-    endif()
-    if(${option})
-        message(STATUS "${option} is enabled.")
-    else()
-        message(STATUS "${option} is disabled.")
-    endif()
-endfunction(check_deps)
+# Include utility functions for making plugins
+include("${CMAKE_SOURCE_DIR}/cmake/utilities.cmake")
 
-# Utility function to make plugins. All plugin targets should use this as it
-# sets up output directory set in top-level CmakeLists.txt
-# and adds the appropriate install target
-#
-# libname - name of library to produce
-# srcs - list of src files (must be quoted if a list)
-# extralibs (OPTIONAL) - extra libraries to link the plugin to
-#
-# NB - this was moved here as it needs some VARS defined above
-# for setting up the framework
-function(make_plugin libname srcs)
-    if(APPLE)
-        add_library(${libname} SHARED ${srcs})
-    else()
-        add_library(${libname} MODULE ${srcs})
-    endif()
-
-    set(i 2)
-    while( ${i} LESS ${ARGC} )
-        target_link_libraries(${libname} PRIVATE ${ARGV${i}})
-        math(EXPR i "${i}+1")
-    endwhile()
-
-    install(TARGETS ${libname}
-        LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}"
-        ARCHIVE DESTINATION "${PLUGIN_INSTALL_DIR}" )
-endfunction(make_plugin)
-
-#checking pthread functions
+# Checking pthread functions
 if(REQUIRE_PTHREADS AND (PTHREAD_LIBRARY OR HAIKU))
-
-  #list(APPEND libcsound_CFLAGS -DHAVE_PTHREAD)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_PTHREAD")
 
   check_function_exists(pthread_spin_lock PTHREAD_SPIN_LOCK_EXISTS)

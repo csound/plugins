@@ -64,25 +64,25 @@ static int pyexec_krate(CSOUND *csound, PYEXEC *p)
     return OK;
 }
 
-static int pyexeci_irate(CSOUND *csound, PYEXEC *p)
-{
-    char      source[1024];
-    PyObject  *result;
-    int       *py_initialize_done;
-    if ((py_initialize_done = csound->QueryGlobalVariable(csound,"PY_INITIALIZE")) == NULL ||
-        *py_initialize_done == 0) {
-        return NOTOK;
-    }
+// static int pyexeci_irate(CSOUND *csound, PYEXEC *p)
+// {
+//     char      source[1024];
+//     PyObject  *result;
+//     int       *py_initialize_done;
+//     if ((py_initialize_done = csound->QueryGlobalVariable(csound,"PY_INITIALIZE")) == NULL ||
+//         *py_initialize_done == 0) {
+//         return NOTOK;
+//     }
 
-    strNcpy(source, (char*) p->string->data, 1024); // source[1023] = '\0'
+//     strNcpy(source, (char*) p->string->data, 1024); // source[1023] = '\0'
 
-    result = exec_file_in_given_context(csound, source, 0);
-    if (result == NULL) {
-        return pyErrMsg(p, "python exception");
-    }
-    Py_DECREF(result);
-    return OK;
-}
+//     result = exec_file_in_given_context(csound, source, 0);
+//     if (result == NULL) {
+//         return pyErrMsg(p, "python exception");
+//     }
+//     Py_DECREF(result);
+//     return OK;
+// }
 
 static int pylexec_irate(CSOUND *csound, PYEXEC *p)
 {
@@ -370,31 +370,31 @@ static int pyeval_krate(CSOUND *csound, PYEVAL *p)
     return OK;
 }
 
-static int pyevali_irate(CSOUND *csound, PYEVAL *p)
-{
-    char      source[1024];
-    PyObject  *result;
-    int       *py_initialize_done;
-    if ((py_initialize_done = csound->QueryGlobalVariable(csound,"PY_INITIALIZE")) == NULL ||
-        *py_initialize_done == 0) {
-        return NOTOK;
-    }
+// static int pyevali_irate(CSOUND *csound, PYEVAL *p)
+// {
+//     char      source[1024];
+//     PyObject  *result;
+//     int       *py_initialize_done;
+//     if ((py_initialize_done = csound->QueryGlobalVariable(csound,"PY_INITIALIZE")) == NULL ||
+//         *py_initialize_done == 0) {
+//         return NOTOK;
+//     }
 
-    strNcpy(source, (char*) p->string->data, 1024); // source[1023] = '\0'
+//     strNcpy(source, (char*) p->string->data, 1024); // source[1023] = '\0'
 
-    result = eval_string_in_given_context(source, 0);
-    if (result == NULL) {
-        return pyErrMsg(p, "python exception");
-    }
-    else if (!PyFloat_Check(result)) {
-        errMsg(p, "expression must evaluate in a float");
-    }
-    else {
-        *p->result = PyFloat_AsDouble(result);
-    }
-    Py_DECREF(result);
-    return OK;
-}
+//     result = eval_string_in_given_context(source, 0);
+//     if (result == NULL) {
+//         return pyErrMsg(p, "python exception");
+//     }
+//     else if (!PyFloat_Check(result)) {
+//         errMsg(p, "expression must evaluate in a float");
+//     }
+//     else {
+//         *p->result = PyFloat_AsDouble(result);
+//     }
+//     Py_DECREF(result);
+//     return OK;
+// }
 
 static int pyleval_irate(CSOUND *csound, PYEVAL *p)
 {
@@ -553,24 +553,24 @@ static int pyassign_krate(CSOUND *csound, PYASSIGN *p)
     return OK;
 }
 
-static int pyassigni_irate(CSOUND *csound, PYASSIGN *p)
-{
-    char      source[1024];
-    PyObject  *result;
-    int       *py_initialize_done;
-    if ((py_initialize_done = csound->QueryGlobalVariable(csound,"PY_INITIALIZE")) == NULL ||
-        *py_initialize_done == 0) {
-        return NOTOK;
-    }
+// static int pyassigni_irate(CSOUND *csound, PYASSIGN *p)
+// {
+//     char      source[1024];
+//     PyObject  *result;
+//     int       *py_initialize_done;
+//     if ((py_initialize_done = csound->QueryGlobalVariable(csound,"PY_INITIALIZE")) == NULL ||
+//         *py_initialize_done == 0) {
+//         return NOTOK;
+//     }
 
-    snprintf(source, 1024, "%s = %f", (char*) p->string->data, *p->value);
-    result = run_statement_in_given_context(source, 0);
-    if (result == NULL) {
-        return pyErrMsg(p, "python exception");
-    }
-    Py_DECREF(result);
-    return OK;
-}
+//     snprintf(source, 1024, "%s = %f", (char*) p->string->data, *p->value);
+//     result = run_statement_in_given_context(source, 0);
+//     if (result == NULL) {
+//         return pyErrMsg(p, "python exception");
+//     }
+//     Py_DECREF(result);
+//     return OK;
+// }
 
 static int pylassign_irate(CSOUND *csound, PYASSIGN *p)
 {

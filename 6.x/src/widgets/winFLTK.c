@@ -69,8 +69,9 @@ PUBLIC int csoundModuleInit(CSOUND *csound)
     int           initFlags = 0;
     int           *fltkFlags;
     int           enableDisplays = 0;
-    OPARMS oparms;
-     csound->GetOParms(csound, &oparms);
+    OPARMS        oparms;
+
+    csound->GetOParms(csound, &oparms);
 
     if (csound->QueryGlobalVariable(csound,
                                     "FLTK_Flags") == (void*) 0) {
@@ -89,7 +90,7 @@ PUBLIC int csoundModuleInit(CSOUND *csound)
         XCloseDisplay(dpy);
 #endif
         if (csound->SetIsGraphable(csound, 1) == 0) {
-          enableDisplays = 1;
+            enableDisplays = 1;
           (*fltkFlags) |= 64;
 
           if (!((*fltkFlags) & 256))

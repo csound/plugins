@@ -173,16 +173,13 @@ void KeyboardMapping::initializeMap(CSOUND * csound, FILE *file) {
 
 void KeyboardMapping::initializeDefaults(CSOUND *csound) {
     for(int i = 0; i < 128; i++) {
-
         char * name = (char *)csound->Calloc(csound, 9);
-
-        sprintf(name, "Bank %d", i + 1);
+        snprintf(name, 9, "Bank %d", i + 1);
 
         Bank *temp = new Bank(csound, name);
         temp->initializeGM();
 
         banks.push_back(temp);
-
     }
 }
 
