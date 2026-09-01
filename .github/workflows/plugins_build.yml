@@ -55,6 +55,15 @@ jobs:
           ls 'C:\Program Files\Faust\'
           echo "C:\Program Files\Faust\;C:\Program Files\Faust\lib" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+          # vcpkg's pinned baseline downloads pkgconf from MSYS2 mirrors, which
+          # can be unavailable/removed upstream and break the build before it
+          # even reaches our ports. Provide a pkg-config via chocolatey and
+          # point vcpkg at it (vcpkg_find_acquire_program short-circuits its
+          # own download when PKG_CONFIG is already set) so eigen3/fltk/etc.
+          # configuration no longer depends on that MSYS2 mirror.
+          choco install pkgconfiglite -y
+          echo "PKG_CONFIG=C:\ProgramData\chocolatey\bin\pkg-config.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
         # - name: Setup platform (linux)
         #   if: startsWith(matrix.os, 'ubuntu')
         #   run: |
