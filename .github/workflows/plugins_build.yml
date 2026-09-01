@@ -21,10 +21,18 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows-latest]
+        # Pinned to windows-2022 (Visual Studio 2022) rather than
+        # windows-latest: as of the "Windows Server 2025" image, windows-latest
+        # now provisions Visual Studio 2026, whose toolchain/generator isn't
+        # supported by the vcpkg baseline pinned in 6.x/vcpkg.json. That
+        # mismatch made `vcpkg_execute_required_process` fail while running
+        # `ninja.exe -v` during the CMake configure step of essentially any
+        # port built from source (originally surfaced via ableton-link, later
+        # via zlib).
+        os: [windows-2022]
         version: ["6.17.0"]
         include:
-          - os: "windows-latest"
+          - os: "windows-2022"
             mono: ""
           # - os: "ubuntu-latest"
           #   mono: "mono"
