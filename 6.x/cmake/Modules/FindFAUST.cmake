@@ -21,7 +21,7 @@ find_library(FAUST_LIBRARY
         "${FAUST_LIB_DIR_HINT}"
 )
 
-find_package_handle_standard_args(FAUST FAUST_INCLUDE_DIR FAUST_LIBRARY)
+find_package_handle_standard_args(FAUST REQUIRED_VARS FAUST_INCLUDE_DIR FAUST_LIBRARY)
 
 if(FAUST_FOUND)
     set(FAUST_LIBRARIES ${FAUST_LIBRARY})

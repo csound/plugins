@@ -7,7 +7,12 @@
         "eigen3",
         "fltk",
         "fluidsynth",
-        "hdf5",
+        {
+            "name": "hdf5",
+            "features": [
+                "hl"
+            ]
+        },
         "libstk",
         "libwebsockets",
         "mp3lame",
