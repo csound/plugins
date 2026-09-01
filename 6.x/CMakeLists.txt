@@ -16,7 +16,14 @@ if (USE_VCPKG)
     if (WIN32)
         set(VCPKG_HOST_TRIPLET "x64-windows-csound" CACHE STRING "")
         set(VCPKG_TARGET_TRIPLET "x64-windows-csound")
-        set(CSOUND_INCLUDE_DIR_HINT "C:/Program Files/Csound6_x64")
+        # The Chocolatey "csound" package (used in CI) deploys to
+        # "C:/Program Files/csound", installing headers under
+        # "include/csound" and import libs under "lib" (per csound's own
+        # CMakeLists.txt HEADER_INSTALL_DIR/LIBRARY_INSTALL_DIR). Older/local
+        # installers used "C:/Program Files/Csound6_x64" instead, so keep
+        # that as a fallback hint too.
+        set(CSOUND_INCLUDE_DIR_HINT "C:/Program Files/csound/include" "C:/Program Files/Csound6_x64")
+        set(CSOUND_LIBRARY_DIR_HINT "C:/Program Files/csound/lib" "C:/Program Files/Csound6_x64")
     elseif(APPLE)
         set(VCPKG_HOST_TRIPLET "x64-osx" CACHE STRING "")
         set(VCPKG_TARGET_TRIPLET "x64-osx")
