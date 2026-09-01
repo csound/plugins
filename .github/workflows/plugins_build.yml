@@ -88,9 +88,13 @@ jobs:
       - name: Verify ableton-link is not installed by vcpkg
         shell: bash
         run: |
-          if [ -d build/vcpkg_installed ] && find build/vcpkg_installed -maxdepth 2 -iname "ableton-link*" | grep -q .; then
+          matches=""
+          if [ -d build/vcpkg_installed ]; then
+            matches=$(find build/vcpkg_installed -maxdepth 2 -iname "ableton-link*")
+          fi
+          if [ -n "$matches" ]; then
             echo "ableton-link was installed by vcpkg even though BUILD_ABLETON_LINK_OPCODES=OFF" >&2
-            find build/vcpkg_installed -maxdepth 2 -iname "ableton-link*" >&2
+            echo "$matches" >&2
             exit 1
           fi
           echo "Confirmed ableton-link is not part of the vcpkg install graph."
