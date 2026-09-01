@@ -20,7 +20,7 @@ if(BUILD_WEBSOCKET_OPCODE)
     target_include_directories(websocketIO PRIVATE ${CSOUND_INCLUDE_DIRS})
 
     if(USE_VCPKG)
-        target_link_libraries(websocketIO websockets uv_a)
+        target_link_libraries(websocketIO websockets $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>)
     else()
         target_link_libraries(websocketIO ${websockets_library})
         target_include_directories(websocketIO PRIVATE ${WEBSOCKETS_H})
