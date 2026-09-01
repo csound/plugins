@@ -8,6 +8,8 @@ else()
     find_package(FLTK)
 endif()
 
+find_path(CAIRO_INCLUDE_DIR cairo.h PATH_SUFFIXES cairo)
+
 check_deps(USE_FLTK FLTK_FOUND)
 
 if(USE_FLTK)
@@ -47,4 +49,9 @@ if(USE_FLTK)
             ${FLTK_BASE_LIBRARY} ${FLTK_FORMS_LIBRARY} ${FLTK_IMAGES_LIBRARY}
         )
     endif()
+endif()
+
+if(USE_FLTK AND CAIRO_INCLUDE_DIR)
+    target_include_directories(widgets PRIVATE ${CAIRO_INCLUDE_DIR})
+    target_include_directories(virtual PRIVATE ${CAIRO_INCLUDE_DIR})
 endif()
