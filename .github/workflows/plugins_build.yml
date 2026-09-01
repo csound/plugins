@@ -62,7 +62,11 @@ jobs:
           # own download when PKG_CONFIG is already set) so eigen3/fltk/etc.
           # configuration no longer depends on that MSYS2 mirror.
           choco install pkgconfiglite -y
-          echo "PKG_CONFIG=C:\ProgramData\chocolatey\bin\pkg-config.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $pkgConfigPath = (Get-Command pkg-config -ErrorAction SilentlyContinue).Source
+          if (-not $pkgConfigPath) {
+            throw "pkg-config.exe was not found on PATH after installing pkgconfiglite"
+          }
+          echo "PKG_CONFIG=$pkgConfigPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
         # - name: Setup platform (linux)
         #   if: startsWith(matrix.os, 'ubuntu')
