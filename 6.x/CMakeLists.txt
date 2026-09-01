@@ -3,7 +3,15 @@ cmake_policy(SET CMP0077 NEW)
 
 option(USE_VCPKG "Use VCPKG to download and manage dependencies" OFF)
 
+option(BUILD_ABLETON_LINK_OPCODES "Build Ableton Link Opcodes" OFF)
+
 if (USE_VCPKG)
+    # Ableton Link is an optional vcpkg manifest feature so that it is only
+    # downloaded/built when its opcodes are actually being built.
+    if (BUILD_ABLETON_LINK_OPCODES)
+        list(APPEND VCPKG_MANIFEST_FEATURES "ableton-link")
+    endif()
+
     # Detect correct triplet based on CMake env
     if (WIN32)
         set(VCPKG_HOST_TRIPLET "x64-windows-csound" CACHE STRING "")

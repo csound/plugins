@@ -85,6 +85,16 @@ jobs:
       - name: Generate CMake build
         run: cmake 6.x/. -B build -DUSE_VCPKG=1 -DBUILD_ABLETON_LINK_OPCODES=OFF
 
+      - name: Verify ableton-link is not installed by vcpkg
+        shell: bash
+        run: |
+          if [ -d build/vcpkg_installed ] && find build/vcpkg_installed -maxdepth 2 -iname "ableton-link*" | grep -q .; then
+            echo "ableton-link was installed by vcpkg even though BUILD_ABLETON_LINK_OPCODES=OFF" >&2
+            find build/vcpkg_installed -maxdepth 2 -iname "ableton-link*" >&2
+            exit 1
+          fi
+          echo "Confirmed ableton-link is not part of the vcpkg install graph."
+
       - name: Build plugins
         run: cmake --build build --config Release
 
