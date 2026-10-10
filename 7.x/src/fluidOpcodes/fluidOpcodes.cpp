@@ -50,6 +50,7 @@ static std::vector<fluid_synth_t *> &fluidsynths_for_ids() {
 }
 
 static std::mutex &fluidsynths_for_ids_mutex() {
+    // When both locks are needed, acquire fluid_synths_mutex first.
     static std::mutex mutex;
     return mutex;
 }
@@ -795,13 +796,13 @@ PUBLIC int32_t csoundModuleCreate(CSOUND *csound) {
   NamedFluidEngines *named_engines = new NamedFluidEngines();
   FluidSoundFonts *soundfonts = new FluidSoundFonts();
   int32_t result = 0;
-  result = csound::CreateGlobalPointer(csound, "fluid_synths", fluid_synths);
-  result = csound::CreateGlobalPointer(csound, "fluid_named_engines",
-                                       named_engines);
-  result = csound::CreateGlobalPointer(csound, "fluid_soundfonts", soundfonts);
+  result |= csound::CreateGlobalPointer(csound, "fluid_synths", fluid_synths);
+  result |= csound::CreateGlobalPointer(csound, "fluid_named_engines",
+                                        named_engines);
+  result |= csound::CreateGlobalPointer(csound, "fluid_soundfonts", soundfonts);
   void *fluid_synths_mutex = csound->Create_Mutex(0);
-  result = csound::CreateGlobalPointer(csound, "fluid_synths_mutex",
-                                       fluid_synths_mutex);
+  result |= csound::CreateGlobalPointer(csound, "fluid_synths_mutex",
+                                        fluid_synths_mutex);
   return result;
 }
 
@@ -836,6 +837,24 @@ PUBLIC int32_t csoundModuleDestroy(CSOUND *csound) {
     csound::QueryGlobalPointer(csound, "fluid_named_engines", named_engines);
     csound::QueryGlobalPointer(csound, "fluid_soundfonts", soundfonts);
     csound->LockMutex(fluid_synths_mutex);
+    auto fluid_synths_global =
+        static_cast<std::vector<fluid_synth_t *> **>(
+            csound->QueryGlobalVariableNoCheck(csound, "fluid_synths"));
+    auto named_engines_global =
+        static_cast<NamedFluidEngines **>(
+            csound->QueryGlobalVariableNoCheck(csound, "fluid_named_engines"));
+    auto soundfonts_global =
+        static_cast<FluidSoundFonts **>(
+            csound->QueryGlobalVariableNoCheck(csound, "fluid_soundfonts"));
+    if (fluid_synths_global) {
+      *fluid_synths_global = nullptr;
+    }
+    if (named_engines_global) {
+      *named_engines_global = nullptr;
+    }
+    if (soundfonts_global) {
+      *soundfonts_global = nullptr;
+    }
     if (fluid_synths) {
       std::lock_guard<std::mutex> idsLock(fluidsynths_for_ids_mutex());
       for (size_t i = 0, n = fluid_synths->size(); i < n; i++) {
