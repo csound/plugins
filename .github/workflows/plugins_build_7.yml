@@ -1,0 +1,225 @@
+name: Csound 7 plugins build
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+  pull_request:
+    branches:
+      - develop
+      - master
+  workflow_dispatch:
+
+env:
+  CSOUND_VERSION: 7.0.0-beta.18
+
+jobs:
+  linux:
+    name: Linux (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Csound build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake pkg-config \
+            libsndfile1-dev libasound2-dev libportaudio2 libportmidi-dev \
+            flex bison
+
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v4
+        with:
+          path: ~/csound-install
+          key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
+
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$CSOUND_VERSION" \
+            https://github.com/csound/csound.git "$RUNNER_TEMP/csound"
+          cmake -S "$RUNNER_TEMP/csound" -B "$RUNNER_TEMP/csound-build" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$HOME/csound-install" \
+            -DBUILD_TESTS=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF
+          cmake --build "$RUNNER_TEMP/csound-build" --parallel "$(nproc)"
+          cmake --install "$RUNNER_TEMP/csound-build"
+
+      - name: Configure plugin build
+        run: |
+          echo "CSOUND_INCLUDE_DIR_HINT=$HOME/csound-install/include/csound" >> "$GITHUB_ENV"
+          echo "CSOUND_LIBRARY_DIR_HINT=$HOME/csound-install/lib" >> "$GITHUB_ENV"
+
+      - name: Build plugins
+        run: |
+          cmake -S 7.x -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCSOUND_INCLUDE_DIR_HINT="$CSOUND_INCLUDE_DIR_HINT" \
+            -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT"
+          cmake --build build --parallel "$(nproc)"
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: csound7-plugins-linux
+          path: build/src/py/*.so
+          if-no-files-found: error
+
+  macos:
+    name: macOS (macos-latest)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Csound build dependencies
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          brew install cmake ninja pkg-config bison flex libsndfile
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v4
+        with:
+          path: ~/csound-install
+          key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
+
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$CSOUND_VERSION" \
+            https://github.com/csound/csound.git "$RUNNER_TEMP/csound"
+          cmake -S "$RUNNER_TEMP/csound" -B "$RUNNER_TEMP/csound-build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$HOME/csound-install" \
+            -DCS_FRAMEWORK_DEST="$HOME/csound-install/Frameworks" \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix)" \
+            -DBUILD_TESTS=OFF \
+            -DBUILD_STATIC_LIBRARY=OFF \
+            -DBUILD_VIRTUAL_KEYBOARD=OFF \
+            -DBUILD_JAVA_INTERFACE=OFF \
+            -DBUILD_PYTHON_INTERFACE=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF \
+            -DBUILD_LUA_INTERFACE=OFF \
+            -DBUILD_CSBEATS=OFF \
+            -DUSE_LIBSAMPLERATE=OFF \
+            -DUSE_CURL=OFF \
+            -DUSE_GETTEXT=OFF \
+            -DUSE_JACK=OFF \
+            -DUSE_PORTAUDIO=OFF \
+            -DUSE_PORTMIDI=OFF \
+            -DUSE_MP3=OFF
+          cmake --build "$RUNNER_TEMP/csound-build" --parallel "$(sysctl -n hw.ncpu)"
+          cmake --install "$RUNNER_TEMP/csound-build"
+
+      - name: Configure plugin build
+        run: |
+          framework="$HOME/csound-install/Frameworks/CsoundLib64.framework"
+          headers="$framework/Versions/7.0/Headers"
+          if [ ! -f "$headers/csound.h" ]; then
+            headers="$framework/Headers"
+          fi
+          echo "CSOUND_INCLUDE_DIR_HINT=$headers" >> "$GITHUB_ENV"
+          echo "CSOUND_FRAMEWORK_DIR_HINT=$HOME/csound-install/Frameworks" >> "$GITHUB_ENV"
+          echo "CSOUND_LIBRARY_DIR_HINT=$HOME/csound-install/Frameworks" >> "$GITHUB_ENV"
+
+      - name: Build plugins
+        run: |
+          cmake -S 7.x -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCSOUND_INCLUDE_DIR_HINT="$CSOUND_INCLUDE_DIR_HINT" \
+            -DCSOUND_FRAMEWORK_DIR_HINT="$CSOUND_FRAMEWORK_DIR_HINT" \
+            -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT"
+          cmake --build build --parallel "$(sysctl -n hw.ncpu)"
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: csound7-plugins-macos
+          path: build/src/py/*.dylib
+          if-no-files-found: error
+
+  windows:
+    name: Windows (windows-latest)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Csound build dependencies
+        run: choco install -y winflexbison3
+
+      - name: Clone Csound (with vcpkg)
+        run: |
+          git clone --recursive --depth 1 --branch "$env:CSOUND_VERSION" `
+            https://github.com/csound/csound.git csound
+
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\csound-install
+          key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
+
+      - name: Bootstrap vcpkg
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: .\csound\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: |
+          cmake -S csound -B csound-build -A x64 `
+            -DUSE_VCPKG=ON `
+            -DCMAKE_INSTALL_PREFIX="$env:RUNNER_TEMP\csound-install" `
+            -DBUILD_TESTS=OFF `
+            -DBUILD_STATIC_LIBRARY=OFF `
+            -DBUILD_VIRTUAL_KEYBOARD=OFF `
+            -DBUILD_JAVA_INTERFACE=OFF `
+            -DBUILD_PYTHON_INTERFACE=OFF `
+            -DINSTALL_PYTHON_INTERFACE=OFF `
+            -DBUILD_LUA_INTERFACE=OFF `
+            -DBUILD_CSBEATS=OFF
+          cmake --build csound-build --config Release --parallel
+          cmake --install csound-build --config Release
+
+      - name: Configure plugin build
+        run: |
+          $install = Join-Path $env:RUNNER_TEMP 'csound-install'
+          $header = Get-ChildItem -Path $install -Recurse -File -Filter 'csound.h' |
+            Select-Object -First 1
+          $lib = Get-ChildItem -Path $install -Recurse -File -Filter 'csound64.lib' |
+            Select-Object -First 1
+          if (-not $header) { throw "csound.h not found under $install" }
+          if (-not $lib) { throw "csound64.lib not found under $install" }
+          "CSOUND_INCLUDE_DIR_HINT=$($header.DirectoryName)" >> $env:GITHUB_ENV
+          "CSOUND_LIBRARY_DIR_HINT=$($lib.DirectoryName)" >> $env:GITHUB_ENV
+
+      - name: Build plugins
+        run: |
+          cmake -S 7.x -B build -A x64 `
+            -DCSOUND_INCLUDE_DIR_HINT="$env:CSOUND_INCLUDE_DIR_HINT" `
+            -DCSOUND_LIBRARY_DIR_HINT="$env:CSOUND_LIBRARY_DIR_HINT"
+          cmake --build build --config Release --parallel
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: csound7-plugins-windows
+          path: build/src/py/Release/*.dll
+          if-no-files-found: error
