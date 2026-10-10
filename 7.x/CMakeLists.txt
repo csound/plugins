@@ -10,7 +10,10 @@ if (USE_VCPKG)
         set(VCPKG_TARGET_TRIPLET "x64-windows-csound")
         set(CSOUND_INCLUDE_DIR_HINT "C:/Program Files/Csound6_x64")
     elseif(APPLE)
-        if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+        # CMAKE_HOST_SYSTEM_PROCESSOR is not yet set before project(), so query
+        # the host architecture directly to pick the right vcpkg triplet.
+        execute_process(COMMAND uname -m OUTPUT_VARIABLE _host_arch OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(_host_arch STREQUAL "arm64")
             set(VCPKG_HOST_TRIPLET "arm64-osx" CACHE STRING "")
             set(VCPKG_TARGET_TRIPLET "arm64-osx")
         else()
