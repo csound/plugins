@@ -10,9 +10,10 @@ if (GMM_INCLUDE_DIR)
   	set(GMM_FOUND TRUE)
 else (GMM_INCLUDE_DIR)
 	find_path(GMM_INCLUDE_DIR NAMES gmm/gmm.h
-	 	PATHS
+		HINTS
+			${GMM_INCLUDE_PATH}
+		PATHS
 	 		${INCLUDE_INSTALL_DIR}
-	 		${GMM_INCLUDE_PATH}
 		)
 	include(FindPackageHandleStandardArgs)
 	find_package_handle_standard_args(GMM DEFAULT_MSG GMM_INCLUDE_DIR)

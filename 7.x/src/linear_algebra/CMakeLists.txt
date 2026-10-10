@@ -1,5 +1,9 @@
 option(BUILD_LINEAR_ALGEBRA_OPCODES "Build the linear algebra opcodes" ON)
 
+# gmm++ is header-only and vendored under this directory as gmm/gmm.h.
+# GMM_INCLUDE_PATH can be overridden to use a system gmm++ installation.
+set(GMM_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH "Path to the gmm++ headers")
+
 find_package(GMM)
 check_deps(BUILD_LINEAR_ALGEBRA_OPCODES GMM_FOUND)
 

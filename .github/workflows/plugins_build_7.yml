@@ -20,6 +20,7 @@ on:
 
 env:
   CSOUND_VERSION: 7.0.0-beta.18
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
 
 jobs:
   linux:
@@ -35,6 +36,7 @@ jobs:
           sudo apt-get install -y \
             build-essential cmake pkg-config \
             libsndfile1-dev libasound2-dev libportaudio2 libportmidi-dev \
+            libeigen3-dev libfluidsynth-dev \
             flex bison
 
       - name: Cache Csound install
@@ -73,7 +75,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: csound7-plugins-linux
-          path: build/src/py/*.so
+          path: |
+            build/src/chua/*.so
+            build/src/linear_algebra/*.so
+            build/src/fluidOpcodes/*.so
+            build/src/py/*.so
           if-no-files-found: error
 
   macos:
@@ -90,6 +96,19 @@ jobs:
           brew install cmake ninja pkg-config bison flex libsndfile
           echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
           echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout 7.x/vcpkg submodule
+        run: git submodule update --init 7.x/vcpkg
+
+      - name: Set up vcpkg
+        run: 7.x/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
+      - name: Cache vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-macos-${{ github.run_id }}
+          restore-keys: vcpkg-macos-
 
       - name: Cache Csound install
         id: cache-csound
@@ -140,16 +159,26 @@ jobs:
       - name: Build plugins
         run: |
           cmake -S 7.x -B build -DCMAKE_BUILD_TYPE=Release \
+            -DUSE_VCPKG=ON \
             -DCSOUND_INCLUDE_DIR_HINT="$CSOUND_INCLUDE_DIR_HINT" \
             -DCSOUND_FRAMEWORK_DIR_HINT="$CSOUND_FRAMEWORK_DIR_HINT" \
             -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT"
           cmake --build build --parallel "$(sysctl -n hw.ncpu)"
 
+      - name: Package plugins
+        run: |
+          mkdir -p package
+          cp build/src/chua/*.dylib \
+             build/src/linear_algebra/*.dylib \
+             build/src/fluidOpcodes/*.dylib \
+             build/src/py/*.dylib package/
+          ( cd package && zip -r ../csound7-plugins-macos.zip . )
+
       - name: Upload plugins
         uses: actions/upload-artifact@v4
         with:
           name: csound7-plugins-macos
-          path: build/src/py/*.dylib
+          path: csound7-plugins-macos.zip
           if-no-files-found: error
 
   windows:
@@ -177,9 +206,22 @@ jobs:
           path: ${{ runner.temp }}\csound-install
           key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
 
-      - name: Bootstrap vcpkg
+      - name: Bootstrap vcpkg (Csound)
         if: steps.cache-csound.outputs.cache-hit != 'true'
         run: .\csound\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Checkout 7.x/vcpkg submodule
+        run: git submodule update --init 7.x/vcpkg
+
+      - name: Bootstrap vcpkg (plugins)
+        run: .\7.x\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Cache vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\vcpkg-cache
+          key: vcpkg-windows-${{ github.run_id }}
+          restore-keys: vcpkg-windows-
 
       - name: Build and install Csound
         if: steps.cache-csound.outputs.cache-hit != 'true'
@@ -213,13 +255,27 @@ jobs:
       - name: Build plugins
         run: |
           cmake -S 7.x -B build -A x64 `
+            -DUSE_VCPKG=ON `
             -DCSOUND_INCLUDE_DIR_HINT="$env:CSOUND_INCLUDE_DIR_HINT" `
             -DCSOUND_LIBRARY_DIR_HINT="$env:CSOUND_LIBRARY_DIR_HINT"
           cmake --build build --config Release --parallel
+
+      - name: Package plugins
+        run: |
+          $package = 'package'
+          New-Item -ItemType Directory -Force -Path $package | Out-Null
+          Get-ChildItem -Path build/src -Recurse -Include *.dll |
+            Where-Object { $_.FullName -match 'Release' } |
+            Copy-Item -Destination $package
+          $vcpkgBin = Join-Path 'build' 'vcpkg_installed\x64-windows-csound\bin'
+          if (Test-Path $vcpkgBin) {
+            Copy-Item (Join-Path $vcpkgBin '*.dll') -Destination $package -ErrorAction SilentlyContinue
+          }
+          Compress-Archive -Path "$package\*" -DestinationPath csound7-plugins-windows.zip -Force
 
       - name: Upload plugins
         uses: actions/upload-artifact@v4
         with:
           name: csound7-plugins-windows
-          path: build/src/py/Release/*.dll
+          path: csound7-plugins-windows.zip
           if-no-files-found: error
