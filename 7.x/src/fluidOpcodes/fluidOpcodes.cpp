@@ -34,11 +34,15 @@
  */
 
 #include <cmath>
+#include <cstdlib>
 #include <map>
 #include <mutex>
 #include <string>
 #include <vector>
 #include <sstream>
+#if !defined(_WIN32)
+#include <limits.h>
+#endif
 #include "OpcodeBase.hpp"
 #include "csdl.h"
 #include <fluidsynth.h>
@@ -89,6 +93,20 @@ struct NamedFluidEngine {
 using NamedFluidEngines = std::map<std::string, NamedFluidEngine>;
 using FluidSoundFonts = std::map<fluid_synth_t *,
                                  std::map<std::string, int32_t>>;
+
+static std::string canonicalSoundFontPath(const char *path) {
+#if defined(_WIN32)
+  char *resolvedPath = _fullpath(nullptr, path, 0);
+#else
+  char *resolvedPath = realpath(path, nullptr);
+#endif
+  if (resolvedPath) {
+    std::string canonicalPath(resolvedPath);
+    free(resolvedPath);
+    return canonicalPath;
+  }
+  return path;
+}
 
 static int32_t createFluidEngine(CSOUND *csound, cs_float *engineId,
                                  int32_t chorusEnabled, int32_t reverbEnabled,
@@ -218,7 +236,7 @@ class FluidEngineReuse : public csound::OpcodeBase<FluidEngineReuse> {
 
 public:
   int32_t init(CSOUND *csound) {
-    if (!iName || !iName->data || !iName->data[0]) {
+    if (!iName->data || !iName->data[0]) {
       return csound->InitError(csound, "%s",
                                Str("fluidEngineReuse requires a non-empty name"));
     }
@@ -276,10 +294,11 @@ public:
         return csound->InitError(csound, "%s",
                                  Str("error accessing fluid SoundFont registry\n"));
       }
+      std::string soundFontKey = canonicalSoundFontPath(filepath);
       {
         csound::LockGuard synthsGuard(csound, fluid_synths_mutex);
         auto &engineSoundFonts = (*soundfonts)[fluidSynth];
-        auto loadedSoundFont = engineSoundFonts.find(filepath);
+        auto loadedSoundFont = engineSoundFonts.find(soundFontKey);
         if (loadedSoundFont != engineSoundFonts.end()) {
           soundFontId = loadedSoundFont->second;
           log(csound, "Reusing SoundFont: %s.\n", filepath);
@@ -287,7 +306,7 @@ public:
           log(csound, "Loading SoundFont: %s.\n", filepath);
           soundFontId = fluid_synth_sfload(fluidSynth, filepath, 0);
           if (soundFontId >= 0) {
-            engineSoundFonts.emplace(filepath, soundFontId);
+            engineSoundFonts.emplace(soundFontKey, soundFontId);
           }
         }
       }
@@ -827,6 +846,7 @@ PUBLIC int32_t csoundModuleInit(CSOUND *csound) {
  */
 PUBLIC int32_t csoundModuleDestroy(CSOUND *csound) {
   // printf("csoundModuleDestroy: %p\n", csound);
+  // Csound calls module destroy after orchestra performance has stopped.
   void *fluid_synths_mutex = 0;
   csound::QueryGlobalPointer(csound, "fluid_synths_mutex", fluid_synths_mutex);
   if (fluid_synths_mutex) {
