@@ -11,11 +11,11 @@ on:
   push:
     branches:
       - develop
-      - master
+      - main
   pull_request:
     branches:
       - develop
-      - master
+      - main
   workflow_dispatch:
 
 env:
@@ -23,8 +23,41 @@ env:
   VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
 
 jobs:
+  update_version:
+    name: Update plugin version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.tag.outputs.new_tag }}
+      release: ${{ steps.check_pr.outputs.has_label }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: tag
+        uses: anothrNick/github-tag-action@1.75.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          DEFAULT_BRANCH: main
+          PRERELEASE: ${{ github.ref != 'refs/heads/main' }}
+          PRERELEASE_SUFFIX: beta
+          DRY_RUN: true
+
+      - name: Check for release label
+        id: check_pr
+        uses: ./.github/actions/check-pr-label
+        with:
+          label: release
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
   linux:
     name: Linux (ubuntu-latest)
+    needs: update_version
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
@@ -71,19 +104,24 @@ jobs:
             -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT"
           cmake --build build --parallel "$(nproc)"
 
+      - name: Stage plugins
+        run: |
+          mkdir -p package
+          cp build/src/chua/*.so \
+             build/src/linear_algebra/*.so \
+             build/src/fluidOpcodes/*.so \
+             build/src/py/*.so package/
+
       - name: Upload plugins
         uses: actions/upload-artifact@v4
         with:
           name: csound7-plugins-linux
-          path: |
-            build/src/chua/*.so
-            build/src/linear_algebra/*.so
-            build/src/fluidOpcodes/*.so
-            build/src/py/*.so
+          path: package/
           if-no-files-found: error
 
   macos:
     name: macOS (macos-latest)
+    needs: update_version
     runs-on: macos-latest
     steps:
       - name: Checkout source
@@ -165,24 +203,24 @@ jobs:
             -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT"
           cmake --build build --parallel "$(sysctl -n hw.ncpu)"
 
-      - name: Package plugins
+      - name: Stage plugins
         run: |
           mkdir -p package
           cp build/src/chua/*.dylib \
              build/src/linear_algebra/*.dylib \
              build/src/fluidOpcodes/*.dylib \
              build/src/py/*.dylib package/
-          ( cd package && zip -r ../csound7-plugins-macos.zip . )
 
       - name: Upload plugins
         uses: actions/upload-artifact@v4
         with:
           name: csound7-plugins-macos
-          path: csound7-plugins-macos.zip
+          path: package/
           if-no-files-found: error
 
   windows:
     name: Windows (windows-latest)
+    needs: update_version
     runs-on: windows-latest
     defaults:
       run:
@@ -260,7 +298,7 @@ jobs:
             -DCSOUND_LIBRARY_DIR_HINT="$env:CSOUND_LIBRARY_DIR_HINT"
           cmake --build build --config Release --parallel
 
-      - name: Package plugins
+      - name: Stage plugins
         run: |
           $package = 'package'
           New-Item -ItemType Directory -Force -Path $package | Out-Null
@@ -271,11 +309,57 @@ jobs:
           if (Test-Path $vcpkgBin) {
             Copy-Item (Join-Path $vcpkgBin '*.dll') -Destination $package -ErrorAction SilentlyContinue
           }
-          Compress-Archive -Path "$package\*" -DestinationPath csound7-plugins-windows.zip -Force
 
       - name: Upload plugins
         uses: actions/upload-artifact@v4
         with:
           name: csound7-plugins-windows
-          path: csound7-plugins-windows.zip
+          path: package/
           if-no-files-found: error
+
+  publish_release:
+    name: Publish release
+    if: ${{ (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && needs.update_version.outputs.release == 'true' }}
+    needs: [update_version, linux, macos, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Linux plugins
+        uses: actions/download-artifact@v4
+        with:
+          name: csound7-plugins-linux
+          path: release/linux
+
+      - name: Download macOS plugins
+        uses: actions/download-artifact@v4
+        with:
+          name: csound7-plugins-macos
+          path: release/macos
+
+      - name: Download Windows plugins
+        uses: actions/download-artifact@v4
+        with:
+          name: csound7-plugins-windows
+          path: release/windows
+
+      - name: Package release assets
+        run: |
+          version="${{ needs.update_version.outputs.version }}"
+          ( cd release/linux && zip -r "../../csound7-plugins-${version}-linux-x86_64.zip" . )
+          ( cd release/macos && zip -r "../../csound7-plugins-${version}-macos.zip" . )
+          ( cd release/windows && zip -r "../../csound7-plugins-${version}-windows.zip" . )
+          ls -l csound7-plugins-*.zip
+
+      - name: Create release
+        uses: softprops/action-gh-release@v3.0.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ needs.update_version.outputs.version }}
+          name: ${{ needs.update_version.outputs.version }}
+          generate_release_notes: true
+          prerelease: ${{ github.ref != 'refs/heads/main' }}
+          files: |
+            csound7-plugins-${{ needs.update_version.outputs.version }}-linux-x86_64.zip
+            csound7-plugins-${{ needs.update_version.outputs.version }}-macos.zip
+            csound7-plugins-${{ needs.update_version.outputs.version }}-windows.zip
