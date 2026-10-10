@@ -295,4 +295,6 @@ if(WIN32)
     add_definitions(-DWIN32)
 endif()
 
+add_subdirectory(./src/chua)
+add_subdirectory(./src/linear_algebra)
 add_subdirectory(./src/py)
