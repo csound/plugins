@@ -1,0 +1,365 @@
+name: Csound 7 plugins build
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+env:
+  CSOUND_VERSION: 7.0.0-beta.18
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
+
+jobs:
+  update_version:
+    name: Update plugin version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.tag.outputs.new_tag }}
+      release: ${{ steps.check_pr.outputs.has_label }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: tag
+        uses: anothrNick/github-tag-action@1.75.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          DEFAULT_BRANCH: main
+          PRERELEASE: ${{ github.ref != 'refs/heads/main' }}
+          PRERELEASE_SUFFIX: beta
+          DRY_RUN: true
+
+      - name: Check for release label
+        id: check_pr
+        uses: ./.github/actions/check-pr-label
+        with:
+          label: release
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  linux:
+    name: Linux (ubuntu-latest)
+    needs: update_version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Csound build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake pkg-config \
+            libsndfile1-dev libasound2-dev libportaudio2 libportmidi-dev \
+            libeigen3-dev libfluidsynth-dev \
+            flex bison
+
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v4
+        with:
+          path: ~/csound-install
+          key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
+
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$CSOUND_VERSION" \
+            https://github.com/csound/csound.git "$RUNNER_TEMP/csound"
+          cmake -S "$RUNNER_TEMP/csound" -B "$RUNNER_TEMP/csound-build" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$HOME/csound-install" \
+            -DBUILD_TESTS=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF
+          cmake --build "$RUNNER_TEMP/csound-build" --parallel "$(nproc)"
+          cmake --install "$RUNNER_TEMP/csound-build"
+
+      - name: Configure plugin build
+        run: |
+          echo "CSOUND_INCLUDE_DIR_HINT=$HOME/csound-install/include/csound" >> "$GITHUB_ENV"
+          echo "CSOUND_LIBRARY_DIR_HINT=$HOME/csound-install/lib" >> "$GITHUB_ENV"
+
+      - name: Build plugins
+        run: |
+          cmake -S 7.x -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCSOUND_INCLUDE_DIR_HINT="$CSOUND_INCLUDE_DIR_HINT" \
+            -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT"
+          cmake --build build --parallel "$(nproc)"
+
+      - name: Stage plugins
+        run: |
+          mkdir -p package
+          cp build/src/chua/*.so \
+             build/src/linear_algebra/*.so \
+             build/src/fluidOpcodes/*.so \
+             build/src/py/*.so package/
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: csound7-plugins-linux
+          path: package/
+          if-no-files-found: error
+
+  macos:
+    name: macOS (macos-latest)
+    needs: update_version
+    runs-on: macos-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Csound build dependencies
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          brew install cmake ninja pkg-config bison flex libsndfile
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout 7.x/vcpkg submodule
+        run: git submodule update --init 7.x/vcpkg
+
+      - name: Set up vcpkg
+        run: 7.x/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
+      - name: Cache vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-macos-${{ github.run_id }}
+          restore-keys: vcpkg-macos-
+
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v4
+        with:
+          path: ~/csound-install
+          key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
+
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$CSOUND_VERSION" \
+            https://github.com/csound/csound.git "$RUNNER_TEMP/csound"
+          cmake -S "$RUNNER_TEMP/csound" -B "$RUNNER_TEMP/csound-build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$HOME/csound-install" \
+            -DCS_FRAMEWORK_DEST="$HOME/csound-install/Frameworks" \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix)" \
+            -DBUILD_TESTS=OFF \
+            -DBUILD_STATIC_LIBRARY=OFF \
+            -DBUILD_VIRTUAL_KEYBOARD=OFF \
+            -DBUILD_JAVA_INTERFACE=OFF \
+            -DBUILD_PYTHON_INTERFACE=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF \
+            -DBUILD_LUA_INTERFACE=OFF \
+            -DBUILD_CSBEATS=OFF \
+            -DUSE_LIBSAMPLERATE=OFF \
+            -DUSE_CURL=OFF \
+            -DUSE_GETTEXT=OFF \
+            -DUSE_JACK=OFF \
+            -DUSE_PORTAUDIO=OFF \
+            -DUSE_PORTMIDI=OFF \
+            -DUSE_MP3=OFF
+          cmake --build "$RUNNER_TEMP/csound-build" --parallel "$(sysctl -n hw.ncpu)"
+          cmake --install "$RUNNER_TEMP/csound-build"
+
+      - name: Configure plugin build
+        run: |
+          framework="$HOME/csound-install/Frameworks/CsoundLib64.framework"
+          headers="$framework/Versions/7.0/Headers"
+          if [ ! -f "$headers/csound.h" ]; then
+            headers="$framework/Headers"
+          fi
+          echo "CSOUND_INCLUDE_DIR_HINT=$headers" >> "$GITHUB_ENV"
+          echo "CSOUND_FRAMEWORK_DIR_HINT=$HOME/csound-install/Frameworks" >> "$GITHUB_ENV"
+          echo "CSOUND_LIBRARY_DIR_HINT=$HOME/csound-install/Frameworks" >> "$GITHUB_ENV"
+
+      - name: Build plugins
+        run: |
+          cmake -S 7.x -B build -DCMAKE_BUILD_TYPE=Release \
+            -DUSE_VCPKG=ON \
+            -DCSOUND_INCLUDE_DIR_HINT="$CSOUND_INCLUDE_DIR_HINT" \
+            -DCSOUND_FRAMEWORK_DIR_HINT="$CSOUND_FRAMEWORK_DIR_HINT" \
+            -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT"
+          cmake --build build --parallel "$(sysctl -n hw.ncpu)"
+
+      - name: Stage plugins
+        run: |
+          mkdir -p package
+          cp build/src/chua/*.dylib \
+             build/src/linear_algebra/*.dylib \
+             build/src/fluidOpcodes/*.dylib \
+             build/src/py/*.dylib package/
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: csound7-plugins-macos
+          path: package/
+          if-no-files-found: error
+
+  windows:
+    name: Windows (windows-latest)
+    needs: update_version
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Csound build dependencies
+        run: choco install -y winflexbison3
+
+      - name: Clone Csound (with vcpkg)
+        run: |
+          git clone --recursive --depth 1 --branch "$env:CSOUND_VERSION" `
+            https://github.com/csound/csound.git csound
+
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}\csound-install
+          key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
+
+      - name: Bootstrap vcpkg (Csound)
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: .\csound\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Checkout 7.x/vcpkg submodule
+        run: git submodule update --init 7.x/vcpkg
+
+      - name: Bootstrap vcpkg (plugins)
+        run: .\7.x\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Cache vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\vcpkg-cache
+          key: vcpkg-windows-${{ github.run_id }}
+          restore-keys: vcpkg-windows-
+
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: |
+          cmake -S csound -B csound-build -A x64 `
+            -DUSE_VCPKG=ON `
+            -DCMAKE_INSTALL_PREFIX="$env:RUNNER_TEMP\csound-install" `
+            -DBUILD_TESTS=OFF `
+            -DBUILD_STATIC_LIBRARY=OFF `
+            -DBUILD_VIRTUAL_KEYBOARD=OFF `
+            -DBUILD_JAVA_INTERFACE=OFF `
+            -DBUILD_PYTHON_INTERFACE=OFF `
+            -DINSTALL_PYTHON_INTERFACE=OFF `
+            -DBUILD_LUA_INTERFACE=OFF `
+            -DBUILD_CSBEATS=OFF
+          cmake --build csound-build --config Release --parallel
+          cmake --install csound-build --config Release
+
+      - name: Configure plugin build
+        run: |
+          $install = Join-Path $env:RUNNER_TEMP 'csound-install'
+          $header = Get-ChildItem -Path $install -Recurse -File -Filter 'csound.h' |
+            Select-Object -First 1
+          $lib = Get-ChildItem -Path $install -Recurse -File -Filter 'csound64.lib' |
+            Select-Object -First 1
+          if (-not $header) { throw "csound.h not found under $install" }
+          if (-not $lib) { throw "csound64.lib not found under $install" }
+          "CSOUND_INCLUDE_DIR_HINT=$($header.DirectoryName)" >> $env:GITHUB_ENV
+          "CSOUND_LIBRARY_DIR_HINT=$($lib.DirectoryName)" >> $env:GITHUB_ENV
+
+      - name: Build plugins
+        run: |
+          cmake -S 7.x -B build -A x64 `
+            -DUSE_VCPKG=ON `
+            -DCSOUND_INCLUDE_DIR_HINT="$env:CSOUND_INCLUDE_DIR_HINT" `
+            -DCSOUND_LIBRARY_DIR_HINT="$env:CSOUND_LIBRARY_DIR_HINT"
+          cmake --build build --config Release --parallel
+
+      - name: Stage plugins
+        run: |
+          $package = 'package'
+          New-Item -ItemType Directory -Force -Path $package | Out-Null
+          Get-ChildItem -Path build/src -Recurse -Include *.dll |
+            Where-Object { $_.FullName -match 'Release' } |
+            Copy-Item -Destination $package
+          $vcpkgBin = Join-Path 'build' 'vcpkg_installed\x64-windows-csound\bin'
+          if (Test-Path $vcpkgBin) {
+            Copy-Item (Join-Path $vcpkgBin '*.dll') -Destination $package -ErrorAction SilentlyContinue
+          }
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: csound7-plugins-windows
+          path: package/
+          if-no-files-found: error
+
+  publish_release:
+    name: Publish release
+    if: ${{ (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && needs.update_version.outputs.release == 'true' }}
+    needs: [update_version, linux, macos, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Linux plugins
+        uses: actions/download-artifact@v4
+        with:
+          name: csound7-plugins-linux
+          path: release/linux
+
+      - name: Download macOS plugins
+        uses: actions/download-artifact@v4
+        with:
+          name: csound7-plugins-macos
+          path: release/macos
+
+      - name: Download Windows plugins
+        uses: actions/download-artifact@v4
+        with:
+          name: csound7-plugins-windows
+          path: release/windows
+
+      - name: Package release assets
+        run: |
+          version="${{ needs.update_version.outputs.version }}"
+          ( cd release/linux && zip -r "../../csound7-plugins-${version}-linux-x86_64.zip" . )
+          ( cd release/macos && zip -r "../../csound7-plugins-${version}-macos.zip" . )
+          ( cd release/windows && zip -r "../../csound7-plugins-${version}-windows.zip" . )
+          ls -l csound7-plugins-*.zip
+
+      - name: Create release
+        uses: softprops/action-gh-release@v3.0.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ needs.update_version.outputs.version }}
+          name: ${{ needs.update_version.outputs.version }}
+          generate_release_notes: true
+          prerelease: ${{ github.ref != 'refs/heads/main' }}
+          files: |
+            csound7-plugins-${{ needs.update_version.outputs.version }}-linux-x86_64.zip
+            csound7-plugins-${{ needs.update_version.outputs.version }}-macos.zip
+            csound7-plugins-${{ needs.update_version.outputs.version }}-windows.zip
