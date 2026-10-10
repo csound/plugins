@@ -1,10 +1,11 @@
 # Build fluidsynth opcodes
 option(BUILD_FLUID_OPCODES "Build the fluidsynth opcodes" ON)
 
-# Prefer the CMake config package (e.g. from vcpkg or a system install), which
-# carries the required transitive dependencies (system frameworks, glib, ...).
-find_package(FluidSynth CONFIG QUIET)
-if(TARGET FluidSynth::libfluidsynth)
+# With vcpkg prefer the CMake config package, which carries the required
+# transitive dependencies (e.g. macOS CoreAudio/CoreMIDI frameworks). System
+# packages may ship an incomplete config, so fall back to FindFLUIDSYNTH.
+if(USE_VCPKG)
+    find_package(FluidSynth CONFIG REQUIRED)
     set(FLUIDSYNTH_FOUND TRUE)
     set(FLUIDSYNTH_LINK_LIBRARIES FluidSynth::libfluidsynth)
 else()

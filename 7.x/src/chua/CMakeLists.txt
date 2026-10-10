@@ -3,6 +3,8 @@ option(BUILD_CHUA_OPCODES "Build the chua opcodes" ON)
 
 if(USE_VCPKG)
     find_package(Eigen3 CONFIG REQUIRED)
+    # The Eigen3 config package sets Eigen3_FOUND; normalise for check_deps().
+    set(EIGEN3_FOUND TRUE)
 else()
     find_package(EIGEN3)
 endif()
