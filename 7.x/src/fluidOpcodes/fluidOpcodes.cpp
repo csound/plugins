@@ -33,16 +33,17 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_set>
 #include <vector>
 #include <sstream>
-#if !defined(_WIN32)
-#include <limits.h>
-#endif
+#include <stdlib.h>
 #include "OpcodeBase.hpp"
 #include "csdl.h"
 #include <fluidsynth.h>
@@ -91,8 +92,13 @@ struct NamedFluidEngine {
 };
 
 using NamedFluidEngines = std::map<std::string, NamedFluidEngine>;
-using FluidSoundFonts = std::map<fluid_synth_t *,
-                                 std::map<std::string, int32_t>>;
+struct FluidSoundFontCache {
+  std::mutex mutex;
+  std::map<std::string, int32_t> soundfonts;
+};
+
+using FluidSoundFonts =
+    std::map<fluid_synth_t *, std::shared_ptr<FluidSoundFontCache>>;
 
 static std::string canonicalSoundFontPath(const char *path) {
 #if defined(_WIN32)
@@ -153,7 +159,8 @@ static int32_t createFluidEngine(CSOUND *csound, cs_float *engineId,
           existing.voiceCount != config.voiceCount ||
           existing.sampleRate != config.sampleRate) {
         return csound->InitError(
-            csound, Str("fluid engine name %s was reused with different settings"),
+            csound,
+            Str("fluid engine name %s was reused with different settings\n"),
             reuseName);
       }
       tof(namedEngine->second.synth, engineId);
@@ -191,12 +198,12 @@ static int32_t createFluidEngine(CSOUND *csound, cs_float *engineId,
               "chorus %s, reverb %s, channels %d, voices %d.\n",
       fluidSynth, config.sampleRate, chorusEnabled ? "on" : "off",
       reverbEnabled ? "on" : "off", channelCount, voiceCount);
-  tof(fluidSynth, engineId);
   fluid_synths->push_back(fluidSynth);
   if (reuseName && *reuseName) {
     named_engines->emplace(reuseName, NamedFluidEngine{fluidSynth, config});
   }
-  (*soundfonts)[fluidSynth];
+  soundfonts->emplace(fluidSynth, std::make_shared<FluidSoundFontCache>());
+  tof(fluidSynth, engineId);
   return OK;
 }
 
@@ -295,19 +302,26 @@ public:
                                  Str("error accessing fluid SoundFont registry\n"));
       }
       std::string soundFontKey = canonicalSoundFontPath(filepath);
+      std::shared_ptr<FluidSoundFontCache> engineSoundFonts;
       {
         csound::LockGuard synthsGuard(csound, fluid_synths_mutex);
-        auto &engineSoundFonts = (*soundfonts)[fluidSynth];
-        auto loadedSoundFont = engineSoundFonts.find(soundFontKey);
-        if (loadedSoundFont != engineSoundFonts.end()) {
-          soundFontId = loadedSoundFont->second;
-          log(csound, "Reusing SoundFont: %s.\n", filepath);
-        } else {
-          log(csound, "Loading SoundFont: %s.\n", filepath);
-          soundFontId = fluid_synth_sfload(fluidSynth, filepath, 0);
-          if (soundFontId >= 0) {
-            engineSoundFonts.emplace(soundFontKey, soundFontId);
-          }
+        auto engineCache = soundfonts->find(fluidSynth);
+        if (engineCache == soundfonts->end() || !engineCache->second) {
+          return csound->InitError(
+              csound, "%s", Str("fluid engine SoundFont cache not found\n"));
+        }
+        engineSoundFonts = engineCache->second;
+      }
+      std::lock_guard<std::mutex> soundFontLock(engineSoundFonts->mutex);
+      auto loadedSoundFont = engineSoundFonts->soundfonts.find(soundFontKey);
+      if (loadedSoundFont != engineSoundFonts->soundfonts.end()) {
+        soundFontId = loadedSoundFont->second;
+        log(csound, "Reusing SoundFont: %s.\n", filepath);
+      } else {
+        log(csound, "Loading SoundFont: %s.\n", filepath);
+        soundFontId = fluid_synth_sfload(fluidSynth, filepath, 0);
+        if (soundFontId >= 0) {
+          engineSoundFonts->soundfonts.emplace(soundFontKey, soundFontId);
         }
       }
       log(csound, "fluidSynth: 0x%p  soundFontId: %d.\n", fluidSynth,
@@ -877,25 +891,29 @@ PUBLIC int32_t csoundModuleDestroy(CSOUND *csound) {
     }
     if (fluid_synths) {
       std::lock_guard<std::mutex> idsLock(fluidsynths_for_ids_mutex());
+      std::unordered_set<fluid_synth_t *> synths(fluid_synths->begin(),
+                                                 fluid_synths->end());
+      auto &instances = fluidsynths_for_ids();
+      for (auto &instance : instances) {
+        if (synths.find(instance) != synths.end()) {
+          instance = nullptr;
+        }
+      }
       for (size_t i = 0, n = fluid_synths->size(); i < n; i++) {
         fluid_synth_t *fluidSynth = (*fluid_synths)[i];
         // printf("deleting engine: %p\n", fluidSynth);
-        auto &instances = fluidsynths_for_ids();
-        for (auto &instance : instances) {
-          if (instance == fluidSynth) {
-            instance = nullptr;
-          }
-        }
         fluid_settings_t *fluidSettings = fluid_synth_get_settings(fluidSynth);
         delete_fluid_synth(fluidSynth);
         delete_fluid_settings(fluidSettings);
       }
       fluid_synths->clear();
       delete fluid_synths;
-      fluid_synths = 0;
+      fluid_synths = nullptr;
     }
     delete named_engines;
+    named_engines = nullptr;
     delete soundfonts;
+    soundfonts = nullptr;
     csound->UnlockMutex(fluid_synths_mutex);
     csound->DestroyMutex(fluid_synths_mutex);
     fluid_synths_mutex = 0;
