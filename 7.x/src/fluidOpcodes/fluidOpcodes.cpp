@@ -990,9 +990,21 @@ public:
           Str("fluidSettingGetString: '%s' is not a string setting.\n"),
           settingName);
     }
-    char *value = (char *)"";
+#if FLUIDSYNTH_VERSION_MAJOR >= 2
+    char *value = 0;
+    if (fluid_settings_dupstr(fluidSettings, (char *)settingName, &value) ==
+            FLUID_OK &&
+        value) {
+      SetStringData(csound, SOut, value);
+      fluid_free(value);
+    } else {
+      SetStringData(csound, SOut, "");
+    }
+#else
+    char *value = 0;
     fluid_settings_getstr(fluidSettings, (char *)settingName, &value);
     SetStringData(csound, SOut, value ? value : "");
+#endif
     return OK;
   }
 };
