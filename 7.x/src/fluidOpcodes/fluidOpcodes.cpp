@@ -43,21 +43,45 @@
 #include <fluidsynth.h>
 #include <fluidsynth/version.h>
 
-static std::vector<fluid_synth_t *> &fluidsynths_for_ids() {
-    static std::vector<fluid_synth_t *> fluidsynths_for_ids_;
-    return fluidsynths_for_ids_;
-}
-
-static void tof(fluid_synth_t *f, cs_float *a) {
-    auto &instances = fluidsynths_for_ids();
-    instances.push_back(f);
-    *a = instances.size() - 1;
+// Per-instance state shared by the fluid* opcodes. Stored in a
+// Csound-global pointer so recompiling a CSD through the API can reuse the
+// engines and SoundFonts already loaded instead of growing memory each
+// csoundCompileCsd/csoundCompileOrc call (github issue #5).
+struct FluidSynthEngineState {
+  double sampleRate;
+  int32_t chorusEnabled;
+  int32_t reverbEnabled;
+  int32_t channelCount;
+  int32_t voiceCount;
+  std::map<std::string, int32_t> soundfonts; // resolved file path -> sf id
 };
 
-static void toa(cs_float *f, fluid_synth_t *&a) {
-    auto &instances = fluidsynths_for_ids();
-    int index = *f;
-    a = instances[index];
+struct FluidSynthState {
+  std::vector<fluid_synth_t *> synths;    // engine instances
+  std::vector<FluidSynthEngineState> engines; // parallel to synths
+};
+
+static void tof(CSOUND *csound, fluid_synth_t *f, cs_float *a) {
+    FluidSynthState *state = 0;
+    if (csound::QueryGlobalPointer(csound, "fluid_synth_state", state) &&
+        state) {
+      state->synths.push_back(f);
+      *a = (cs_float)(state->synths.size() - 1);
+    } else {
+      *a = FL(0.0);
+    }
+};
+
+static void toa(CSOUND *csound, cs_float *f, fluid_synth_t *&a) {
+    a = 0;
+    FluidSynthState *state = 0;
+    if (csound::QueryGlobalPointer(csound, "fluid_synth_state", state) &&
+        state) {
+      int index = (int)*f;
+      if (index >= 0 && index < (int)state->synths.size()) {
+        a = state->synths[index];
+      }
+    }
 };
 
 class FluidEngine : public csound::OpcodeBase<FluidEngine> {
@@ -102,10 +126,37 @@ public:
     } else if (voiceCount > 4096) {
       voiceCount = 4096;
     }
+    double sampleRate = (double)csound->GetEngineSr(csound);
+    void *fluid_synths_mutex = 0;
+    csound::QueryGlobalPointer(csound, "fluid_synths_mutex",
+                               fluid_synths_mutex);
+    csound::LockGuard synthsGuard(csound, fluid_synths_mutex);
+    FluidSynthState *state = 0;
+    csound::QueryGlobalPointer(csound, "fluid_synth_state", state);
+    if (state) {
+      for (size_t i = 0, n = state->engines.size(); i < n; i++) {
+        FluidSynthEngineState &engine = state->engines[i];
+        if (engine.sampleRate == sampleRate &&
+            engine.chorusEnabled == chorusEnabled &&
+            engine.reverbEnabled == reverbEnabled &&
+            engine.channelCount == channelCount &&
+            engine.voiceCount == voiceCount) {
+          fluidSynth = state->synths[i];
+          *iFluidSynth = (cs_float)i;
+          log(csound, "Reusing existing fluidEngine %ld (0x%p): "
+                      "sampling rate = %f, chorus %s, reverb %s, "
+                      "channels %d, voices %d.\n",
+              (long)i, fluidSynth, sampleRate,
+              chorusEnabled ? "on" : "off", reverbEnabled ? "on" : "off",
+              channelCount, voiceCount);
+          return OK;
+        }
+      }
+    }
     fluidSettings = new_fluid_settings();
     if (fluidSettings != NULL) {
       fluid_settings_setnum(fluidSettings, (char *)"synth.sample-rate",
-                            (double)csound->GetEngineSr(csound));
+                            sampleRate);
       fluid_settings_setint(fluidSettings, (char *)"synth.midi-channels",
                             channelCount);
       fluid_settings_setint(fluidSettings, (char *)"synth.polyphony",
@@ -129,19 +180,19 @@ public:
 #endif
       log(csound, "Created fluidEngine 0x%p with sampling rate = %f, "
                   "chorus %s, reverb %s, channels %d, voices %d.\n",
-          fluidSynth, (double)csound->GetEngineSr(csound),
+          fluidSynth, sampleRate,
           chorusEnabled ? "on" : "off", reverbEnabled ? "on" : "off",
           channelCount, voiceCount);
-      tof(fluidSynth, iFluidSynth);
-      {
-        void *fluid_synths_mutex = 0;
-        csound::QueryGlobalPointer(csound, "fluid_synths_mutex",
-                                   fluid_synths_mutex);
-        csound::LockGuard synthsGuard(csound, fluid_synths_mutex);
-        std::vector<fluid_synth_t *> *fluid_synths = 0;
-        csound::QueryGlobalPointer(csound, "fluid_synths", fluid_synths);
-        fluid_synths->push_back(fluidSynth);
+      if (state) {
+        FluidSynthEngineState engine;
+        engine.sampleRate = sampleRate;
+        engine.chorusEnabled = chorusEnabled;
+        engine.reverbEnabled = reverbEnabled;
+        engine.channelCount = channelCount;
+        engine.voiceCount = voiceCount;
+        state->engines.push_back(engine);
       }
+      tof(csound, fluidSynth, iFluidSynth);
     }
     return result;
   }
@@ -168,7 +219,7 @@ public:
     csound::LockGuard guard(csound, mutex);
     int32_t result = OK;
     soundFontId = -1;
-    toa(iFluidSynth, fluidSynth);
+    toa(csound, iFluidSynth, fluidSynth);
     listPresets = (int32_t)*iListPresets;
     CS_TYPE *argType = GetTypeForArg(iFilename);
     if (strcmp("S", argType->varTypeName) == 0) {
@@ -185,10 +236,37 @@ public:
 
     filepath = csound->FindInputFile(csound, filename, "SFDIR;SSDIR");
     if (filepath && fluid_is_soundfont(filepath)) {
-      log(csound, "Loading SoundFont: %s.\n", filepath);
-      soundFontId = fluid_synth_sfload(fluidSynth, filepath, 0);
-      log(csound, "fluidSynth: 0x%p  soundFontId: %d.\n", fluidSynth,
-          soundFontId);
+      void *fluid_synths_mutex = 0;
+      csound::QueryGlobalPointer(csound, "fluid_synths_mutex",
+                                 fluid_synths_mutex);
+      csound::LockGuard synthsGuard(csound, fluid_synths_mutex);
+      FluidSynthState *state = 0;
+      csound::QueryGlobalPointer(csound, "fluid_synth_state", state);
+      int32_t engineIndex = (int32_t)*iFluidSynth;
+      std::map<std::string, int32_t> *soundfonts = 0;
+      if (state && engineIndex >= 0 &&
+          engineIndex < (int32_t)state->engines.size()) {
+        soundfonts = &state->engines[engineIndex].soundfonts;
+      }
+      soundFontId = -1;
+      if (soundfonts) {
+        std::map<std::string, int32_t>::iterator it =
+            soundfonts->find(filepath);
+        if (it != soundfonts->end()) {
+          soundFontId = it->second;
+          log(csound, "SoundFont %s already loaded as id %d, not reloaded.\n",
+              filepath, soundFontId);
+        }
+      }
+      if (soundFontId < 0) {
+        log(csound, "Loading SoundFont: %s.\n", filepath);
+        soundFontId = fluid_synth_sfload(fluidSynth, filepath, 0);
+        log(csound, "fluidSynth: 0x%p  soundFontId: %d.\n", fluidSynth,
+            soundFontId);
+        if (soundFontId >= 0 && soundfonts) {
+          (*soundfonts)[filepath] = soundFontId;
+        }
+      }
     }
     *iInstrumentNumber = (cs_float)soundFontId;
     if (UNLIKELY(soundFontId < 0)) {
@@ -249,7 +327,7 @@ public:
       mutex = csound->Create_Mutex(0);
       csound::LockGuard guard(csound, mutex);
       int32_t result = OK;
-      toa(iFluidSynth, fluidSynth);
+      toa(csound, iFluidSynth, fluidSynth);
       fluid_sfont_t *fluidSoundfont = fluid_synth_get_sfont(fluidSynth, 0);
 #if FLUIDSYNTH_VERSION_MAJOR < 2
       fluid_preset_t fluidPreset;
@@ -313,7 +391,7 @@ public:
         {
                 mutex = csound->Create_Mutex(0);
                 csound::LockGuard guard(csound, mutex);
-                toa(iFluidSynth, fluidSynth);
+                toa(csound, iFluidSynth, fluidSynth);
                 channel = (int32_t) *iChannelNumber;
                 instrument = (uint32_t) *iInstrumentNumber;
                 bank = (uint32_t) *iBankNumber;
@@ -344,7 +422,7 @@ public:
   int32_t init(CSOUND *csound) {
     mutex = csound->Create_Mutex(0);
     csound::LockGuard guard(csound, mutex);
-    toa(iFluidSynth, fluidSynth);
+    toa(csound, iFluidSynth, fluidSynth);
     channel = (int32_t)*iChannelNumber;
     controller = (int32_t)*iControllerNumber;
     value = (int32_t)*kVal;
@@ -371,7 +449,7 @@ public:
   int32_t init(CSOUND *csound) {
     mutex = csound->Create_Mutex(0);
     csound::LockGuard guard(csound, mutex);
-    toa(iFluidSynth, fluidSynth);
+    toa(csound, iFluidSynth, fluidSynth);
     priorValue = -1;
     return OK;
   }
@@ -405,7 +483,7 @@ public:
   int32_t init(CSOUND *csound) {
     mutex = csound->Create_Mutex(0);
     csound::LockGuard guard(csound, mutex);
-    toa(iFluidSynth, fluidSynth);
+    toa(csound, iFluidSynth, fluidSynth);
     channel = (int32_t)*iChannelNumber;
     key = (int32_t)*iMidiKeyNumber;
     velocity = (int32_t)*iVelocity;
@@ -437,7 +515,7 @@ public:
   int32_t init(CSOUND *csound) {
     mutex = csound->Create_Mutex(0);
     csound::LockGuard guard(csound, mutex);
-    toa(iFluidSynth, fluidSynth);
+    toa(csound, iFluidSynth, fluidSynth);
     ksmps = opds.insdshead->ksmps;
     return OK;
   }
@@ -497,8 +575,8 @@ public:
       memset(&aLeftOut[ksmps], '\0', early * sizeof(cs_float));
       memset(&aRightOut[ksmps], '\0', early * sizeof(cs_float));
     }
-    std::vector<fluid_synth_t *> *fluid_synths = 0;
-    csound::QueryGlobalPointer(csound, "fluid_synths", fluid_synths);
+    FluidSynthState *state = 0;
+    csound::QueryGlobalPointer(csound, "fluid_synth_state", state);
     void *fluid_synths_mutex = 0;
     csound::QueryGlobalPointer(csound, "fluid_synths_mutex",
                                fluid_synths_mutex);
@@ -506,14 +584,16 @@ public:
     for (frame = offset; frame < ksmps; frame++) {
       aLeftOut[frame] = FL(0.0);
       aRightOut[frame] = FL(0.0);
-      for (size_t i = 0, n = fluid_synths->size(); i < n; i++) {
-        fluid_synth_t *fluidSynth = (*fluid_synths)[i];
-        leftSample = FL(0.0);
-        rightSample = FL(0.0);
-        fluid_synth_write_float(fluidSynth, 1, &leftSample, 0, 1, &rightSample,
-                                0, 1);
-        aLeftOut[frame] += (cs_float)leftSample /* * csound->e0dbfs */;
-        aRightOut[frame] += (cs_float)rightSample /* * csound->e0dbfs */;
+      if (state && frame >= 0) {
+        for (size_t i = 0, n = state->synths.size(); i < n; i++) {
+          fluid_synth_t *fluidSynth = state->synths[i];
+          leftSample = FL(0.0);
+          rightSample = FL(0.0);
+          fluid_synth_write_float(fluidSynth, 1, &leftSample, 0, 1, &rightSample,
+                                  0, 1);
+          aLeftOut[frame] += (cs_float)leftSample /* * csound->e0dbfs */;
+          aRightOut[frame] += (cs_float)rightSample /* * csound->e0dbfs */;
+        }
       }
     }
     return OK;
@@ -545,7 +625,7 @@ public:
   int32_t init(CSOUND *csound) {
     mutex = csound->Create_Mutex(0);
     csound::LockGuard guard(csound, mutex);
-    toa(iFluidSynth, fluidSynth);
+    toa(csound, iFluidSynth, fluidSynth);
     priorMidiStatus = -1;
     priorMidiChannel = -1;
     priorMidiData1 = -1;
@@ -642,7 +722,7 @@ public:
   int32_t init(CSOUND *csound) {
     mutex = csound->Create_Mutex(0);
     csound::LockGuard guard(csound, mutex);
-    toa(iFluidSynth, fluidSynth);
+    toa(csound, iFluidSynth, fluidSynth);
     channel = (int32_t)*iChannelNumber;
     interpolationMethod = (int32_t)*iInterpMethod;
     if (UNLIKELY(interpolationMethod != 0 && interpolationMethod != 1 &&
@@ -685,10 +765,9 @@ static OENTRY localops[] = {
     {NULL, 0, 0, NULL, NULL, (SUBR)0, (SUBR)0, (SUBR)0, NULL, 0}};
 
 PUBLIC int32_t csoundModuleCreate(CSOUND *csound) {
-  std::vector<fluid_synth_t *> *fluid_synths =
-      new std::vector<fluid_synth_t *>();
+  FluidSynthState *state = new FluidSynthState();
   int32_t result = 0;
-  result = csound::CreateGlobalPointer(csound, "fluid_synths", fluid_synths);
+  result = csound::CreateGlobalPointer(csound, "fluid_synth_state", state);
   void *fluid_synths_mutex = csound->Create_Mutex(0);
   result = csound::CreateGlobalPointer(csound, "fluid_synths_mutex",
                                        fluid_synths_mutex);
@@ -719,20 +798,21 @@ PUBLIC int32_t csoundModuleDestroy(CSOUND *csound) {
   void *fluid_synths_mutex = 0;
   csound::QueryGlobalPointer(csound, "fluid_synths_mutex", fluid_synths_mutex);
   if (fluid_synths_mutex) {
-    std::vector<fluid_synth_t *> *fluid_synths = 0;
-    csound::QueryGlobalPointer(csound, "fluid_synths", fluid_synths);
+    FluidSynthState *state = 0;
+    csound::QueryGlobalPointer(csound, "fluid_synth_state", state);
     csound->LockMutex(fluid_synths_mutex);
-    if (fluid_synths) {
-      for (size_t i = 0, n = fluid_synths->size(); i < n; i++) {
-        fluid_synth_t *fluidSynth = (*fluid_synths)[i];
+    if (state) {
+      for (size_t i = 0, n = state->synths.size(); i < n; i++) {
+        fluid_synth_t *fluidSynth = state->synths[i];
         // printf("deleting engine: %p\n", fluidSynth);
         fluid_settings_t *fluidSettings = fluid_synth_get_settings(fluidSynth);
         delete_fluid_synth(fluidSynth);
         delete_fluid_settings(fluidSettings);
       }
-      fluid_synths->clear();
-      delete fluid_synths;
-      fluid_synths = 0;
+      state->synths.clear();
+      state->engines.clear();
+      delete state;
+      state = 0;
     }
     csound->UnlockMutex(fluid_synths_mutex);
     csound->DestroyMutex(fluid_synths_mutex);
