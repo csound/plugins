@@ -34,6 +34,8 @@
  */
 
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
 #include <map>
 #include <string>
 #include <vector>
@@ -53,12 +55,13 @@ struct FluidSynthEngineState {
   int32_t reverbEnabled;
   int32_t channelCount;
   int32_t voiceCount;
-  // Disambiguates reuse within a compile from reuse across compiles. An
-  // engine may only be reused by a later compile, so repeated matches within
-  // a single compile (same settings, e.g. two deliberate engines) still get
-  // distinct engines instead of being silently merged. The token is the
-  // global-code INSDS identity, which Csound creates afresh per compile.
-  void *lastClaimed;
+  // Ordinal of the fluidEngine opcode that owns this engine within the
+  // compiled global (instr 0) opcode chain. Reuse is keyed on this ordinal
+  // and the configuration, so the same opcode reuses its engine across
+  // compiles while two deliberately separate engines stay distinct. The
+  // ordinal comes from the compile's opcode chain, never from a heap address,
+  // which Csound may recycle between compiles.
+  int32_t ordinal;
   std::map<std::string, int32_t> soundfonts; // resolved file path -> sf id
 };
 
@@ -90,13 +93,54 @@ static void toa(CSOUND *csound, cs_float *f, fluid_synth_t *&a) {
     }
 };
 
+// Position of a fluidEngine opcode among the fluidEngine opcodes of the
+// current compile, found by walking the global (instr 0) init chain. The
+// ordinal is stable across recompiles of the same orchestra and does not
+// depend on any heap address, so a given opcode always maps to the same
+// engine. Csound may recycle the INSDS that holds the chain between compiles,
+// which makes its address unusable as an identity.
+static int32_t FluidEngineOrdinal(OPDS *op) {
+  OPDS *head = (OPDS *)op->insdshead;
+  if (!head || !op->optext) {
+    return 0;
+  }
+  OENTRY *entry = op->optext->t.oentry;
+  int32_t ordinal = 0;
+  for (OPDS *p = head->nxti; p != 0 && p != op; p = p->nxti) {
+    if (p->optext && p->optext->t.oentry == entry) {
+      ordinal++;
+    }
+  }
+  return ordinal;
+};
+
 static void SetStringData(CSOUND *csound, STRINGDAT *sdata, const char *str) {
   if (!str) {
     str = "";
   }
-  sdata->data = csound->Strdup(csound, (char *)str);
-  sdata->size = strlen(str) + 1;
+  size_t len = strlen(str) + 1;
+  if (sdata->data == NULL || sdata->size < len) {
+    if (sdata->data != NULL && sdata->refcount == 0) {
+      csound->Free(csound, sdata->data);
+    }
+    sdata->data = (char *)csound->Calloc(csound, len);
+    sdata->size = len;
+  }
+  memcpy(sdata->data, str, len);
   sdata->refcount = 0;
+};
+
+// fluid_settings_dupstr() allocates a copy the caller owns. Release it with
+// fluid_free(), which only exists since fluidsynth 2.0.7; earlier 2.x releases
+// must use free() (same allocator).
+static void FreeFluidString(char *str) {
+#if FLUIDSYNTH_VERSION_MAJOR > 2 || \
+    (FLUIDSYNTH_VERSION_MAJOR == 2 && \
+     (FLUIDSYNTH_VERSION_MINOR > 0 || FLUIDSYNTH_VERSION_MICRO >= 7))
+  fluid_free(str);
+#else
+  free(str);
+#endif
 };
 
 class FluidEngine : public csound::OpcodeBase<FluidEngine> {
@@ -142,7 +186,7 @@ public:
       voiceCount = 4096;
     }
     double sampleRate = (double)csound->GetEngineSr(csound);
-    void *currentCompile = (void *)opds.insdshead;
+    int32_t ordinal = FluidEngineOrdinal(&opds);
     void *fluid_synths_mutex = 0;
     csound::QueryGlobalPointer(csound, "fluid_synths_mutex",
                                fluid_synths_mutex);
@@ -152,13 +196,12 @@ public:
     if (state) {
       for (size_t i = 0, n = state->engines.size(); i < n; i++) {
         FluidSynthEngineState &engine = state->engines[i];
-        if (engine.lastClaimed != currentCompile &&
+        if (engine.ordinal == ordinal &&
             engine.sampleRate == sampleRate &&
             engine.chorusEnabled == chorusEnabled &&
             engine.reverbEnabled == reverbEnabled &&
             engine.channelCount == channelCount &&
             engine.voiceCount == voiceCount) {
-          engine.lastClaimed = currentCompile;
           fluidSynth = state->synths[i];
           *iFluidSynth = (cs_float)i;
           log(csound, "Reusing existing fluidEngine %ld (0x%p): "
@@ -208,7 +251,7 @@ public:
         engine.reverbEnabled = reverbEnabled;
         engine.channelCount = channelCount;
         engine.voiceCount = voiceCount;
-        engine.lastClaimed = currentCompile;
+        engine.ordinal = ordinal;
         state->engines.push_back(engine);
       }
       tof(csound, fluidSynth, iFluidSynth);
@@ -979,16 +1022,18 @@ public:
     }
     if (UNLIKELY(!fluidSettings)) {
       SetStringData(csound, SOut, "");
-      return csound->InitError(csound, "%s",
-                               Str("fluidSettingGetString: invalid engine id.\n"));
+      csound->Message(csound, "%s",
+                      Str("fluidSettingGetString: invalid engine id.\n"));
+      return OK;
     }
     if (fluid_settings_get_type(fluidSettings, (char *)settingName) !=
         FLUID_STR_TYPE) {
       SetStringData(csound, SOut, "");
-      return csound->InitError(
+      csound->Message(
           csound,
           Str("fluidSettingGetString: '%s' is not a string setting.\n"),
           settingName);
+      return OK;
     }
 #if FLUIDSYNTH_VERSION_MAJOR >= 2
     char *value = 0;
@@ -996,7 +1041,7 @@ public:
             FLUID_OK &&
         value) {
       SetStringData(csound, SOut, value);
-      fluid_free(value);
+      FreeFluidString(value);
     } else {
       SetStringData(csound, SOut, "");
     }
