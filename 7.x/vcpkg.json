@@ -6,6 +6,7 @@
     "dependencies": [
         "eigen3",
         "fluidsynth",
+        "libpng",
         "libuv",
         "libwebsockets"
     ]
