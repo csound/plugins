@@ -70,6 +70,7 @@ jobs:
             build-essential cmake pkg-config \
             libsndfile1-dev libasound2-dev libportaudio2 libportmidi-dev \
             libeigen3-dev libfluidsynth-dev \
+            libwebsockets-dev libuv1-dev \
             flex bison
 
       - name: Cache Csound install
@@ -110,6 +111,7 @@ jobs:
           cp build/src/chua/*.so \
              build/src/linear_algebra/*.so \
              build/src/fluidOpcodes/*.so \
+             build/src/websockets/*.so \
              build/src/py/*.so package/
 
       - name: Upload plugins
@@ -209,6 +211,7 @@ jobs:
           cp build/src/chua/*.dylib \
              build/src/linear_algebra/*.dylib \
              build/src/fluidOpcodes/*.dylib \
+             build/src/websockets/*.dylib \
              build/src/py/*.dylib package/
 
       - name: Upload plugins
