@@ -384,6 +384,25 @@ static std::ostream &operator<<(std::ostream &o,
   return o;
 }
 
+// gmm++ 5.4.3 changed gmm::lapack_ipvt into a std::vector typedef and replaced
+// its get() accessor with operator[]. These overloads select whichever accessor
+// the installed gmm++ provides.
+template <typename Pivot>
+static auto la_ipvt_get(const Pivot &pivot, size_t i, int)
+    -> decltype(pivot.get(i)) {
+  return pivot.get(i);
+}
+
+template <typename Pivot>
+static size_t la_ipvt_get(const Pivot &pivot, size_t i, long) {
+  return static_cast<size_t>(pivot[i]);
+}
+
+template <typename Pivot>
+static size_t la_ipvt_get(const Pivot &pivot, size_t i) {
+  return la_ipvt_get(pivot, i, 0);
+}
+
 /**
  * Template union for safely and efficiently
  * typecasting the value of a cs_float variable
@@ -3504,11 +3523,7 @@ public:
   la_i_mr_create_t *lhs;
   la_i_vr_create_t *pivot;
   la_i_mr_create_t *rhs;
-#if defined(GMM_VERSION)
   gmm::lapack_ipvt pivot__;
-#else
-  std::vector<size_t> pivot__;
-#endif
   size_t pivot_size;
   int32_t init(CSOUND *) {
     toa(lhs_, lhs);
@@ -3519,11 +3534,7 @@ public:
     gmm::copy(rhs->mr, lhs->mr);
     *isize = gmm::lu_factor(lhs->mr, pivot__);
     for (size_t i = 0; i < pivot_size; ++i) {
-#if defined(GMM_VERSION)
-      pivot->vr[i] = pivot__.get(i);
-#else
-      pivot->vr[i] = pivot__[i];
-#endif
+      pivot->vr[i] = la_ipvt_get(pivot__, i);
     }
     return OK;
   }
@@ -3538,11 +3549,7 @@ public:
   la_i_mr_create_t *lhs;
   la_i_vr_create_t *pivot;
   la_i_mr_create_t *rhs;
-#if defined(GMM_VERSION)
   gmm::lapack_ipvt pivot__;
-#else
-  std::vector<size_t> pivot__;
-#endif
   size_t pivot_size;
   int32_t init(CSOUND *) {
     toa(lhs_, lhs);
@@ -3556,11 +3563,7 @@ public:
     gmm::copy(rhs->mr, lhs->mr);
     *ksize = gmm::lu_factor(lhs->mr, pivot__);
     for (size_t i = 0; i < pivot_size; ++i) {
-#if defined(GMM_VERSION)
-      pivot->vr[i] = pivot__.get(i);
-#else
-      pivot->vr[i] = pivot__[i];
-#endif
+      pivot->vr[i] = la_ipvt_get(pivot__, i);
     }
     return OK;
   }
@@ -3575,11 +3578,7 @@ public:
   la_i_mc_create_t *lhs;
   la_i_vr_create_t *pivot;
   la_i_mc_create_t *rhs;
-#if defined(GMM_VERSION)
   gmm::lapack_ipvt pivot__;
-#else
-  std::vector<size_t> pivot__;
-#endif
   size_t pivot_size;
   int32_t init(CSOUND *) {
     toa(lhs_, lhs);
@@ -3590,11 +3589,7 @@ public:
     gmm::copy(rhs->mc, lhs->mc);
     *isize = gmm::lu_factor(lhs->mc, pivot__);
     for (size_t i = 0; i < pivot_size; ++i) {
-#if defined(GMM_VERSION)
-      pivot->vr[i] = pivot__.get(i);
-#else
-      pivot->vr[i] = pivot__[i];
-#endif
+      pivot->vr[i] = la_ipvt_get(pivot__, i);
     }
     return OK;
   }
@@ -3609,11 +3604,7 @@ public:
   la_i_mc_create_t *lhs;
   la_i_vr_create_t *pivot;
   la_i_mc_create_t *rhs;
-#if defined(GMM_VERSION)
   gmm::lapack_ipvt pivot__;
-#else
-  std::vector<size_t> pivot__;
-#endif
   size_t pivot_size;
   int32_t init(CSOUND *) {
     toa(lhs_, lhs);
@@ -3627,11 +3618,7 @@ public:
     gmm::copy(rhs->mc, lhs->mc);
     *ksize = gmm::lu_factor(lhs->mc, pivot__);
     for (size_t i = 0; i < pivot_size; ++i) {
-#if defined(GMM_VERSION)
-      pivot->vr[i] = pivot__.get(i);
-#else
-      pivot->vr[i] = pivot__[i];
-#endif
+      pivot->vr[i] = la_ipvt_get(pivot__, i);
     }
     return OK;
   }
