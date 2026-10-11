@@ -53,6 +53,12 @@ struct FluidSynthEngineState {
   int32_t reverbEnabled;
   int32_t channelCount;
   int32_t voiceCount;
+  // Disambiguates reuse within a compile from reuse across compiles. An
+  // engine may only be reused by a later compile, so repeated matches within
+  // a single compile (same settings, e.g. two deliberate engines) still get
+  // distinct engines instead of being silently merged. The token is the
+  // global-code INSDS identity, which Csound creates afresh per compile.
+  void *lastClaimed;
   std::map<std::string, int32_t> soundfonts; // resolved file path -> sf id
 };
 
@@ -127,6 +133,7 @@ public:
       voiceCount = 4096;
     }
     double sampleRate = (double)csound->GetEngineSr(csound);
+    void *currentCompile = (void *)opds.insdshead;
     void *fluid_synths_mutex = 0;
     csound::QueryGlobalPointer(csound, "fluid_synths_mutex",
                                fluid_synths_mutex);
@@ -136,11 +143,13 @@ public:
     if (state) {
       for (size_t i = 0, n = state->engines.size(); i < n; i++) {
         FluidSynthEngineState &engine = state->engines[i];
-        if (engine.sampleRate == sampleRate &&
+        if (engine.lastClaimed != currentCompile &&
+            engine.sampleRate == sampleRate &&
             engine.chorusEnabled == chorusEnabled &&
             engine.reverbEnabled == reverbEnabled &&
             engine.channelCount == channelCount &&
             engine.voiceCount == voiceCount) {
+          engine.lastClaimed = currentCompile;
           fluidSynth = state->synths[i];
           *iFluidSynth = (cs_float)i;
           log(csound, "Reusing existing fluidEngine %ld (0x%p): "
@@ -190,6 +199,7 @@ public:
         engine.reverbEnabled = reverbEnabled;
         engine.channelCount = channelCount;
         engine.voiceCount = voiceCount;
+        engine.lastClaimed = currentCompile;
         state->engines.push_back(engine);
       }
       tof(csound, fluidSynth, iFluidSynth);
