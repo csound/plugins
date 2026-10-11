@@ -3504,7 +3504,7 @@ public:
   la_i_mr_create_t *lhs;
   la_i_vr_create_t *pivot;
   la_i_mr_create_t *rhs;
-#if defined(GMM_VERSION)
+#if defined(HAVE_LAPACK_IPVT_GET)
   gmm::lapack_ipvt pivot__;
 #else
   std::vector<size_t> pivot__;
@@ -3519,7 +3519,7 @@ public:
     gmm::copy(rhs->mr, lhs->mr);
     *isize = gmm::lu_factor(lhs->mr, pivot__);
     for (size_t i = 0; i < pivot_size; ++i) {
-#if defined(GMM_VERSION)
+#if defined(HAVE_LAPACK_IPVT_GET)
       pivot->vr[i] = pivot__.get(i);
 #else
       pivot->vr[i] = pivot__[i];
@@ -3538,7 +3538,7 @@ public:
   la_i_mr_create_t *lhs;
   la_i_vr_create_t *pivot;
   la_i_mr_create_t *rhs;
-#if defined(GMM_VERSION)
+#if defined(HAVE_LAPACK_IPVT_GET)
   gmm::lapack_ipvt pivot__;
 #else
   std::vector<size_t> pivot__;
@@ -3556,7 +3556,7 @@ public:
     gmm::copy(rhs->mr, lhs->mr);
     *ksize = gmm::lu_factor(lhs->mr, pivot__);
     for (size_t i = 0; i < pivot_size; ++i) {
-#if defined(GMM_VERSION)
+#if defined(HAVE_LAPACK_IPVT_GET)
       pivot->vr[i] = pivot__.get(i);
 #else
       pivot->vr[i] = pivot__[i];
@@ -3575,7 +3575,7 @@ public:
   la_i_mc_create_t *lhs;
   la_i_vr_create_t *pivot;
   la_i_mc_create_t *rhs;
-#if defined(GMM_VERSION)
+#if defined(HAVE_LAPACK_IPVT_GET)
   gmm::lapack_ipvt pivot__;
 #else
   std::vector<size_t> pivot__;
@@ -3590,7 +3590,7 @@ public:
     gmm::copy(rhs->mc, lhs->mc);
     *isize = gmm::lu_factor(lhs->mc, pivot__);
     for (size_t i = 0; i < pivot_size; ++i) {
-#if defined(GMM_VERSION)
+#if defined(HAVE_LAPACK_IPVT_GET)
       pivot->vr[i] = pivot__.get(i);
 #else
       pivot->vr[i] = pivot__[i];
@@ -3609,7 +3609,7 @@ public:
   la_i_mc_create_t *lhs;
   la_i_vr_create_t *pivot;
   la_i_mc_create_t *rhs;
-#if defined(GMM_VERSION)
+#if defined(HAVE_LAPACK_IPVT_GET)
   gmm::lapack_ipvt pivot__;
 #else
   std::vector<size_t> pivot__;
@@ -3627,7 +3627,7 @@ public:
     gmm::copy(rhs->mc, lhs->mc);
     *ksize = gmm::lu_factor(lhs->mc, pivot__);
     for (size_t i = 0; i < pivot_size; ++i) {
-#if defined(GMM_VERSION)
+#if defined(HAVE_LAPACK_IPVT_GET)
       pivot->vr[i] = pivot__.get(i);
 #else
       pivot->vr[i] = pivot__[i];
