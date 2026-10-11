@@ -90,6 +90,15 @@ static void toa(CSOUND *csound, cs_float *f, fluid_synth_t *&a) {
     }
 };
 
+static void SetStringData(CSOUND *csound, STRINGDAT *sdata, const char *str) {
+  if (!str) {
+    str = "";
+  }
+  sdata->data = csound->Strdup(csound, (char *)str);
+  sdata->size = strlen(str) + 1;
+  sdata->refcount = 0;
+};
+
 class FluidEngine : public csound::OpcodeBase<FluidEngine> {
   // Outputs.
   cs_float *iFluidSynth;
@@ -747,6 +756,247 @@ public:
   }
 };
 
+// Access to a fluid engine's settings (github issue #32). Each opcode
+// resolves the engine id handed out by fluidEngine to its fluid_settings
+// (obtained via fluid_synth_get_settings) and either sets a setting on the
+// fly or reads its current value, dispatching on the setting's own type.
+// Note: set/get return 1/0 on fluidsynth 1.x and FLUID_OK/FLUID_FAILED on
+// 2.x, so failure is checked version-conditionally.
+static int32_t SettingSetFailed(int result) {
+#if FLUIDSYNTH_VERSION_MAJOR >= 2
+  return result < int(FLUID_OK);
+#else
+  return result == 0;
+#endif
+}
+
+class FluidSettingNum : public csound::OpcodeBase<FluidSettingNum> {
+  // Inputs.
+  cs_float *iFluidSynth;
+  cs_float *iSetting;
+  cs_float *kValue;
+  // State.
+  fluid_synth_t *fluidSynth;
+  fluid_settings_t *fluidSettings;
+  char *settingName;
+  cs_float priorValue;
+  int32_t initial;
+  void *mutex;
+
+public:
+  int32_t setValue(CSOUND *csound) {
+    if (UNLIKELY(!fluidSettings)) {
+      csound->Message(csound, Str("fluidSettingNum: invalid engine id.\n"));
+      return NOTOK;
+    }
+    int32_t type =
+        fluid_settings_get_type(fluidSettings, (char *)settingName);
+    if (type == FLUID_NUM_TYPE) {
+      if (SettingSetFailed(fluid_settings_setnum(
+              fluidSettings, (char *)settingName, (double)*kValue))) {
+        csound->Message(csound,
+                        Str("fluidSettingNum: could not set '%s' to %g.\n"),
+                        settingName, *kValue);
+        return NOTOK;
+      }
+    } else if (type == FLUID_INT_TYPE) {
+      if (SettingSetFailed(fluid_settings_setint(
+              fluidSettings, (char *)settingName, (int)*kValue))) {
+        csound->Message(
+            csound, Str("fluidSettingNum: could not set '%s' to %d.\n"),
+            settingName, (int)*kValue);
+        return NOTOK;
+      }
+    } else {
+      csound->Message(
+          csound, Str("fluidSettingNum: '%s' is not a numeric setting "
+                      "(type %d).\n"),
+          settingName, type);
+      return NOTOK;
+    }
+    return OK;
+  }
+
+  int32_t init(CSOUND *csound) {
+    mutex = csound->Create_Mutex(0);
+    csound::LockGuard guard(csound, mutex);
+    toa(csound, iFluidSynth, fluidSynth);
+    fluidSettings =
+        fluidSynth ? fluid_synth_get_settings(fluidSynth) : (fluid_settings_t *)0;
+    if (iSetting) {
+      settingName = ((STRINGDAT *)iSetting)->data;
+    }
+    initial = 1;
+    priorValue = FL(0.0);
+    int32_t result = setValue(csound);
+    if (UNLIKELY(result != OK)) {
+      return csound->InitError(csound, "%s",
+                               Str("fluidSettingNum: cannot set setting.\n"));
+    }
+    priorValue = *kValue;
+    return OK;
+  }
+
+  int32_t kontrol(CSOUND *csound) {
+    csound::LockGuard guard(csound, mutex);
+    if (initial || *kValue != priorValue) {
+      initial = 0;
+      priorValue = *kValue;
+      setValue(csound);
+    }
+    return OK;
+  }
+};
+
+class FluidSettingString : public csound::OpcodeBase<FluidSettingString> {
+  // Inputs.
+  cs_float *iFluidSynth;
+  cs_float *iSetting;
+  cs_float *iValue;
+  // State.
+  fluid_synth_t *fluidSynth;
+  fluid_settings_t *fluidSettings;
+  char *settingName;
+  void *mutex;
+
+public:
+  int32_t init(CSOUND *csound) {
+    mutex = csound->Create_Mutex(0);
+    csound::LockGuard guard(csound, mutex);
+    toa(csound, iFluidSynth, fluidSynth);
+    fluidSettings =
+        fluidSynth ? fluid_synth_get_settings(fluidSynth) : (fluid_settings_t *)0;
+    if (iSetting) {
+      settingName = ((STRINGDAT *)iSetting)->data;
+    }
+    if (UNLIKELY(!fluidSettings)) {
+      return csound->InitError(csound, "%s",
+                               Str("fluidSettingString: invalid engine id.\n"));
+    }
+    if (fluid_settings_get_type(fluidSettings, (char *)settingName) !=
+        FLUID_STR_TYPE) {
+      return csound->InitError(
+          csound, Str("fluidSettingString: '%s' is not a string setting.\n"),
+          settingName);
+    }
+    char *value = ((STRINGDAT *)iValue)->data;
+    if (SettingSetFailed(fluid_settings_setstr(fluidSettings, (char *)settingName,
+                                               (char *)value))) {
+      return csound->InitError(
+          csound, Str("fluidSettingString: could not set '%s' to '%s'.\n"),
+          settingName, value);
+    }
+    return OK;
+  }
+};
+
+class FluidSettingGetNum : public csound::OpcodeBase<FluidSettingGetNum> {
+  // Outputs.
+  cs_float *kOut;
+  // Inputs.
+  cs_float *iFluidSynth;
+  cs_float *iSetting;
+  // State.
+  fluid_synth_t *fluidSynth;
+  fluid_settings_t *fluidSettings;
+  char *settingName;
+  int32_t valid;
+  void *mutex;
+
+public:
+  int32_t getValue(CSOUND *csound) {
+    if (UNLIKELY(!fluidSettings)) {
+      if (valid) {
+        valid = 0;
+        csound->Message(csound,
+                        Str("fluidSettingGetNum: invalid engine id.\n"));
+      }
+      *kOut = FL(0.0);
+      return NOTOK;
+    }
+    int32_t type =
+        fluid_settings_get_type(fluidSettings, (char *)settingName);
+    if (type == FLUID_NUM_TYPE) {
+      double value = 0.0;
+      fluid_settings_getnum(fluidSettings, (char *)settingName, &value);
+      *kOut = (cs_float)value;
+    } else if (type == FLUID_INT_TYPE) {
+      int value = 0;
+      fluid_settings_getint(fluidSettings, (char *)settingName, &value);
+      *kOut = (cs_float)value;
+    } else {
+      if (valid) {
+        valid = 0;
+        csound->Message(csound, Str("fluidSettingGetNum: '%s' is not a "
+                                    "numeric setting.\n"),
+                        settingName);
+      }
+      *kOut = FL(0.0);
+    }
+    return OK;
+  }
+
+  int32_t init(CSOUND *csound) {
+    mutex = csound->Create_Mutex(0);
+    csound::LockGuard guard(csound, mutex);
+    valid = 1;
+    toa(csound, iFluidSynth, fluidSynth);
+    fluidSettings =
+        fluidSynth ? fluid_synth_get_settings(fluidSynth) : (fluid_settings_t *)0;
+    if (iSetting) {
+      settingName = ((STRINGDAT *)iSetting)->data;
+    }
+    return getValue(csound);
+  }
+
+  int32_t kontrol(CSOUND *csound) {
+    csound::LockGuard guard(csound, mutex);
+    return getValue(csound);
+  }
+};
+
+class FluidSettingGetString : public csound::OpcodeBase<FluidSettingGetString> {
+  // Outputs.
+  STRINGDAT *SOut;
+  // Inputs.
+  cs_float *iFluidSynth;
+  cs_float *iSetting;
+  // State.
+  fluid_synth_t *fluidSynth;
+  fluid_settings_t *fluidSettings;
+  char *settingName;
+  void *mutex;
+
+public:
+  int32_t init(CSOUND *csound) {
+    mutex = csound->Create_Mutex(0);
+    csound::LockGuard guard(csound, mutex);
+    toa(csound, iFluidSynth, fluidSynth);
+    fluidSettings =
+        fluidSynth ? fluid_synth_get_settings(fluidSynth) : (fluid_settings_t *)0;
+    if (iSetting) {
+      settingName = ((STRINGDAT *)iSetting)->data;
+    }
+    if (UNLIKELY(!fluidSettings)) {
+      SetStringData(csound, SOut, "");
+      return csound->InitError(csound, "%s",
+                               Str("fluidSettingGetString: invalid engine id.\n"));
+    }
+    if (fluid_settings_get_type(fluidSettings, (char *)settingName) !=
+        FLUID_STR_TYPE) {
+      SetStringData(csound, SOut, "");
+      return csound->InitError(
+          csound,
+          Str("fluidSettingGetString: '%s' is not a string setting.\n"),
+          settingName);
+    }
+    char *value = (char *)"";
+    fluid_settings_getstr(fluidSettings, (char *)settingName, &value);
+    SetStringData(csound, SOut, value ? value : "");
+    return OK;
+  }
+};
+
 static OENTRY localops[] = {
     {(char *)"fluidEngine", sizeof(FluidEngine), 0, (char *)"i", (char *)"ppoo",
      (SUBR)&FluidEngine::init_, (SUBR)0, (SUBR)0},
@@ -771,6 +1021,17 @@ static OENTRY localops[] = {
      (SUBR)0},
     {(char *)"fluidSetInterpMethod", sizeof(FluidSetInterpMethod), 0,
      (char *)"", (char *)"iii", (SUBR)&FluidSetInterpMethod::init_, (SUBR)0,
+     (SUBR)0},
+    {(char *)"fluidSettingNum", sizeof(FluidSettingNum), 0, (char *)"",
+     (char *)"iSk", (SUBR)&FluidSettingNum::init_,
+     (SUBR)&FluidSettingNum::kontrol_, (SUBR)0},
+    {(char *)"fluidSettingString", sizeof(FluidSettingString), 0, (char *)"",
+     (char *)"iSS", (SUBR)&FluidSettingString::init_, (SUBR)0, (SUBR)0},
+    {(char *)"fluidSettingGetNum", sizeof(FluidSettingGetNum), 0, (char *)"k",
+     (char *)"iS", (SUBR)&FluidSettingGetNum::init_,
+     (SUBR)&FluidSettingGetNum::kontrol_, (SUBR)0},
+    {(char *)"fluidSettingGetString", sizeof(FluidSettingGetString), 0,
+     (char *)"S", (char *)"iS", (SUBR)&FluidSettingGetString::init_, (SUBR)0,
      (SUBR)0},
     {NULL, 0, 0, NULL, NULL, (SUBR)0, (SUBR)0, (SUBR)0, NULL, 0}};
 
