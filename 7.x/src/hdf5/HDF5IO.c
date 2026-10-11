@@ -169,7 +169,10 @@ HDF5File *HDF5IO_newHDF5File(CSOUND *csound, AUXCH *hdf5FileMemory,
     }
     else {
 
-      hdf5File->fileHandle = H5Fopen(hdf5File->fileName, H5F_ACC_RDWR, H5P_DEFAULT);
+      hdf5File->fileHandle = H5Fopen(hdf5File->fileName,
+                                     openForWriting ? H5F_ACC_RDWR
+                                                    : H5F_ACC_RDONLY,
+                                     H5P_DEFAULT);
       HDF5ERROR(hdf5File->fileHandle);
     }
 
@@ -230,6 +233,7 @@ void HDF5IO_readStringAttribute(CSOUND *csound, HDF5File *self,
                                 char *datasetName, char *attributeString)
 {
     hid_t dataSetID = H5Dopen2(self->fileHandle, datasetName, H5P_DEFAULT);
+    HDF5ERROR(dataSetID);
     hid_t attributeID = H5Aopen_by_idx(dataSetID, ".", H5_INDEX_CRT_ORDER,
                                        H5_ITER_INC, 0, H5P_DEFAULT, H5P_DEFAULT);
     HDF5ERROR(attributeID);
@@ -303,6 +307,7 @@ void HDF5Write_writeData(CSOUND *csound, HDF5Write *self,
     HDF5ERROR(H5Dwrite(dataset->datasetID, self->hdf5File->floatSize, memspace,
                        filespace, H5P_DEFAULT, data));
     HDF5ERROR(H5Sclose(filespace));
+    HDF5ERROR(H5Sclose(memspace));
 }
 
 // Write a-rate variables and arrays to the specified data set
@@ -1094,11 +1099,11 @@ void HDF5Read_checkReadTypeSanity(CSOUND *csound, HDF5Read *self,
         return;
       }
     }
-    else {
 
-      csound->Die(csound, "%s", Str("hdf5read: Unable to read saved type of "
-                              "dataset, exiting"));
-    }
+    csound->Die(csound, Str("hdf5read: Error, dataset \"%s\" saved type %s "
+                            "is incompatible with output type %s, exiting"),
+                dataset->datasetName, typeStrings[dataset->writeType],
+                typeStrings[dataset->readType]);
 }
 
 // Allocate the memory for an output array from the opcode
@@ -1175,16 +1180,29 @@ void HDF5Read_initialiseArrayOutput(CSOUND *csound, HDF5Read *self,
     if (dataset->readType != IRATE_ARRAY && dataset->readAll == false) {
         // FIXME if this is called frequently or on the audio thread then this won't
         // work and will need a different solution
+      hsize_t elementRank = (hsize_t)(dataset->rank - 1);
+      hsize_t scalarDimension[1] = {1};
 #ifdef _MSC_VER
-      hsize_t* arrayDimensions = malloc ((dataset->rank - 1) * sizeof (hsize_t));
+      hsize_t* arrayDimensions = malloc ((elementRank > 0 ? elementRank : 1)
+                                         * sizeof (hsize_t));
 #else
-      hsize_t arrayDimensions[dataset->rank - 1];
+      hsize_t arrayDimensions[elementRank > 0 ? elementRank : 1];
 #endif
-      memcpy(arrayDimensions, &dataset->datasetSize[1],
-             (dataset->rank - 1) * sizeof(hsize_t));
+      hsize_t *elementDimensions = arrayDimensions;
 
-      HDF5Read_allocateArray(csound, self, dataset, (dataset->rank - 1),
-                             arrayDimensions);
+      if (elementRank == 0) {
+
+        elementRank = 1;
+        elementDimensions = scalarDimension;
+      }
+      else {
+
+        memcpy(arrayDimensions, &dataset->datasetSize[1],
+               elementRank * sizeof(hsize_t));
+      }
+
+      HDF5Read_allocateArray(csound, self, dataset, elementRank,
+                             elementDimensions);
 
       csound->AuxAlloc(csound, sizeof(hsize_t) * dataset->rank,
                        &dataset->offsetMemory);
@@ -1265,9 +1283,7 @@ void HDF5Read_initialiseScalarOutput(CSOUND *csound, HDF5Read *self,
       dataset->offset = dataset->offsetMemory.auxp;
       memset(dataset->offset, 0, sizeof(hsize_t));
 
-      if (dataset->readType == ARATE_VAR
-          &&
-          self->isSampleAccurate == true) {
+      if (dataset->readType == ARATE_VAR) {
 
         csound->AuxAlloc(csound, self->ksmps * sizeof(cs_float),
                          &dataset->sampleBufferMemory);
@@ -1308,15 +1324,23 @@ void HDF5Read_openDatasets(CSOUND *csound, HDF5Read *self)
       HDF5Dataset *currentDataset = &self->datasets[i];
       STRINGDAT *inputArgument = (STRINGDAT *)self->names[i];
 
-      csound->AuxAlloc(csound, sizeof(char) * strlen(inputArgument->data)+1,
+      size_t nameLength = strlen(inputArgument->data);
+
+      if (UNLIKELY(nameLength == 0)) {
+
+        csound->Die(csound, Str("hdf5read: Error, dataset name %d is empty"),
+                    i + 1);
+      }
+
+      csound->AuxAlloc(csound, sizeof(char) * nameLength + 1,
                        &currentDataset->datasetNameMemory);
       currentDataset->datasetName = currentDataset->datasetNameMemory.auxp;
-      strcpy(currentDataset->datasetName, inputArgument->data);
+      memcpy(currentDataset->datasetName, inputArgument->data, nameLength + 1);
 
-      if (currentDataset->datasetName[strlen(inputArgument->data) - 1] == '*') {
+      if (currentDataset->datasetName[nameLength - 1] == '*') {
 
         currentDataset->readAll = true;
-        currentDataset->datasetName[strlen(inputArgument->data) - 1] = '\0';
+        currentDataset->datasetName[nameLength - 1] = '\0';
       }
       currentDataset->readType =
         HDF5IO_getArgumentTypeFromArgument(csound, self->arguments[i]);
