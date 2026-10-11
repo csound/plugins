@@ -15,6 +15,9 @@ Currently, the plugins available in this tree are
 - py (requires a Python 3.x installation with dev libs)  
 **Many opcodes to call Python code**
 
+- websockets (requires libwebsockets)  
+**websocket**
+
 
 Fluid settings opcodes
 ---
@@ -75,7 +78,8 @@ $ make
 By default, all the plugins are built. If one wants to exclude a
 plugin from the build process, one can pass an option to the cmake command.
 The options are `BUILD_CHUA_OPCODES`, `BUILD_FLUID_OPCODES`,
-`BUILD_LINEAR_ALGEBRA_OPCODES` and `BUILD_PYTHON_OPCODES`. For example, to
+`BUILD_LINEAR_ALGEBRA_OPCODES`, `BUILD_WEBSOCKET_OPCODE` and
+`BUILD_PYTHON_OPCODES`. For example, to
 exclude the chua plugin, the `cmake` command would be:
 
 ```
