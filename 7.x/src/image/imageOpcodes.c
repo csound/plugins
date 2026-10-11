@@ -81,7 +81,7 @@
 /* #undef CS_KSMPS */
 /* #define CS_KSMPS     (csound->GetKsmps(csound)) */
 
-static Image * __doOpenImage(char * filename, CSOUND *csound)
+static Image * __doOpenImage(const char * filename, CSOUND *csound)
 {
 #ifdef USE_LIBPNG
 #define HS (8)
@@ -174,8 +174,13 @@ static Image * __doOpenImage(char * filename, CSOUND *csound)
       png_set_strip_alpha(png_ptr);
     if (bit_depth == 16)
       png_set_strip_16(png_ptr);
-    if (bit_depth < 8)
-      png_set_packing(png_ptr);
+    if (bit_depth < 8) {
+      if (color_type == PNG_COLOR_TYPE_GRAY ||
+          color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+        png_set_expand_gray_1_2_4_to_8(png_ptr);
+      else
+        png_set_packing(png_ptr);
+    }
     if (color_type == PNG_COLOR_TYPE_GRAY ||
         color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
       png_set_gray_to_rgb(png_ptr);
@@ -291,7 +296,7 @@ static Image * __doOpenImage(char * filename, CSOUND *csound)
 }
 
 
-static int32_t __doSaveImage(Image *image, char *filename, CSOUND *csound)
+static int32_t __doSaveImage(Image *image, const char *filename, CSOUND *csound)
 {
 #ifdef USE_LIBPNG
 
@@ -388,12 +393,24 @@ static Image * createImage(CSOUND *csound, int32_t w, int32_t h)
     Image *img;
     size_t datasize;
 
+    if (UNLIKELY(w < 1 || h < 1))
+      return (Image *) NULL;
+    if (UNLIKELY((size_t) w > ((size_t) -1) / 3 / (size_t) h))
+      return (Image *) NULL;
+
     img = csound->Malloc(csound, sizeof(Image));
+    if (UNLIKELY(img == NULL))
+      return (Image *) NULL;
+
     img->w = w;
     img->h = h;
 
-    datasize = img->w*img->h*3 * sizeof(unsigned char);
+    datasize = (size_t) w * (size_t) h * 3;
     img->imageData = csound->Calloc(csound, datasize);
+    if (UNLIKELY(img->imageData == NULL)) {
+      csound->Free(csound, img);
+      return (Image *) NULL;
+    }
 
     return img;
 }
@@ -434,53 +451,57 @@ static int32_t imagecreate (CSOUND *csound, IMGCREATE * p)
 {
     Images *pimages;
     Image *img;
+    Image **newImages;
 
     pimages = getImages(csound);
 
-    pimages->cnt++;
-    pimages->images =
-      (Image **) csound->ReAlloc(csound, pimages->images,
-                                 sizeof(Image *) * pimages->cnt);
-
     img = createImage(csound, *p->kw, *p->kh);
-
-    if (UNLIKELY(img==NULL)) {
+    if (UNLIKELY(img == NULL)) {
       return csound->InitError(csound, "%s", Str("Cannot allocate memory.\n"));
     }
-    else {
-      pimages->images[pimages->cnt-1] = img;
-      *(p->kn) = (cs_float) pimages->cnt;
-      return OK;
+
+    newImages = (Image **) csound->ReAlloc(csound, pimages->images,
+                                          sizeof(Image *) * (pimages->cnt + 1));
+    if (UNLIKELY(newImages == NULL)) {
+      csound->Free(csound, img->imageData);
+      csound->Free(csound, img);
+      return csound->InitError(csound, "%s", Str("Cannot allocate memory.\n"));
     }
+
+    pimages->images = newImages;
+    pimages->images[pimages->cnt] = img;
+    pimages->cnt++;
+    *(p->kn) = (cs_float) pimages->cnt;
+    return OK;
 }
 
 static int32_t imageload (CSOUND *csound, IMGLOAD * p)
 {
-    char filename[256];
     Images *pimages;
     Image *img;
+    Image **newImages;
 
     pimages = getImages(csound);
 
-    pimages->cnt++;
-    pimages->images =
-      (Image **) csound->ReAlloc(csound, pimages->images,
-                                 sizeof(Image *) * pimages->cnt);
-
-    strncpy(filename, (char*) (p->ifilnam->data), 255); filename[255]='\0';
-
-    img = __doOpenImage(filename, csound);
-
-    if (LIKELY(img)) {
-      pimages->images[pimages->cnt-1] = img;
-      *(p->kn) = (cs_float) pimages->cnt;
-      return OK;
-    }
-    else {
+    img = __doOpenImage((const char*) (p->ifilnam->data), csound);
+    if (UNLIKELY(img == NULL))
       return csound->InitError(csound,
                                Str("imageload: cannot open image %s.\n"),
-                               filename);
+                               (const char*) (p->ifilnam->data));
+
+    newImages = (Image **) csound->ReAlloc(csound, pimages->images,
+                                          sizeof(Image *) * (pimages->cnt + 1));
+    if (UNLIKELY(newImages == NULL)) {
+      csound->Free(csound, img->imageData);
+      csound->Free(csound, img);
+      return csound->InitError(csound, "%s", Str("Cannot allocate memory.\n"));
     }
+
+    pimages->images = newImages;
+    pimages->images[pimages->cnt] = img;
+    pimages->cnt++;
+    *(p->kn) = (cs_float) pimages->cnt;
+    return OK;
 }
 
 
@@ -589,6 +610,14 @@ static int32_t imagegetpixel_a (CSOUND *csound, IMGGETPIXEL * p)
     return OK;
 }
 
+static int32_t imagesetpixel_a_init (CSOUND *csound, IMGSETPIXEL * p)
+{
+    if (UNLIKELY(getImage(csound, *p->kn) == NULL))
+      return csound->InitError(csound, "%s",
+                               Str("imagesetpixel: invalid image handle.\n"));
+    return OK;
+}
+
 static int32_t imagesetpixel_a (CSOUND *csound, IMGSETPIXEL * p)
 {
     Image *img;
@@ -658,16 +687,13 @@ static int32_t imagesetpixel (CSOUND *csound, IMGSETPIXEL * p)
 static int32_t imagesave (CSOUND *csound, IMGSAVE * p)
 {
     Image *img;
-    char filename[256];
-
-    strncpy(filename, (char*) (p->ifilnam->data), 255); filename[255]='\0';
 
     img = getImage(csound, *p->kn);
     if (UNLIKELY(img == NULL))
       return csound->InitError(csound, "%s",
                                Str("imagesave: invalid image handle.\n"));
 
-    return __doSaveImage(img, filename, csound);
+    return __doSaveImage(img, (const char*) (p->ifilnam->data), csound);
 }
 
 static int32_t imagefree (CSOUND *csound, IMGFREE * p)
@@ -707,7 +733,7 @@ static OENTRY localops[] = {
   { "imagesetpixel",  sizeof(IMGSETPIXEL), 0, "", "ikkkkk",
     (SUBR)imagesetpixel, (SUBR)imagesetpixel, NULL, NULL, 0 },
   { "imagesetpixel",  sizeof(IMGSETPIXEL), 0, "", "iaaaaa",
-    (SUBR)imagesetpixel, (SUBR)imagesetpixel_a, NULL, NULL, 0 },
+    (SUBR)imagesetpixel_a_init, (SUBR)imagesetpixel_a, NULL, NULL, 0 },
   { "imagesave",      sizeof(IMGSAVE),  0, "", "iS",
     (SUBR)imagesave, NULL, NULL, NULL, 0 },
   { "imagefree",      sizeof(IMGFREE),  0, "", "i",
