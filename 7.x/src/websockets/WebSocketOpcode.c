@@ -84,6 +84,13 @@ ArgumentType WebSocketOpcode_getArgumentType(CSOUND *csound, cs_float *argument)
 
 int32_t WebSocketOpcode_initialise(CSOUND *csound, WebSocketOpcode *self)
 {
+    if (UNLIKELY(self->INOCOUNT + self->OUTOCOUNT > 20)) {
+
+      return csound->InitError(csound,
+                               Str("websocket: too many arguments "
+                                   "(maximum of 20 outputs and inputs)"));
+    }
+
     self->inputArgumentCount = self->INOCOUNT - 1;
     self->outputArgumentCount = self->OUTOCOUNT;
     self->csound = csound;
@@ -138,12 +145,6 @@ void WebSocketOpcode_receiveOutputArgumentData(CSOUND *csound,
                                  currentArgument->dataPointer,
                                  currentArgument->itemsCount);
 
-        if (currentArgument->argumentType == STRING_VAR) {
-
-          STRINGDAT *string = (STRINGDAT *)currentArgument->argumentPointer;
-          string->size = strlen((char *)currentArgument->dataPointer);
-        }
-
         currentArgument->receivedData = false;
       }
 
@@ -163,10 +164,23 @@ int32_t WebSocketOpcode_finish(CSOUND *csound, void *opaqueReference)
     WebSocketOpcode *self = opaqueReference;
     self->isRunning = false;
 
-    csound->JoinThread(self->webSocket->processThread);
+    if (self->webSocket != NULL) {
 
-    lws_cancel_service(self->webSocket->context);
-    lws_context_destroy(self->webSocket->context);
+      if (self->webSocket->context != NULL) {
+
+        lws_cancel_service(self->webSocket->context);
+      }
+
+      if (self->webSocket->processThread != NULL) {
+
+        csound->JoinThread(self->webSocket->processThread);
+      }
+
+      if (self->webSocket->context != NULL) {
+
+        lws_context_destroy(self->webSocket->context);
+      }
+    }
 
     for (i = 0; i < self->outputArgumentCount; ++i) {
 
@@ -178,9 +192,12 @@ int32_t WebSocketOpcode_finish(CSOUND *csound, void *opaqueReference)
       csound->DestroyCircularBuffer(csound, self->inputArguments[i].circularBuffer);
     }
 
-    csound->Free(csound, self->webSocket->protocols);
-    csound->Free(csound, self->webSocket->messageBuffer);
-    csound->Free(csound, self->webSocket);
+    if (self->webSocket != NULL) {
+
+      csound->Free(csound, self->webSocket->protocols);
+      csound->Free(csound, self->webSocket->messageBuffer);
+      csound->Free(csound, self->webSocket);
+    }
     if (self->inputArgumentCount > 0) {
 
       csound->Free(csound, self->inputArguments);
@@ -219,7 +236,7 @@ void WebSocketOpcode_allocateStringArgument(cs_float *argument,
     }
     else {
 
-      if (UNLIKELY(string->size != 0)) {
+      if (UNLIKELY(string->data != NULL && string->data[0] != '\0')) {
 
         csound->Die(csound,
                      Str("websocket: error output string variable %s must not "
@@ -229,8 +246,17 @@ void WebSocketOpcode_allocateStringArgument(cs_float *argument,
       else {
 
         argumentArrayItem->itemsCount = stringVarMaximumBytesCount;
-        string->data = csound->ReAlloc(csound, string->data,
-                                       stringVarMaximumBytesCount);
+        if (string->data == NULL) {
+
+          string->data = csound->Calloc(csound, stringVarMaximumBytesCount);
+        }
+        else {
+
+          string->data = csound->ReAlloc(csound, string->data,
+                                         stringVarMaximumBytesCount);
+        }
+        string->size = stringVarMaximumBytesCount;
+        string->refcount = 0;
         memset(string->data, 0, stringVarMaximumBytesCount);
       }
     }
@@ -431,7 +457,7 @@ void WebSocketOpcode_handleServerWritable(struct lws *websocket,
       return;
     }
 
-    int32_t inputIndex = 0;
+    int32_t inputIndex = protocol->id - INPUT_OFFSET;
 
     OpcodeArgument *argument = &self->inputArguments[inputIndex];
 
@@ -491,20 +517,32 @@ void WebSocketOpcode_handleReceive(struct lws *websocket, WebSocketOpcode *self,
       return;
     }
 
-    if (UNLIKELY(argument->argumentType == STRING_VAR
-                 &&
-                 argument->bytesCount > stringVarMaximumBytesCount)) {
+    int32_t writtenItems;
 
-      csound->Message(csound, Str("websocket: received string message from "
-                                  "%s is too large, message dumped"),
-                      protocol->name);
+    if (argument->argumentType == STRING_VAR) {
 
-      return;
+      if (UNLIKELY(inputDataSize >= stringVarMaximumBytesCount)) {
+
+        csound->Message(csound, Str("websocket: received string message from "
+                                    "%s is too large, message dumped"),
+                        protocol->name);
+
+        return;
+      }
+
+      char *stagingBuffer = (char *)argument->readBuffer;
+      memset(stagingBuffer, 0, stringVarMaximumBytesCount);
+      memcpy(stagingBuffer, inputData, inputDataSize);
+      writtenItems =
+        csound->WriteCircularBuffer(csound, argument->circularBuffer,
+                                  stagingBuffer, argument->itemsCount);
     }
+    else {
 
-    int32_t writtenItems =
-      csound->WriteCircularBuffer(csound, argument->circularBuffer,
-                                inputData, argument->itemsCount);
+      writtenItems =
+        csound->WriteCircularBuffer(csound, argument->circularBuffer,
+                                  inputData, argument->itemsCount);
+    }
     argument->receivedData = true;
 
     if (UNLIKELY(writtenItems == 0)) {
@@ -578,14 +616,19 @@ static int32_t Websocket_callback(struct lws *websocket,
 
 uintptr_t WebSocketOpcode_processThread(void *opaquePointer)
 {
+    int32_t i;
     WebSocketOpcode *self = opaquePointer;
 
     while (self->isRunning == 1) {
 
 
       lws_service(self->webSocket->context, 10);
-      lws_callback_on_writable_all_protocol(self->webSocket->context,
-                                            &self->webSocket->protocols[0]);
+
+      for (i = 0; i < self->inputArgumentCount; ++i) {
+
+        lws_callback_on_writable_all_protocol(self->webSocket->context,
+                                              &self->webSocket->protocols[i]);
+      }
     }
 
     return 0;
@@ -628,7 +671,7 @@ void WebSocketOpcode_initialiseWebSocket(WebSocketOpcode *self, CSOUND *csound)
     self->webSocket->info.gid = -1;
     self->webSocket->info.uid = -1;
 
-    lws_set_log_level(LLL_DEBUG, NULL);
+    lws_set_log_level(LLL_ERR | LLL_WARN, NULL);
     self->webSocket->context = lws_create_context(&self->webSocket->info);
     self->webSocket->messageBuffer =
       csound->Calloc(csound, LWS_PRE + (sizeof(char) * writeBufferBytesCount));
@@ -696,7 +739,7 @@ static OENTRY localops[] = {
     sizeof(WebSocketOpcode),
     0,
     (char *)"*",
-    (char *)"i.",
+    (char *)"i*",
     (SUBR)WebSocketOpcode_initialise,
     (SUBR)WebSocketOpcode_process,
     (SUBR)WebSocketOpcode_finish,
