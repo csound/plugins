@@ -9,6 +9,9 @@ Currently, the plugins available in this tree are
 - fluidOpcodes (requires fluidsynth)  
 **fluidEngine fluidLoad fluidNote fluidCCi fluidCCk fluidControl fluidProgramSelect fluidAllOut fluidOut fluidInfo fluidSetInterpMethod**
 
+- hdf5 (requires the HDF5 library)  
+**hdf5read hdf5write**
+
 - linear_algebra (requires the gmm++ library, header-only; vendored under this directory)  
 **A large family of `la_*` opcodes, with i-rate and k-rate variants, for vector, matrix and tensor operations**
 
@@ -78,7 +81,8 @@ $ make
 By default, all the plugins are built. If one wants to exclude a
 plugin from the build process, one can pass an option to the cmake command.
 The options are `BUILD_CHUA_OPCODES`, `BUILD_FLUID_OPCODES`,
-`BUILD_LINEAR_ALGEBRA_OPCODES`, `BUILD_WEBSOCKET_OPCODE` and
+`BUILD_HDF5_OPCODES`, `BUILD_LINEAR_ALGEBRA_OPCODES`,
+`BUILD_WEBSOCKET_OPCODE` and
 `BUILD_PYTHON_OPCODES`. For example, to
 exclude the chua plugin, the `cmake` command would be:
 
