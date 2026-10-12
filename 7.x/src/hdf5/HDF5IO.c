@@ -333,15 +333,42 @@ void HDF5Write_writeAudioData(CSOUND *csound, HDF5Write *self,
     size_t offset = self->h.insdshead->ksmps_offset;
     size_t early  = self->h.insdshead->ksmps_no_end;
 
-    int32_t vectorSize = (int32_t)(self->ksmps - offset - early);
+    size_t vectorSize = self->ksmps - offset - early;
 
     if (UNLIKELY(vectorSize == 0)) {
       return;
     }
 
-    dataset->datasetSize[0] += self->ksmps;
+    dataset->datasetSize[0] += vectorSize;
+    dataset->chunkDimensions[0] = vectorSize;
 
-    HDF5Write_writeData(csound, self, dataset, &dataPointer[offset]);
+    if (dataset->writeType == ARATE_ARRAY) {
+
+      hsize_t i;
+      size_t memberCount = 1;
+      size_t t, member;
+      cs_float *staging;
+
+      for (i = 1; i < dataset->rank; ++i)
+        memberCount *= (size_t)dataset->chunkDimensions[i];
+
+      staging = (cs_float *)csound->Malloc(csound,
+                              vectorSize * memberCount * sizeof(cs_float));
+
+      for (t = 0; t < vectorSize; ++t) {
+
+        for (member = 0; member < memberCount; ++member)
+          staging[t * memberCount + member] =
+            dataPointer[member * self->ksmps + offset + t];
+      }
+
+      HDF5Write_writeData(csound, self, dataset, staging);
+      csound->Free(csound, staging);
+    }
+    else {
+
+      HDF5Write_writeData(csound, self, dataset, &dataPointer[offset]);
+    }
 
     dataset->offset[0] += vectorSize;
 }
@@ -527,6 +554,8 @@ void HDF5Write_initialiseHDF5Dataset(CSOUND *csound, HDF5Write *self,
                                     self->hdf5File->floatSize,
                                     dataspaceID, H5P_DEFAULT, cparams, H5P_DEFAULT);
     HDF5ERROR(dataset->datasetID);
+    HDF5ERROR(H5Sclose(dataspaceID));
+    HDF5ERROR(H5Pclose(cparams));
     HDF5IO_writeStringAttribute(csound, self->hdf5File, dataset,
                                 "Variable Type", typeStrings[dataset->writeType]);
 
@@ -770,12 +799,12 @@ void HDF5Read_copySampleBufferToArray(size_t channelCount, cs_float *sampleBuffe
                                       cs_float *arrayData, size_t vectorSize,
                                       size_t offset, size_t ksmps)
 {
-    size_t channel;
+    size_t channel, t;
     for (channel = 0; channel < channelCount; ++channel) {
 
-      memcpy(&arrayData[ksmps * channel + offset],
-             &sampleBuffer[vectorSize * channel],
-             sizeof(cs_float) * vectorSize);
+      for (t = 0; t < vectorSize; ++t)
+        arrayData[ksmps * channel + offset + t] =
+          sampleBuffer[t * channelCount + channel];
     }
 }
 
@@ -832,18 +861,18 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
     size_t offset = self->h.insdshead->ksmps_offset;
     size_t early  = self->h.insdshead->ksmps_no_end;
 
-    size_t vectorSize = (int32_t)(self->ksmps - offset - early);
+    size_t vectorSize = self->ksmps - offset - early;
 
     if (vectorSize + dataset->offset[0] >
         dataset->datasetSize[0]) {
 
-      vectorSize = (int32_t)(dataset->datasetSize[0] -
-                         dataset->offset[0]);
+      vectorSize = dataset->datasetSize[0] - dataset->offset[0];
     }
-    cs_float *dataPointer =
-      vectorSize != self->ksmps ? dataset->sampleBuffer : inputDataPointer;
-        // FIXME if this is called frequently or on the audio thread then this won't
-        // work and will need a different solution
+
+    if (UNLIKELY(vectorSize == 0)) {
+      return;
+    }
+
 #ifdef _MSC_VER
     //hsize_t* chunkDimensions = malloc (dataset->rank * sizeof (hsize_t));
     hsize_t chunkDimensions[16];
@@ -859,14 +888,18 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
     //            );
     //chunkDimensions[dataset->rank - 1] = vectorSize;
 
-    HDF5Read_readData (csound, self, dataset, dataset->offset,
-                       chunkDimensions, dataPointer);
+    if (dataset->readType == ARATE_ARRAY || vectorSize != self->ksmps) {
 
-    if (vectorSize != self->ksmps) {
-
+      HDF5Read_readData(csound, self, dataset, dataset->offset,
+                        chunkDimensions, dataset->sampleBuffer);
       HDF5Read_copySampleBufferToArray(dataset->elementCount,
                                        dataset->sampleBuffer, inputDataPointer,
                                        vectorSize, offset, self->ksmps);
+    }
+    else {
+
+      HDF5Read_readData(csound, self, dataset, dataset->offset,
+                        chunkDimensions, inputDataPointer);
     }
 
     dataset->offset[0] += vectorSize;
@@ -1126,21 +1159,27 @@ void HDF5Read_allocateArray(CSOUND *csound, HDF5Read *self,
                             hsize_t rank, hsize_t *dimensions)
 {
     ARRAYDAT *array = dataset->argumentPointer;
+    size_t elementCount = 1;
+    size_t i;
+
     array->dimensions = (int32_t)rank;
     array->sizes = csound->Calloc(csound, sizeof(int32_t) * rank);
 
-    array->sizes[0] = (int32_t)dimensions[0];
-    dataset->elementCount = dimensions[0];
-
-    if (rank > 1) {
-      size_t i;
-      for (i = 1; i < rank; ++i) {
-
-        array->sizes[i] = (int32_t)dimensions[i];
-        dataset->elementCount *= array->sizes[i];
-
-      }
+    for (i = 0; i < rank; ++i) {
+      if (UNLIKELY(dimensions[i] > (hsize_t) INT32_MAX))
+        csound->Die(csound, "%s", Str("hdf5read: Error, dataset dimension too "
+                                      "large for an array output"));
+      array->sizes[i] = (int32_t)dimensions[i];
+      if (UNLIKELY(dimensions[i] != 0 &&
+                   elementCount > ((size_t) -1) / (size_t)dimensions[i]))
+        csound->Die(csound, "%s", Str("hdf5read: Error, dataset too large to "
+                                      "allocate"));
+      elementCount *= (size_t)dimensions[i];
     }
+
+    if (UNLIKELY(elementCount < 1))
+      elementCount = 1;
+    dataset->elementCount = elementCount;
 
     if (UNLIKELY(csound_array_ensure_capacity(csound, array,
                                               dataset->elementCount,
