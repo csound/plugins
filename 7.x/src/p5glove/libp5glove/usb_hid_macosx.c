@@ -142,6 +142,7 @@ USBHIDHandle OpenUSBHID( int index, int idVendor, int idProduct, int versionNumb
         if (err)
         {
             fprintf( stderr, "dealWithDevice: unable to open device. ret = %08x\n", err);
+            (*dev)->Release(dev);
             return 0;
         }
         
@@ -185,6 +186,7 @@ USBHIDHandle OpenUSBHID( int index, int idVendor, int idProduct, int versionNumb
     interfaceRequest.bInterfaceProtocol = kIOUSBFindInterfaceDontCare;		// requested protocol
     interfaceRequest.bAlternateSetting = kIOUSBFindInterfaceDontCare;		// requested alt setting
     
+    IOObjectRelease(iterator);			// done with the device iterator
     err = (*dev)->CreateInterfaceIterator(dev, &interfaceRequest, &iterator);
     if (err)
     {
@@ -221,15 +223,21 @@ USBHIDHandle OpenUSBHID( int index, int idVendor, int idProduct, int versionNumb
         if (err)
         {
             (*intf)->Release( intf );
+            (*dev)->USBDeviceClose(dev);
+            (*dev)->Release(dev);
             fprintf( stderr, "dealWithInterface: unable to open interface. ret = %08x, score = %d \n", err, (int)score);
             return 0;
         }
+        /* the interface stays usable; drop the device reference */
+        (*dev)->USBDeviceClose(dev);
+        (*dev)->Release(dev);
 
     }else{
         return 0;
     }  
         
     
+    IOObjectRelease(iterator);			// done with the interface iterator
     err = (*intf)->GetNumEndpoints(intf, &numPipes);
     if (err)
     {
@@ -290,8 +298,11 @@ int ReadUSBHID( USBHIDHandle usbHidHandle, void *data, int count )
 {
     IOUSBInterfaceInterface183 **intf = usbHidHandle;
     UInt32 readSize = count;
+    IOReturn ret;
     
-    (*intf)->ReadPipe(intf, 1,  data, &readSize ); // 1 should be inPipeRef
+    ret = (*intf)->ReadPipe(intf, 1,  data, &readSize ); // 1 should be inPipeRef
+    if (ret != kIOReturnSuccess)
+        return -1;
     
     return readSize;
 }

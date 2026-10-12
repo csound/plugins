@@ -38,7 +38,6 @@
 #include <errno.h>
 #include "p5glove.h"
 
-#define DEBUG
 #ifdef DEBUG
 #define DPRINTF(fmt,args...) fprintf(stderr,"p5: " fmt , ##args )
 #else
@@ -114,8 +113,8 @@ static int32_t get_bits_signed(uint8_t *data,int pos,int len)
 	uint32_t value,mask=0;
 
 	value = get_bits(data,pos,len);
-	if (value & (1 << (len-1)))
-		mask = 0xffffffff << (len - 32);
+	if (len < 32 && (value & (1u << (len-1))))
+		mask = 0xffffffffu << len;
 	return value | mask;
 }
 
@@ -283,7 +282,7 @@ static int p5g_best_leds(P5Glove p5,int led[4],double pos[4][3])
 			double err = fabs(dist-ref_dist)/ref_dist;
 
 			DPRINTF("%d - %d: %.4lf ",led[i],led[j],ref_dist);
-			DPRINTF("(%.4lf) [%.4lf]\n",led[i],led[j],dist,err);
+			DPRINTF("(%.4lf) [%.4lf]\n",dist,err);
 
 			/* Max 9% error margin on distance */
 			if (err > 0.20) {
@@ -302,9 +301,9 @@ static int p5g_best_leds(P5Glove p5,int led[4],double pos[4][3])
 		DPRINTF("Dead: Led %d\n",led[i]);
 		leds--;
 		if (i != leds) {
-			memcpy(&error[i],&error[i+1],sizeof(int)*(leds-i));
-			memcpy(&led[i],&led[i+1],sizeof(double)*(leds-i));
-			memcpy(pos[i],pos[i+1],sizeof(double)*3*(leds-i));
+			memmove(&error[i],&error[i+1],sizeof(error[0])*(leds-i));
+			memmove(&led[i],&led[i+1],sizeof(led[0])*(leds-i));
+			memmove(pos[i],pos[i+1],sizeof(pos[0])*(leds-i));
 		}
 		i--;
 		if (leds == 1)
@@ -354,9 +353,9 @@ static int p5g_best_leds(P5Glove p5,int led[4],double pos[4][3])
 		DPRINTF("Dead: Led %d\n",led[i]);
 		leds--;
 		if (i != leds) {
-			memcpy(&error[i],&error[i+1],sizeof(int)*(leds-i));
-			memcpy(&led[i],&led[i+1],sizeof(double)*(leds-i));
-			memcpy(pos[i],pos[i+1],sizeof(double)*3*(leds-i));
+			memmove(&error[i],&error[i+1],sizeof(error[0])*(leds-i));
+			memmove(&led[i],&led[i+1],sizeof(led[0])*(leds-i));
+			memmove(pos[i],pos[i+1],sizeof(pos[0])*(leds-i));
 		}
 		i--;
 		if (leds == 1)
@@ -591,6 +590,11 @@ P5Glove p5glove_open(int glove_number)
 		return NULL;
 
 	p5=calloc(1,sizeof(*p5));
+	if (p5 == NULL) {
+		CloseUSBHID(usb);
+		errno = ENOMEM;
+		return NULL;
+	}
 	p5->usb=usb;
 	err = p5glove_calibrate(p5);
 	if (err < 0) {

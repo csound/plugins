@@ -26,6 +26,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <setupapi.h>
+#include <errno.h>
 
 #ifdef HAVE_HIDSDI_DDK_HEADERS
 
@@ -340,7 +341,7 @@ int SetUSBHIDFeature( USBHID handle, char *report, int count )
     return HidD_SetFeature( handle, report, count ) == TRUE ? 0 : -EINVAL;
 }
 
-void GetUSBHIDFeature( USBHID handle, char *report, int count )
+int GetUSBHIDFeature( USBHID handle, char *report, int count )
 {
     return HidD_GetFeature( handle, report, count ) == TRUE ? 0 : -EINVAL;
 }

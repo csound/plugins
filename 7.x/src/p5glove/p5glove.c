@@ -107,6 +107,10 @@ int32_t p5glove_find(CSOUND *csound, P5GLOVEINIT *p)
                                  Str("cannot allocate p5glove state"));
       }
     }
+    if (UNLIKELY(*glove != NULL)) {
+      return csound->InitError(csound, "%s",
+                               Str("p5glove is already connected"));
+    }
     *glove = p5glove_open(0);
     if (UNLIKELY(*glove==NULL)) {
       return csound->InitError(csound, "%s", Str("unable to open p5glove\n"));
@@ -151,7 +155,7 @@ int32_t p5g_data(CSOUND *csound, P5GLOVE *p)
     P5Glove *glove = (P5Glove*)csound->QueryGlobalVariable(csound, "p5glove");
     int32_t kontrol = (int32_t)(*p->kControl+FL(0.5));
     uint32_t buttons, just, rels;
-    if (UNLIKELY(glove==NULL))
+    if (UNLIKELY(glove==NULL || *glove==NULL))
       return csound->PerfError(csound,  &(p->h), "%s", Str("No open glove"));
     p5glove_get_buttons(*glove,&buttons);
     just = ((~p->last) & buttons);
