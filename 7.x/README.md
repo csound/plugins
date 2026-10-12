@@ -30,6 +30,9 @@ Currently, the plugins available in this tree are
 - p5glove (requires the p5glove driver; CMake-only, see note below)  
 **p5gconnect p5gdata**
 
+- CUDA (requires the CUDA toolkit; Linux only, disabled by default, see note below)  
+**cudasynth cudanal cudasliding cudaconv cudapconv**
+
 
 Fluid settings opcodes
 ---
@@ -83,6 +86,26 @@ by configuring with `-DP5GLOVE_USE_BUNDLED=ON` (in addition to
 `-DBUILD_P5GLOVE_OPCODES=ON`).
 
 
+CUDA opcodes
+---
+
+The `CUDA` opcodes (`cudasynth`, `cudanal`, `cudasliding`, `cudaconv`,
+`cudapconv`) are a port of the Csound 6.x plugin to the Csound 7 plugin API.
+They run their DSP kernels on an NVIDIA GPU; `cudanal` and `cudapconv` also
+rely on cuFFT.
+
+They are **disabled by default** and only built when the CUDA toolkit is
+found: configure with `-DBUILD_CUDA_OPCODES=ON`. CUDA is **not available on
+macOS** (NVIDIA dropped macOS support after 10.13), so on macOS the option is
+ignored. The Linux CI builds them compile-only (the hosted runners have no
+GPU) and they are included in the Linux release package. Windows is not built
+or tested, so the CUDA opcodes are currently Linux-only.
+
+Building them requires CMake 3.18 or later; with an older CMake the option
+is ignored. The compute capabilities default to `75 80 86 89`; override with
+`-DCMAKE_CUDA_ARCHITECTURES="..."` (for example `native` for the local GPU).
+
+
 Install location
 --------------
 The CMake scripts in this repository use the default CS_USER_PLUGIN
@@ -122,7 +145,8 @@ $ make
 
 By default, all the plugins are built. If one wants to exclude a
 plugin from the build process, one can pass an option to the cmake command.
-The options are `BUILD_CHUA_OPCODES`, `BUILD_FLUID_OPCODES`,
+The options are `BUILD_CHUA_OPCODES`, `BUILD_CUDA_OPCODES`,
+`BUILD_FLUID_OPCODES`,
 `BUILD_IMAGE_OPCODES`, `BUILD_HDF5_OPCODES`, `BUILD_LINEAR_ALGEBRA_OPCODES`,
 `BUILD_P5GLOVE_OPCODES`, `BUILD_WIIMOTE_OPCODES`, `BUILD_WEBSOCKET_OPCODE` and
 `BUILD_PYTHON_OPCODES`. For example, to

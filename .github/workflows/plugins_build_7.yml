@@ -324,10 +324,83 @@ jobs:
           path: package/
           if-no-files-found: error
 
+  linux_cuda:
+    name: Linux CUDA (ubuntu-latest)
+    needs: update_version
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.4.1-devel-ubuntu22.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential cmake git ca-certificates pkg-config \
+            libsndfile1-dev libasound2-dev flex bison
+
+      - name: Show CUDA toolchain
+        run: |
+          nvcc --version
+          nvidia-smi || true
+
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v4
+        with:
+          path: /csound-install
+          key: csound-cuda-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
+
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$CSOUND_VERSION" \
+            https://github.com/csound/csound.git /tmp/csound
+          cmake -S /tmp/csound -B /tmp/csound-build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/csound-install \
+            -DBUILD_TESTS=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF
+          cmake --build /tmp/csound-build --parallel "$(nproc)"
+          cmake --install /tmp/csound-build
+
+      - name: Build CUDA plugins
+        run: |
+          cmake -S 7.x -B build -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_CUDA_OPCODES=ON \
+            -DBUILD_CHUA_OPCODES=OFF \
+            -DBUILD_FLUID_OPCODES=OFF \
+            -DBUILD_HDF5_OPCODES=OFF \
+            -DBUILD_IMAGE_OPCODES=OFF \
+            -DBUILD_LINEAR_ALGEBRA_OPCODES=OFF \
+            -DBUILD_PYTHON_OPCODES=OFF \
+            -DBUILD_WEBSOCKET_OPCODE=OFF \
+            -DBUILD_WIIMOTE_OPCODES=OFF \
+            -DBUILD_P5GLOVE_OPCODES=OFF \
+            -DCMAKE_CUDA_ARCHITECTURES="50;60;70;75;80;86" \
+            -DCSOUND_INCLUDE_DIR_HINT=/csound-install/include/csound \
+            -DCSOUND_LIBRARY_DIR_HINT=/csound-install/lib
+          cmake --build build --parallel "$(nproc)" \
+            --target cudaop1 cudaop2 cudaop3 cudaop4 cudaop5
+
+      - name: Stage plugins
+        run: |
+          mkdir -p package
+          cp build/src/CUDA/*.so package/
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: csound7-plugins-linux-cuda
+          path: package/
+          if-no-files-found: error
+
   publish_release:
     name: Publish release
     if: ${{ (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && needs.update_version.outputs.release == 'true' }}
-    needs: [update_version, linux, macos, windows]
+    needs: [update_version, linux, linux_cuda, macos, windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -336,6 +409,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: csound7-plugins-linux
+          path: release/linux
+
+      - name: Download Linux CUDA plugins
+        uses: actions/download-artifact@v4
+        with:
+          name: csound7-plugins-linux-cuda
           path: release/linux
 
       - name: Download macOS plugins
