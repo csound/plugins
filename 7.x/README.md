@@ -27,6 +27,9 @@ Currently, the plugins available in this tree are
 - wiimote (requires the wiiuse library; CMake-only, see note below)  
 **wiiconnect wiidata wiisend wiirange**
 
+- p5glove (requires the p5glove driver; CMake-only, see note below)  
+**p5gconnect p5gdata**
+
 
 Fluid settings opcodes
 ---
@@ -61,6 +64,23 @@ When `wiiuse` (headers and library) is found by CMake, the plugin is built and
 installed like any other; otherwise `BUILD_WIIMOTE_OPCODES` is silently
 disabled. To build it locally, install `wiiuse` and configure with
 `-DBUILD_WIIMOTE_OPCODES=ON`.
+
+
+P5Glove opcodes
+---
+
+The `p5glove` opcodes (`p5gconnect`, `p5gdata`) are a CMake-only port of the
+Csound 6.x plugin. They are **not** built by the CI and are **not** included in
+the release packages, because the required P5Glove driver is not widely
+packaged: there is no vcpkg port for `libp5glove`, and its Linux backend needs
+the legacy libusb-0.1 API (not present in vcpkg).
+
+When an external `libp5glove` (headers and library) is found by CMake, the
+plugin is built and installed like any other; otherwise
+`BUILD_P5GLOVE_OPCODES` is silently disabled. On macOS the driver can
+additionally be built from the sources bundled under `src/p5glove/libp5glove`
+by configuring with `-DP5GLOVE_USE_BUNDLED=ON` (in addition to
+`-DBUILD_P5GLOVE_OPCODES=ON`).
 
 
 Install location
@@ -104,7 +124,7 @@ By default, all the plugins are built. If one wants to exclude a
 plugin from the build process, one can pass an option to the cmake command.
 The options are `BUILD_CHUA_OPCODES`, `BUILD_FLUID_OPCODES`,
 `BUILD_IMAGE_OPCODES`, `BUILD_HDF5_OPCODES`, `BUILD_LINEAR_ALGEBRA_OPCODES`,
-`BUILD_WIIMOTE_OPCODES`, `BUILD_WEBSOCKET_OPCODE` and
+`BUILD_P5GLOVE_OPCODES`, `BUILD_WIIMOTE_OPCODES`, `BUILD_WEBSOCKET_OPCODE` and
 `BUILD_PYTHON_OPCODES`. For example, to
 exclude the chua plugin, the `cmake` command would be:
 
