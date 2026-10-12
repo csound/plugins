@@ -274,6 +274,13 @@ bool HDF5IO_getSampleAccurate(CSOUND *csound)
 
 int32_t HDF5Write_initialise(CSOUND *csound, HDF5Write *self)
 {
+    if (UNLIKELY(self->INOCOUNT + self->OUTOCOUNT > 20)) {
+
+      return csound->InitError(csound,
+                               Str("hdf5write: too many arguments "
+                                   "(maximum of 20 outputs and inputs)"));
+    }
+
     self->ksmps = GetLocalKsmps(&self->h);
     self->inputArgumentCount = self->INOCOUNT - 1;
     HDF5Write_checkArgumentSanity(csound, self);
