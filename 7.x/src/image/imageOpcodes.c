@@ -96,6 +96,7 @@ static Image * __doOpenImage(const char * filename, CSOUND *csound)
     int32_t bit_depth;
     int32_t color_type;
     unsigned char * volatile image_data = NULL;
+    size_t datasize;
     png_bytepp volatile row_pointers = NULL;
     uint32_t i;
 
@@ -104,11 +105,14 @@ static Image * __doOpenImage(const char * filename, CSOUND *csound)
     fullname = csound->FindInputFile(csound, filename, "SFDIR;SSDIR");
     fp = (fullname != NULL) ? fopen(fullname, "rb") : NULL;
     if (UNLIKELY(fp == NULL)) {
+      if (fullname != NULL)
+        csound->Free(csound, fullname);
       csound->InitError(csound,
                                Str("imageload: cannot open image %s.\n"), filename);
       return NULL;
     }
     csound->NotifyFileOpened(csound, fullname, CSFTYPE_IMAGE_PNG, 0, 0);
+    csound->Free(csound, fullname);
 
     if (UNLIKELY(HS!=fread(header, 1, HS, fp))) {
       csound->InitError(csound,
@@ -190,8 +194,15 @@ static Image * __doOpenImage(const char * filename, CSOUND *csound)
     png_read_update_info(png_ptr, info_ptr);
     rowbytes = png_get_rowbytes(png_ptr, info_ptr);
 
+    if (UNLIKELY((size_t) rowbytes > ((size_t) -1) / (size_t) height)) {
+      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+      csound->InitError(csound, "%s", Str("imageload: image too large.\n"));
+      fclose(fp);
+      return NULL;
+    }
+    datasize = (size_t) rowbytes * (size_t) height;
     if (UNLIKELY((image_data =
-                 (unsigned char *)csound->Malloc(csound,rowbytes*height))==NULL)) {
+                 (unsigned char *)csound->Malloc(csound,datasize))==NULL)) {
       png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
       csound->InitError(csound, "%s", Str("imageload: out of memory.\n"));
       fclose(fp);
@@ -209,7 +220,7 @@ static Image * __doOpenImage(const char * filename, CSOUND *csound)
     }
 
     for (i = 0; i < height; i++)
-      row_pointers[i] = image_data + i*rowbytes;
+      row_pointers[i] = image_data + (size_t) i * (size_t) rowbytes;
 
     png_read_image(png_ptr, row_pointers);
     csound->Free(csound,row_pointers);
@@ -312,12 +323,15 @@ static int32_t __doSaveImage(Image *image, const char *filename, CSOUND *csound)
     fullname = csound->FindOutputFile(csound, filename, "SFDIR;SSDIR");
     fp = (fullname != NULL) ? fopen(fullname, "wb") : NULL;
     if (UNLIKELY(fp == NULL)) {
+      if (fullname != NULL)
+        csound->Free(csound, fullname);
       return
         csound->InitError(csound,
                           Str("imagesave: cannot open image %s for writing.\n"),
                           filename);
     }
     csound->NotifyFileOpened(csound, fullname, CSFTYPE_IMAGE_PNG, 1, 0);
+    csound->Free(csound, fullname);
 
     png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
@@ -537,7 +551,7 @@ static int32_t imagegetpixel (CSOUND *csound, IMGGETPIXEL * p)
     y = *p->ky*h;
 
     if (x >= 0 && x < w && y >= 0 && y < h ) {
-      int32_t pixel = (w*y+x)*3;
+      size_t pixel = ((size_t) w * (size_t) y + (size_t) x) * 3;
       *p->kr = img->imageData[pixel]/FL(255.0);
       *p->kg = img->imageData[pixel+1]/FL(255.0);
       *p->kb = img->imageData[pixel+2]/FL(255.0);
@@ -565,7 +579,8 @@ static int32_t imagegetpixel_a (CSOUND *csound, IMGGETPIXEL * p)
     uint32_t offset = p->h.insdshead->ksmps_offset;
     uint32_t early  = p->h.insdshead->ksmps_no_end;
     uint32_t i, nsmps = CS_KSMPS;
-    int32_t w, h, x, y, pixel;
+    int32_t w, h, x, y;
+    size_t pixel;
 
     img = getImage(csound, *p->kn);
     if (UNLIKELY(img == NULL)) {
@@ -595,7 +610,7 @@ static int32_t imagegetpixel_a (CSOUND *csound, IMGGETPIXEL * p)
       y = ty[i]*h;
 
       if ( x >= 0 && x < w && y >= 0 && y < h ) {
-        pixel = (w*y+x)*3;
+        pixel = ((size_t) w * (size_t) y + (size_t) x) * 3;
         r[i] = img->imageData[pixel]/FL(255.0);
         g[i] = img->imageData[pixel+1]/FL(255.0);
         b[i] = img->imageData[pixel+2]/FL(255.0);
@@ -632,7 +647,8 @@ static int32_t imagesetpixel_a (CSOUND *csound, IMGSETPIXEL * p)
     uint32_t offset = p->h.insdshead->ksmps_offset;
     uint32_t early  = p->h.insdshead->ksmps_no_end;
     uint32_t i, nsmps = CS_KSMPS;
-    int32_t h,w,x, y, pixel;
+    int32_t h,w,x, y;
+    size_t pixel;
 
     img = getImage(csound, *p->kn);
     if (UNLIKELY(img == NULL))
@@ -648,7 +664,7 @@ static int32_t imagesetpixel_a (CSOUND *csound, IMGSETPIXEL * p)
       y = ty[i]*h;
 
       if (x >= 0 && x < w && y >= 0 && y < h ) {
-        pixel = (w*y+x)*3;
+        pixel = ((size_t) w * (size_t) y + (size_t) x) * 3;
         img->imageData[pixel] = (unsigned char)(r[i]*255) % 256;
         img->imageData[pixel+1] = (unsigned char)(g[i]*255) % 256;
         img->imageData[pixel+2] = (unsigned char)(b[i]*255) % 256;
@@ -662,7 +678,8 @@ static int32_t imagesetpixel_a (CSOUND *csound, IMGSETPIXEL * p)
 static int32_t imagesetpixel (CSOUND *csound, IMGSETPIXEL * p)
 {
     Image *img;
-    int32_t w, h, x, y, pixel;
+    int32_t w, h, x, y;
+    size_t pixel;
 
     img = getImage(csound, *p->kn);
     if (UNLIKELY(img == NULL))
@@ -676,7 +693,7 @@ static int32_t imagesetpixel (CSOUND *csound, IMGSETPIXEL * p)
     y = *p->ky*h;
 
     if (x >= 0 && x < w && y >= 0 && y < h ) {
-      pixel = (w*y+x)*3;
+      pixel = ((size_t) w * (size_t) y + (size_t) x) * 3;
       img->imageData[pixel] = (unsigned char)((*p->kr)*255) % 256;
       img->imageData[pixel+1] = (unsigned char)((*p->kg)*255) % 256;
       img->imageData[pixel+2] = (unsigned char)((*p->kb)*255) % 256;
