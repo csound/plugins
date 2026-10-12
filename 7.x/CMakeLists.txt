@@ -45,10 +45,10 @@ set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-find_package(CSOUND)
+find_package(CSOUND 7.0)
 
-if(NOT CSOUND_INCLUDE_DIRS)
-    message(FATAL_ERROR "Csound header files are required")
+if(NOT CSOUND_FOUND)
+    message(FATAL_ERROR "Csound 7.0 or newer is required")
 endif()
 
 include(TestBigEndian)

@@ -51,12 +51,40 @@ else()
     )
 endif()
 
+if(CSOUND_INCLUDE_DIR AND EXISTS "${CSOUND_INCLUDE_DIR}/version.h")
+    file(STRINGS "${CSOUND_INCLUDE_DIR}/version.h" _csound_major
+        REGEX "^#define[ \t]+CS_VERSION[ \t]+")
+    file(STRINGS "${CSOUND_INCLUDE_DIR}/version.h" _csound_minor
+        REGEX "^#define[ \t]+CS_SUBVER[ \t]+")
+    file(STRINGS "${CSOUND_INCLUDE_DIR}/version.h" _csound_patch
+        REGEX "^#define[ \t]+CS_PATCHLEVEL[ \t]+")
+
+    string(REGEX REPLACE "^#define[ \t]+CS_VERSION[ \t]+\\(?([0-9]+)\\)?.*" "\\1"
+        CSOUND_VERSION_MAJOR "${_csound_major}")
+    string(REGEX REPLACE "^#define[ \t]+CS_SUBVER[ \t]+\\(?([0-9]+)\\)?.*" "\\1"
+        CSOUND_VERSION_MINOR "${_csound_minor}")
+    string(REGEX REPLACE "^#define[ \t]+CS_PATCHLEVEL[ \t]+\\(?([0-9]+)\\)?.*" "\\1"
+        CSOUND_VERSION_PATCH "${_csound_patch}")
+
+    if(CSOUND_VERSION_MAJOR MATCHES "^[0-9]+$")
+        if(NOT CSOUND_VERSION_MINOR MATCHES "^[0-9]+$")
+            set(CSOUND_VERSION_MINOR 0)
+        endif()
+        if(NOT CSOUND_VERSION_PATCH MATCHES "^[0-9]+$")
+            set(CSOUND_VERSION_PATCH 0)
+        endif()
+        set(CSOUND_VERSION
+            "${CSOUND_VERSION_MAJOR}.${CSOUND_VERSION_MINOR}.${CSOUND_VERSION_PATCH}")
+    endif()
+endif()
+
 include(FindPackageHandleStandardArgs)
 
 # handle the QUIETLY and REQUIRED arguments and set CSOUND_FOUND to TRUE
-# if all listed variables are TRUE
+# if all listed variables are TRUE and the version satisfies the request
 find_package_handle_standard_args(CSOUND
-    CSOUND_LIBRARY CSOUND_INCLUDE_DIR
+    REQUIRED_VARS CSOUND_LIBRARY CSOUND_INCLUDE_DIR
+    VERSION_VAR CSOUND_VERSION
 )
 
 mark_as_advanced(CSOUND_INCLUDE_DIR CSOUND_LIBRARY)
