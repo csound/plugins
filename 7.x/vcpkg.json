@@ -9,6 +9,7 @@
         "libpng",
         "hdf5",
         "libuv",
-        "libwebsockets"
+        "libwebsockets",
+        { "name": "opencl", "platform": "windows" }
     ]
 }

@@ -33,6 +33,9 @@ Currently, the plugins available in this tree are
 - CUDA (requires the CUDA toolkit; Linux only, disabled by default, see note below)  
 **cudasynth cudanal cudasliding cudaconv cudapconv**
 
+- OpenCL (requires the OpenCL headers/loader; see note below)  
+**cladsyn**
+
 
 Fluid settings opcodes
 ---
@@ -106,6 +109,20 @@ is ignored. The compute capabilities default to `75 80 86 89`; override with
 `-DCMAKE_CUDA_ARCHITECTURES="..."` (for example `native` for the local GPU).
 
 
+OpenCL opcodes
+---
+
+The `OpenCL` opcode (`cladsyn`) is a port of the Csound 6.x plugin to the
+Csound 7 plugin API. It runs its DSP kernels on any available OpenCL device
+(CPU or GPU) through the ICD loader.
+
+It is built by default when OpenCL is available: the system framework is used
+on macOS, `ocl-icd-opencl-dev` on Linux and the vcpkg `opencl` port on Windows.
+Configure with `-DBUILD_OPENCL_OPCODES=OFF` to exclude it. The CI builds it
+compile-only (the hosted runners have no OpenCL device) and it is included in
+the Linux, macOS and Windows release packages.
+
+
 Install location
 --------------
 The CMake scripts in this repository use the default CS_USER_PLUGIN
@@ -146,7 +163,7 @@ $ make
 By default, all the plugins are built. If one wants to exclude a
 plugin from the build process, one can pass an option to the cmake command.
 The options are `BUILD_CHUA_OPCODES`, `BUILD_CUDA_OPCODES`,
-`BUILD_FLUID_OPCODES`,
+`BUILD_OPENCL_OPCODES`, `BUILD_FLUID_OPCODES`,
 `BUILD_IMAGE_OPCODES`, `BUILD_HDF5_OPCODES`, `BUILD_LINEAR_ALGEBRA_OPCODES`,
 `BUILD_P5GLOVE_OPCODES`, `BUILD_WIIMOTE_OPCODES`, `BUILD_WEBSOCKET_OPCODE` and
 `BUILD_PYTHON_OPCODES`. For example, to
