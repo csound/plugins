@@ -71,6 +71,7 @@ jobs:
             libsndfile1-dev libasound2-dev libportaudio2 libportmidi-dev \
             libeigen3-dev libfluidsynth-dev libpng-dev \
             libwebsockets-dev libuv1-dev libhdf5-dev \
+            ocl-icd-opencl-dev \
             flex bison
 
       - name: Cache Csound install
@@ -114,7 +115,8 @@ jobs:
              build/src/image/*.so \
              build/src/websockets/*.so \
              build/src/hdf5/*.so \
-             build/src/py/*.so package/
+             build/src/py/*.so \
+             build/src/OpenCL/*.so package/
 
       - name: Upload plugins
         uses: actions/upload-artifact@v4
@@ -216,7 +218,8 @@ jobs:
              build/src/image/*.dylib \
              build/src/websockets/*.dylib \
              build/src/hdf5/*.dylib \
-             build/src/py/*.dylib package/
+             build/src/py/*.dylib \
+             build/src/OpenCL/*.dylib package/
 
       - name: Upload plugins
         uses: actions/upload-artifact@v4
