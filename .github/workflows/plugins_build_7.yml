@@ -370,6 +370,15 @@ jobs:
         run: |
           cmake -S 7.x -B build -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_CUDA_OPCODES=ON \
+            -DBUILD_CHUA_OPCODES=OFF \
+            -DBUILD_FLUID_OPCODES=OFF \
+            -DBUILD_HDF5_OPCODES=OFF \
+            -DBUILD_IMAGE_OPCODES=OFF \
+            -DBUILD_LINEAR_ALGEBRA_OPCODES=OFF \
+            -DBUILD_PYTHON_OPCODES=OFF \
+            -DBUILD_WEBSOCKET_OPCODE=OFF \
+            -DBUILD_WIIMOTE_OPCODES=OFF \
+            -DBUILD_P5GLOVE_OPCODES=OFF \
             -DCMAKE_CUDA_ARCHITECTURES="50;60;70;75;80;86" \
             -DCSOUND_INCLUDE_DIR_HINT=/csound-install/include/csound \
             -DCSOUND_LIBRARY_DIR_HINT=/csound-install/lib
