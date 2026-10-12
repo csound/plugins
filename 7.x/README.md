@@ -24,6 +24,9 @@ Currently, the plugins available in this tree are
 - websockets (requires libwebsockets)  
 **websocket**
 
+- wiimote (requires the wiiuse library; CMake-only, see note below)  
+**wiiconnect wiidata wiisend wiirange**
+
 
 Fluid settings opcodes
 ---
@@ -42,6 +45,22 @@ first argument is the engine id and the second is the setting name:
 
 The setters fail at init if the setting name is unknown or of the wrong type;
 the getters report a message and return 0 (or an empty string) instead.
+
+
+Wiimote opcodes
+---
+
+The `wiimote` opcodes (`wiiconnect`, `wiidata`, `wiisend`, `wiirange`) are a
+CMake-only port of the Csound 6.x plugin. They are **not** built by the CI and
+are **not** included in the release packages, because the required `wiiuse`
+library is not available as a standard distribution package: it is not in the
+Ubuntu repositories, and the vcpkg `wiiuse` port ships only pkg-config
+metadata, so it cannot be wired into the automated builds.
+
+When `wiiuse` (headers and library) is found by CMake, the plugin is built and
+installed like any other; otherwise `BUILD_WIIMOTE_OPCODES` is silently
+disabled. To build it locally, install `wiiuse` and configure with
+`-DBUILD_WIIMOTE_OPCODES=ON`.
 
 
 Install location
@@ -85,7 +104,7 @@ By default, all the plugins are built. If one wants to exclude a
 plugin from the build process, one can pass an option to the cmake command.
 The options are `BUILD_CHUA_OPCODES`, `BUILD_FLUID_OPCODES`,
 `BUILD_IMAGE_OPCODES`, `BUILD_HDF5_OPCODES`, `BUILD_LINEAR_ALGEBRA_OPCODES`,
-`BUILD_WEBSOCKET_OPCODE` and
+`BUILD_WIIMOTE_OPCODES`, `BUILD_WEBSOCKET_OPCODE` and
 `BUILD_PYTHON_OPCODES`. For example, to
 exclude the chua plugin, the `cmake` command would be:
 
