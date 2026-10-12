@@ -26,7 +26,7 @@
 #include <unistd.h>
 #endif
 
-#define HDF5ERROR(x) if (UNLIKELY((x) == -1)) \
+#define HDF5ERROR(x) if (UNLIKELY((x) < 0)) \
     {csound->Die(csound, #x" error\nExiting\n");}
 
 // Type strings to match the enum types
@@ -223,24 +223,24 @@ void HDF5IO_writeStringAttribute(CSOUND *csound, HDF5File *self,
 
 // Read a string attribute from the hdf5 file
 //
-// Open the data set and get the info structure
-// Get the attribute at index 0, this should probably be more general, needs
-// more work
-// Get the type of the attribute
+// Open the data set then open the attribute by name
+// Build a fixed size memory datatype bounded to the supplied buffer size
 // Read the attribute into memory and close all the handles
 
 void HDF5IO_readStringAttribute(CSOUND *csound, HDF5File *self,
-                                char *datasetName, char *attributeString)
+                                char *datasetName, char *attributeString,
+                                size_t attributeStringSize)
 {
     hid_t dataSetID = H5Dopen2(self->fileHandle, datasetName, H5P_DEFAULT);
     HDF5ERROR(dataSetID);
-    hid_t attributeID = H5Aopen_by_idx(dataSetID, ".", H5_INDEX_CRT_ORDER,
-                                       H5_ITER_INC, 0, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t attributeID = H5Aopen(dataSetID, "Variable Type", H5P_DEFAULT);
     HDF5ERROR(attributeID);
     hid_t attributeType = H5Aget_type(attributeID);
     HDF5ERROR(attributeType);
-    hid_t attributeTypeMemory = H5Tget_native_type(attributeType, H5T_DIR_ASCEND);
+    hid_t attributeTypeMemory = H5Tcopy(H5T_C_S1);
     HDF5ERROR(attributeTypeMemory);
+    HDF5ERROR(H5Tset_size(attributeTypeMemory, attributeStringSize));
+    HDF5ERROR(H5Tset_strpad(attributeTypeMemory, H5T_STR_NULLTERM));
     HDF5ERROR(H5Aread(attributeID, attributeTypeMemory, attributeString));
     HDF5ERROR(H5Aclose(attributeID));
     HDF5ERROR(H5Tclose(attributeType));
@@ -853,6 +853,13 @@ void HDF5Read_readData(CSOUND *csound, HDF5Read *self, HDF5Dataset *dataset,
 void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
                             HDF5Dataset *dataset, cs_float *inputDataPointer)
 {
+    {
+      size_t memberCount = dataset->readType == ARATE_ARRAY
+                             ? dataset->elementCount : 1;
+      memset(inputDataPointer, 0,
+             self->ksmps * memberCount * sizeof(cs_float));
+    }
+
     if (dataset->offset[0] >=
         dataset->datasetSize[0]) {
       return;
@@ -875,7 +882,7 @@ void HDF5Read_readAudioData(CSOUND *csound, HDF5Read *self,
 
 #ifdef _MSC_VER
     //hsize_t* chunkDimensions = malloc (dataset->rank * sizeof (hsize_t));
-    hsize_t chunkDimensions[16];
+    hsize_t chunkDimensions[H5S_MAX_RANK];
 #else
     hsize_t chunkDimensions[dataset->rank];
 #endif
@@ -1099,7 +1106,8 @@ void HDF5Read_checkReadTypeSanity(CSOUND *csound, HDF5Read *self,
 {
     char attributeString[12] = {"UNKNOWN\0"};
     HDF5IO_readStringAttribute(csound, self->hdf5File,
-                               dataset->datasetName, attributeString);
+                               dataset->datasetName, attributeString,
+                               sizeof(attributeString));
     dataset->writeType = HDF5IO_getArgumentTypeFromString(csound, attributeString);
 
     if (dataset->readType == ARATE_ARRAY
@@ -1287,6 +1295,7 @@ void HDF5Read_initialiseArrayOutput(CSOUND *csound, HDF5Read *self,
                         arrayDimensions, array->data);
 #ifdef _MSC_VER
       free (offset);
+      free (arrayDimensions);
 #endif
     }
 }
