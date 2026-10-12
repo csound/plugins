@@ -284,6 +284,8 @@ static int pvanalset(CSOUND *csound, PVAN *p){
     int size, numframes, i, bins = N/2;
     int hsize = *p->hsize, blockspt;
     float *win;
+    if(hsize <= 0 || hsize > N || (N % hsize) != 0)
+      return csound->InitError(csound, "CUDAnal: invalid hopsize\n");
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, 0);
     blockspt = deviceProp.maxThreadsPerBlock;

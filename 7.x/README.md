@@ -101,7 +101,8 @@ ignored. The Linux CI builds them compile-only (the hosted runners have no
 GPU) and they are included in the Linux release package. Windows is not built
 or tested, so the CUDA opcodes are currently Linux-only.
 
-The compute capabilities default to `75 80 86 89`; override with
+Building them requires CMake 3.18 or later; with an older CMake the option
+is ignored. The compute capabilities default to `75 80 86 89`; override with
 `-DCMAKE_CUDA_ARCHITECTURES="..."` (for example `native` for the local GPU).
 
 

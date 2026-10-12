@@ -50,13 +50,14 @@ __global__ void pconvol(float *out,float *in,
   
   /* complex multiplication + sums */
   atomicAdd(&out[n], re*re2 - im*im2);
-  (n || n != dftsize) ? atomicAdd(&out[n+1], re*im2 + re2*im) : im;
+  if (n && n != dftsize) atomicAdd(&out[n+1], re*im2 + re2*im);
  
 }  
 
 /* sample-by-sample overlap-add operation */
 __global__ void olapadd(float *buf, float *in, int parts){
    int n = (threadIdx.x + blockIdx.x*blockDim.x);
+   if(n >= parts) return;
    buf[n] = in[n] + buf[parts+n];
    buf[parts+n] = in[parts+n];
 }
@@ -96,6 +97,9 @@ int pconv_init(CSOUND *csound, PCONV *p){
 
   FUNC *ftab = csound->FTFind(csound, p->ifn);
   float *tmp;
+  if (ftab == NULL)
+    return csound->InitError(csound, "could not find table %d\n",
+                             (int) *p->ifn);
   int tlen = ftab->flen;
   int end, i, j, k, parts = *p->parts, dftsize, nparts;
   cs_float *tab = ftab->ftable;
@@ -161,9 +165,9 @@ int pconv_init(CSOUND *csound, PCONV *p){
  
   end >>= 1;
 
-  p->blocks = end > blockspt ? ceil(end/blockspt) : 1;
+  p->blocks = (end + blockspt - 1)/blockspt;
   p->threads = end > blockspt ? blockspt : end;
-  p->oblocks = parts > blockspt ? ceil(parts/blockspt) : 1;
+  p->oblocks = (parts + blockspt - 1)/blockspt;
   p->othreads = parts > blockspt ? blockspt : parts;
 
   if(csound->GetDebug(csound))
@@ -190,10 +194,10 @@ int pconv_perf(CSOUND *csound, PCONV *p){
   int end = nparts*(dftsize+2);
   int parts = *p->parts;
 
-  if (UNLIKELY(offset)) memset(asig, '\0', offset*sizeof(cs_float));
+  if (UNLIKELY(offset)) memset(aout, '\0', offset*sizeof(cs_float));
   if (UNLIKELY(early)) {
     nsmps -= early;
-    memset(&asig[nsmps], '\0', early*sizeof(cs_float));
+    memset(&aout[nsmps], '\0', early*sizeof(cs_float));
   }
 
   //csound->Message(csound,"pconv perf count: %d\n", cnt);  

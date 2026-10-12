@@ -86,6 +86,9 @@ static int destroy_conv(CSOUND *csound, void *pp){
 static int conv_init(CSOUND *csound, CONV *p){
 
   FUNC *ftab = csound->FTFind(csound, p->ifn);
+  if (ftab == NULL)
+    return csound->InitError(csound, "could not find table %d\n",
+                             (int) *p->ifn);
   int irsize = ftab->flen;
   int nsmps = CS_KSMPS;
   int threads = irsize*nsmps;
@@ -108,7 +111,7 @@ static int conv_init(CSOUND *csound, CONV *p){
   csound->Message(csound, "CUDAconv: using device %s (capability %d.%d)\n", 
         deviceProp.name,deviceProp.major, deviceProp.minor);
 
-  p->blocks = threads > blockspt ? ceil(threads/blockspt) : 1;
+  p->blocks = (threads + blockspt - 1)/blockspt;
   p->threads = threads > blockspt ? blockspt : threads;
 
   if(csound->GetDebug(csound))

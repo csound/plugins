@@ -534,6 +534,7 @@ int cushutdown(CSOUND *csound, void *pp)
   CUDA(cudaFree, p->dinphase);
   CUDA(cudaFree, p->doutphase);
   CUDA(cudaFree, p->ddeltas);
+  CUDA(cudaFree, p->dfm);
   CUDA(cudaFree, p->dFoutw);
   CUDA(cudaFree, p->dFout);
   CUDA(cudaFree, p->dFin);
@@ -581,6 +582,9 @@ void cuprocess(CSOUND *csound, SPV *p, real in[/*nbatch*/], real out[/*nbatch*/]
   fmsyn<<<p->nblocks,p->nthreads>>>(p->dinphase, p->dFout, p->dfm, p->doutphase, p->nbins);
 
   // reuse ddeltas array
+#ifndef RB
+  CUDA(cudaMemset, p->ddeltas, 0, p->nbtch*sizeof(real));
+#endif
   reconstruct<<<p->rblocks,p->rthreads>>>(p->dFout, p->ddeltas, p->nbins);
   CHK(reconstruct);
   // is is faster to transfer to pinned memory then copy; or just
@@ -596,7 +600,11 @@ void cuprocess(CSOUND *csound, SPV *p, real in[/*nbatch*/], real out[/*nbatch*/]
 
 
 int spv_init(CSOUND *csound, SPV *p) {
-  cuinit(csound,p,NBATCH,*p->iN,0);
+  int nbins = (int) *p->iN;
+  if (nbins < 2)
+    return csound->InitError(csound, "cudasliding: invalid size %d\n", nbins);
+  p->count = 0;
+  cuinit(csound,p,NBATCH,nbins,0);
   return OK;
 }
 

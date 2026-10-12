@@ -66,13 +66,12 @@ static int init_cudadsyn(CSOUND *csound, CUDADSYN *p){
   if(*p->inum > 0 && *p->inum < p->bins) p->bins = *p->inum;
 
   p->vsamps = p->fsig->overlap;
+  /* per-block/launch sizes, rounded up to cover all work items */
   p->threads = p->bins*p->vsamps;
-  p->blocks = p->threads > blockspt ? p->threads/blockspt : 1;
-  p->mthreads = p->bins;
-  p->mblocks = p->mthreads >  blockspt ? p->mthreads/blockspt : 1;
-
-  p->threads /= p->blocks;
-  p->mthreads /= p->mblocks;
+  p->threads = p->threads < blockspt ? p->threads : blockspt;
+  p->blocks = (p->bins*p->vsamps + p->threads - 1)/p->threads;
+  p->mthreads = p->bins < blockspt ? p->bins : blockspt;
+  p->mblocks = (p->bins + p->mthreads - 1)/p->mthreads;
 
   asize =  p->vsamps*sizeof(float);
   ipsize = p->fsig->N*sizeof(int64_t)/2;
@@ -81,6 +80,7 @@ static int init_cudadsyn(CSOUND *csound, CUDADSYN *p){
   cudaMalloc(&p->out, asize);
   cudaMalloc(&p->ndx, ipsize);
   cudaMalloc(&p->frame, fpsize);
+  cudaMemset(p->frame, 0, fpsize);
   cudaMalloc(&p->previous, fpsize/2);
   cudaMemset(p->previous, 0, fpsize/2);
   cudaMemset(p->ndx, 0, ipsize);
@@ -96,11 +96,12 @@ static int init_cudadsyn(CSOUND *csound, CUDADSYN *p){
 }
 
 __global__ void sample(float *out, float *frame, float pitch, int64_t *ph,
-                       float *amps, int vsize, float sr) {
+                       float *amps, int vsize, float sr, int bins) {
 
   int t = (threadIdx.x + blockIdx.x*blockDim.x);
   int n =  t%vsize;  /* sample index */
   int h = t/vsize;  /* bin index */
+  if (h >= bins) return;
   //if(amps[h] < 0.001) return;
   int k = h<<1;
   int64_t lph;
@@ -115,9 +116,10 @@ __global__ void sample(float *out, float *frame, float pitch, int64_t *ph,
 }
 
 __global__ void update(float *frame, float *amps,
-      int64_t *ph,float pitch, int vsize, float sr){
+      int64_t *ph,float pitch, int vsize, float sr, int bins){
 
  int h = threadIdx.x + blockIdx.x*blockDim.x;
+ if (h >= bins) return;
  int k = h << 1;
  /* update phases and amps */
  ph[h]  = (ph[h] + (int64_t)(vsize*round(pitch*frame[k+1]*FMAXLEN/sr))) & PHMASK;
@@ -148,7 +150,8 @@ static int perf_cudadsyn(CSOUND *csound, CUDADSYN *p){
                                              p->ndx,
                                              *p->kfreq,
                                              vsamps,
-                                             CS_ESR);
+                                             CS_ESR,
+                                             p->bins);
       cudaMemset(p->out, 0, sizeof(float)*vsamps);
       cudaMemcpy(p->frame,p->fp,sizeof(float)*p->bins*2,cudaMemcpyHostToDevice);
       sample<<<p->blocks,p->threads>>>(p->out,p->frame,
@@ -156,7 +159,8 @@ static int perf_cudadsyn(CSOUND *csound, CUDADSYN *p){
                                                 p->ndx,
                                                 p->previous,
                                                 vsamps,
-                                                CS_ESR);
+                                                CS_ESR,
+                                                p->bins);
 
       count = vsamps;
     }
