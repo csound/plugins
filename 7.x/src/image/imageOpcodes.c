@@ -499,9 +499,7 @@ static int32_t imageload (CSOUND *csound, IMGLOAD * p)
 
     img = __doOpenImage((const char*) (p->ifilnam->data), csound);
     if (UNLIKELY(img == NULL))
-      return csound->InitError(csound,
-                               Str("imageload: cannot open image %s.\n"),
-                               (const char*) (p->ifilnam->data));
+      return NOTOK;
 
     newImages = (Image **) csound->ReAlloc(csound, pimages->images,
                                           sizeof(Image *) * (pimages->cnt + 1));
@@ -736,6 +734,26 @@ static int32_t imagefree (CSOUND *csound, IMGFREE * p)
     return OK;
 }
 
+PUBLIC int32_t csoundModuleDestroy(CSOUND *csound)
+{
+    Images *pimages = (Images *) csound->QueryGlobalVariable(csound,
+                                                             "imageOpcodes.images");
+    if (pimages != NULL && pimages->images != NULL) {
+      size_t i;
+      for (i = 0; i < pimages->cnt; ++i) {
+        Image *img = pimages->images[i];
+        if (img != NULL) {
+          csound->Free(csound, img->imageData);
+          csound->Free(csound, img);
+        }
+      }
+      csound->Free(csound, pimages->images);
+      pimages->images = (Image **) NULL;
+      pimages->cnt = (size_t) 0;
+    }
+    return OK;
+}
+
 static OENTRY localops[] = {
   { "imageload",      sizeof(IMGLOAD),  0, "i", "S",
     (SUBR)imageload, NULL, NULL, NULL, 0 },
@@ -743,9 +761,9 @@ static OENTRY localops[] = {
     (SUBR)imagecreate, NULL, NULL, NULL, 0 },
   { "imagesize",      sizeof(IMGSIZE),  0, "ii", "i",
     (SUBR)imagesize, NULL, NULL, NULL, 0 },
-  { "imagegetpixel",  sizeof(IMGGETPIXEL), 0, "kkk", "ixx",
+  { "imagegetpixel",  sizeof(IMGGETPIXEL), 0, "kkk", "ikk",
     (SUBR)imagegetpixel, (SUBR)imagegetpixel, NULL, NULL, 0 },
-  { "imagegetpixel",  sizeof(IMGGETPIXEL), 0, "aaa", "ixx",
+  { "imagegetpixel",  sizeof(IMGGETPIXEL), 0, "aaa", "iaa",
     (SUBR)imagegetpixel, (SUBR)imagegetpixel_a, NULL, NULL, 0 },
   { "imagesetpixel",  sizeof(IMGSETPIXEL), 0, "", "ikkkkk",
     (SUBR)imagesetpixel, (SUBR)imagesetpixel, NULL, NULL, 0 },
