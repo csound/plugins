@@ -30,7 +30,7 @@ Currently, the plugins available in this tree are
 - p5glove (requires the p5glove driver; CMake-only, see note below)  
 **p5gconnect p5gdata**
 
-- CUDA (requires the CUDA toolkit; Linux/Windows only, disabled by default, see note below)  
+- CUDA (requires the CUDA toolkit; Linux only, disabled by default, see note below)  
 **cudasynth cudanal cudasliding cudaconv cudapconv**
 
 
@@ -98,8 +98,8 @@ They are **disabled by default** and only built when the CUDA toolkit is
 found: configure with `-DBUILD_CUDA_OPCODES=ON`. CUDA is **not available on
 macOS** (NVIDIA dropped macOS support after 10.13), so on macOS the option is
 ignored. The Linux CI builds them compile-only (the hosted runners have no
-GPU) and they are included in the Linux release package; they cannot be built
-or tested on macOS.
+GPU) and they are included in the Linux release package. Windows is not built
+or tested, so the CUDA opcodes are currently Linux-only.
 
 The compute capabilities default to `75 80 86 89`; override with
 `-DCMAKE_CUDA_ARCHITECTURES="..."` (for example `native` for the local GPU).
