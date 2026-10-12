@@ -34,6 +34,10 @@ __global__ void convol(cs_float *out, cs_float *del, cs_float *coefs, int irsize
   rp += n + h; /* read point, oldest -> newest */
   out[t] = del[rp < end ? rp : rp%end]*coefs[irsize-1-h];  /* single tap */
   if(t >= vsize) return;
+  /* FIXME: __syncthreads() only synchronizes threads within a block, but
+     the taps below are then mixed across blocks, which is incorrect (this
+     also skips the threads that returned above). Needs a two-stage scheme:
+     one kernel to compute every tap and a second to reduce them. */
   __syncthreads();
   cs_float a = 0.0;
   for(int i=1, j=vsize; i < irsize; i++, j+=vsize)

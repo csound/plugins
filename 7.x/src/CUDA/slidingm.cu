@@ -79,6 +79,10 @@ __constant__ real binbandwidth, nyquist;
 __constant__ int offset;
 // process in batches of this size 
 __constant__ int nbatch;
+/* FIXME: __constant__ memory is module-global, so these values clash when
+   more than one instance of the opcode is active, and the symbol copy
+   fails for some sizes (the declaration can be optimised out when unused).
+   These per-instance values should be passed as kernel arguments instead. */
 
 
 #define CUDA(name, args ...) { name(args); checkcuda(csound, #name, __LINE__); }
@@ -91,6 +95,9 @@ void checkcuda(CSOUND *csound, char* name, int line)
 
   if (err) {
     csound->Message(csound, "%s: %s\nLine: %d\n", name, cudaGetErrorString(err), line);
+    /* FIXME: this aborts the whole host process on any CUDA error; it
+       should propagate the error through the CUDA()/CHK() macros (and out
+       of init/perf) instead, which touches every call site. */
     exit(1);
   }
 }
@@ -453,6 +460,8 @@ void cuinit(CSOUND *csound,
 		    deviceProp.major, deviceProp.minor); 
 #endif
     // global constants
+    /* FIXME: see the note on the __constant__ declarations above; these are
+       module-global and only copied on the first init. */
     CUDA(cudaMemcpyToSymbol, offset, &off, sizeof(int));
     CUDA(cudaMemcpyToSymbol, nbatch, &p->nbtch, sizeof(int));
     CUDA(cudaMemcpyToSymbol, binbandwidth, &binbw, sizeof(real));
