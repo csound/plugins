@@ -102,15 +102,24 @@ int32_t wiimote_find(CSOUND *csound, WIIMOTE *p)
       csound->CreateGlobalVariable(csound, "wiiMote",
                                            MAX_WIIMOTES*sizeof(wiimote*));
       wiimotes = (wiimote**)csound->QueryGlobalVariable(csound, "wiiMote");
+      if (UNLIKELY(wiimotes == NULL))
+        return csound->InitError(csound, "%s",
+                                 Str("wiiconnect: cannot allocate wiimote state"));
     }
     wiirange = (wiirange_t *)csound->QueryGlobalVariable(csound, "wiiRange");
     if (wiirange == NULL) {
       csound->CreateGlobalVariable(csound, "wiiRange",
                                            MAX_WIIMOTES*sizeof(wiirange_t));
       wiirange = (wiirange_t *)csound->QueryGlobalVariable(csound, "wiiRange");
+      if (UNLIKELY(wiirange == NULL))
+        return csound->InitError(csound, "%s",
+                                 Str("wiiconnect: cannot allocate wii range state"));
     }
     {                           /* Use our copy not his */
       wiimote** ww = wiiuse_init(MAX_WIIMOTES);
+      if (UNLIKELY(ww == NULL))
+        return csound->InitError(csound, "%s",
+                                 Str("wiiconnect: cannot initialise wiimotes"));
       memcpy(wiimotes, ww, MAX_WIIMOTES*sizeof(wiimote*));
       free(ww);
     }
@@ -188,6 +197,10 @@ int32_t wiimote_poll(CSOUND *csound, WIIMOTE *p)
       default:
         break;
       }
+      if (UNLIKELY(!(wiimotes[i]->state & WIIMOTE_STATE_CONNECTED))) {
+        *p->res = FL(0.0);
+        return OK;
+      }
     }
     *p->res = FL(1.0);
     return OK;
@@ -215,8 +228,8 @@ int32_t wii_data(CSOUND *csound, WIIMOTE *p)
     wiirange_t *wiir = p->wiir;
     int32_t n = (int32_t)*p->num;
     int32_t kontrol = (int32_t)(*p->kControl+FL(0.5));
-    if (UNLIKELY(n>=MAX_WIIMOTES || !(wii[n]->state & WIIMOTE_STATE_CONNECTED))) {
-      printf("state of wii %d is %x\n", n, wii[n]->state);
+    if (UNLIKELY(n<0 || n>=MAX_WIIMOTES || wii[n]==NULL ||
+                 !(wii[n]->state & WIIMOTE_STATE_CONNECTED))) {
       return csound->PerfError(csound, &(p->h),
                                Str("wiimote %d does not exist"), n);
     }
@@ -234,6 +247,7 @@ int32_t wii_data(CSOUND *csound, WIIMOTE *p)
     }
     if (kontrol>0 && kontrol<17) {
       *p->res = (cs_float)IS_JUST_PRESSED(wii[n], 1<<(kontrol-1));
+      return OK;
     }
     if (kontrol>100 && kontrol<117) {
       *p->res = (cs_float)IS_PRESSED(wii[n], 1<<(kontrol-101));
@@ -349,7 +363,8 @@ int32_t wii_send(CSOUND *csound, WIIMOTES *p)
 {
     wiimote **wii = p->wii;
     int32_t num = (int32_t)*p->num;
-    if (UNLIKELY(!(wii[num]->state & WIIMOTE_STATE_CONNECTED)))
+    if (UNLIKELY(num < 0 || num >= MAX_WIIMOTES || wii[num]==NULL ||
+                 !(wii[num]->state & WIIMOTE_STATE_CONNECTED)))
       return csound->PerfError(csound, &(p->h), "%s", Str("Not open"));
     switch ((int32_t)(*p->kControl+FL(0.5))) {
     /* case 1: */
@@ -370,10 +385,15 @@ int32_t wii_send(CSOUND *csound, WIIMOTES *p)
 
 int32_t wiimote_range(CSOUND *csound, WIIRANGE *p)
 {
-    wiirange_t *wiirange =
+    int32_t n = (int32_t)*p->num;
+    wiirange_t *wiiranges =
       (wiirange_t *)csound->QueryGlobalVariable(csound, "wiiRange");
-    if (UNLIKELY(wiirange==NULL))
+    wiirange_t *wiirange;
+    if (UNLIKELY(wiiranges==NULL))
       return csound->InitError(csound, "%s", Str("No wii range"));
+    if (UNLIKELY(n<0 || n>=MAX_WIIMOTES))
+      return csound->InitError(csound, Str("wiirange: invalid wiimote %d"), n);
+    wiirange = &wiiranges[n];
     switch ((int32_t)(*p->iControl+FL(0.5))) {
     /* case 17: */
     /*   wiirange->axis_x_min = *p->iMin; */
