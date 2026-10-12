@@ -123,6 +123,23 @@ compile-only (the hosted runners have no OpenCL device) and it is included in
 the Linux, macOS and Windows release packages.
 
 
+Release binaries and macOS architecture
+--------------
+
+The CI builds each plugin on its default hosted runner and packages the
+resulting plugin libraries into the GitHub release assets. These binaries are
+single-architecture — they are **not** universal fat binaries.
+
+On macOS the release plugins are built on the Apple Silicon (`arm64`)
+`macos-latest` runner with no `CMAKE_OSX_ARCHITECTURES` override, and the
+dependencies come from vcpkg using the `arm64-osx` triplet. The
+`csound7-plugins-*-macos.zip` release asset therefore contains **arm64-only**
+`.dylib` files: they load in the arm64 build of Csound on Apple Silicon, but
+not in the x86_64 (Intel) build on Intel Macs. Users on Intel Macs should
+build the plugins from source against x86_64 versions of their dependencies
+(see the build instructions below).
+
+
 Install location
 --------------
 The CMake scripts in this repository use the default CS_USER_PLUGIN
