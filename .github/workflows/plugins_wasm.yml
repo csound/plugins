@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           repository: csound/csound
-          ref: dfe33946847fd2fe5fe04948d9ae44ba320c5390
+          ref: aed14beaa392dfe9c12270abd9cd63e57651be06
           path: .csound
       - uses: actions/setup-node@v6
         with:

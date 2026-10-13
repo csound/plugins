@@ -49,7 +49,7 @@ with the helper. It also supplies Java through Nix for the browser compiler:
 
 ```sh
 git clone https://github.com/csound/csound.git .csound
-git -C .csound checkout dfe33946847fd2fe5fe04948d9ae44ba320c5390
+git -C .csound checkout aed14beaa392dfe9c12270abd9cd63e57651be06
 npm run build:runtime
 export CSOUND_BROWSER_URL="file://$PWD/.csound/platform/wasm-wasi/browser/dist/csound.js"
 npm test
