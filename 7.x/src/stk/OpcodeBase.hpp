@@ -199,12 +199,7 @@ namespace csound {
     }
     uint32_t kperiodEnd() const
     {
-      uint32_t end = opds.insdshead->ksmps_no_end;
-      if (end) {
-        return end;
-      } else {
-        return ksmps();
-      }
+      return ksmps() - opds.insdshead->ksmps_no_end;
     }
     uint32_t ksmps() const
     {
@@ -325,12 +320,7 @@ namespace csound {
     }
     uint32_t kperiodEnd() const
     {
-      uint32_t end = opds.insdshead->ksmps_no_end;
-      if (end) {
-        return end;
-      } else {
-        return ksmps();
-      }
+      return ksmps() - opds.insdshead->ksmps_no_end;
     }
     uint32_t ksmps() const
     {

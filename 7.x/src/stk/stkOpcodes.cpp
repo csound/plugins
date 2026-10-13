@@ -138,8 +138,11 @@ public:
   STKInstrumentAdapter() : instrument(0) {}
   int32_t init(CSOUND *csound) {
     if (!instrument) {
-      Stk::setSampleRate((StkFloat)this->opds.insdshead->esr);
-      instrument = new T();
+      try {
+        instrument = new T();
+      } catch (StkError &e) {
+        return csound->InitError(csound, "STK: %s", e.getMessage().c_str());
+      }
     }
     instrument->noteOn(*ifrequency, *igain);
     released = false;
@@ -282,8 +285,11 @@ public:
   STKInstrumentAdapter1() : instrument(0) {}
   int32_t init(CSOUND *csound) {
     if (!instrument) {
-      Stk::setSampleRate((StkFloat)this->opds.insdshead->esr);
-      instrument = new T((StkFloat)10.0);
+      try {
+        instrument = new T((StkFloat)10.0);
+      } catch (StkError &e) {
+        return csound->InitError(csound, "STK: %s", e.getMessage().c_str());
+      }
     }
     instrument->noteOn(*ifrequency, *igain);
     released = false;
