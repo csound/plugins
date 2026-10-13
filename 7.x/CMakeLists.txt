@@ -34,6 +34,12 @@ endif()
 
 project(Csound-plugins)
 
+string(TOUPPER "${CMAKE_SYSTEM_NAME}" CMAKE_SYSTEM_NAME_UPPER)
+if(CMAKE_SYSTEM_NAME_UPPER STREQUAL "WASI")
+    set(WASM ON)
+    include(cmake/WasmPlugins.cmake)
+endif()
+
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_COMPILER_IS_CLANG 1)
 endif()
@@ -49,6 +55,9 @@ find_package(CSOUND 7.0)
 
 if(NOT CSOUND_FOUND)
     message(FATAL_ERROR "Csound 7.0 or newer is required")
+endif()
+if(WASM AND NOT CSOUND_VERSION_MAJOR EQUAL 7)
+    message(FATAL_ERROR "WASM plugins require the Csound 7 SDK")
 endif()
 
 include(TestBigEndian)
@@ -163,7 +172,9 @@ if(LINUX)
 endif()
 
 # plugin install directories (CS_USER_PLUGIN on MacOs/Windows)
-if(USE_DOUBLE)
+if(WASM)
+    set(PLUGIN_INSTALL_DIR "lib")
+elseif(USE_DOUBLE)
     message(STATUS "Building with 64-bit floats")
     if(APPLE)
         set(PLUGIN_INSTALL_DIR "$ENV{HOME}/Library/csound/${APIVERSION}/plugins64")
@@ -232,7 +243,11 @@ endfunction(check_deps)
 # NB - this was moved here as it needs some VARS defined above
 # for setting up the framework
 function(make_plugin libname srcs)
-    if(APPLE)
+    if(WASM)
+        # CMake does not model WASI side modules as shared libraries.
+        add_executable(${libname} ${srcs})
+        configure_wasm_plugin(${libname})
+    elseif(APPLE)
         add_library(${libname} SHARED ${srcs})
     else()
         add_library(${libname} MODULE ${srcs})
@@ -245,6 +260,7 @@ function(make_plugin libname srcs)
     endwhile()
 
     install(TARGETS ${libname}
+        RUNTIME DESTINATION "${PLUGIN_INSTALL_DIR}"
         LIBRARY DESTINATION "${PLUGIN_INSTALL_DIR}"
         ARCHIVE DESTINATION "${PLUGIN_INSTALL_DIR}" )
 endfunction(make_plugin)

@@ -1,0 +1,39 @@
+{
+  "name": "@csound/plugins",
+  "version": "7.0.0-beta.0",
+  "private": true,
+  "description": "Csound 7 opcode plugins for WebAssembly",
+  "type": "module",
+  "license": "LGPL-2.1-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/csound/plugins.git"
+  },
+  "bugs": {
+    "url": "https://github.com/csound/plugins/issues"
+  },
+  "homepage": "https://github.com/csound/plugins",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "files": ["dist", "index.js", "index.d.ts", "LICENSE", "THIRD_PARTY.md", "wasm/README.md"],
+  "exports": {
+    ".": { "types": "./index.d.ts", "import": "./index.js" },
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "bash wasm/scripts/build.sh",
+    "build:runtime": "bash wasm/scripts/build-runtime.sh",
+    "test": "node --test wasm/tests/*.test.js",
+    "prepack": "npm test"
+  },
+  "devDependencies": {
+    "@csound/browser": "7.0.0-beta38",
+    "@csound/wasm-bin": "7.0.0-beta28"
+  },
+  "keywords": ["csound", "audio", "plugins", "wasm", "wasi", "webassembly"]
+}
