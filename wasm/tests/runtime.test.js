@@ -29,6 +29,11 @@ e
 </CsScore>
 </CsoundSynthesizer>`;
 
+/**
+ * Load plugin bytes into Csound 7 and render the given instrument body.
+ * Call check with the API, Csound instance, and peak sample magnitude before
+ * destroying the instance.
+ */
 async function run(body, check, withPlugins = binaries) {
   const errors = [];
   const originalError = console.error;
