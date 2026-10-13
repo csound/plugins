@@ -118,8 +118,8 @@ jobs:
              build/src/py/*.so \
              build/src/OpenCL/*.so \
              build/src/stk/*.so package/
-          mkdir -p package/rawwaves
-          cp 7.x/src/stk/rawwaves/*.raw package/rawwaves/
+          mkdir -p package/stk/rawwaves
+          cp 7.x/src/stk/rawwaves/*.raw package/stk/rawwaves/
 
       - name: Upload plugins
         uses: actions/upload-artifact@v4
@@ -224,8 +224,8 @@ jobs:
              build/src/py/*.dylib \
              build/src/OpenCL/*.dylib \
              build/src/stk/*.dylib package/
-          mkdir -p package/rawwaves
-          cp 7.x/src/stk/rawwaves/*.raw package/rawwaves/
+          mkdir -p package/stk/rawwaves
+          cp 7.x/src/stk/rawwaves/*.raw package/stk/rawwaves/
 
       - name: Upload plugins
         uses: actions/upload-artifact@v4
@@ -325,7 +325,7 @@ jobs:
           if (Test-Path $vcpkgBin) {
             Copy-Item (Join-Path $vcpkgBin '*.dll') -Destination $package -ErrorAction SilentlyContinue
           }
-          $rawwaves = Join-Path $package 'rawwaves'
+          $rawwaves = Join-Path $package 'stk/rawwaves'
           New-Item -ItemType Directory -Force -Path $rawwaves | Out-Null
           Copy-Item '7.x\src\stk\rawwaves\*.raw' -Destination $rawwaves
 
