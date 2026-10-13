@@ -82,8 +82,14 @@ include(FindPackageHandleStandardArgs)
 
 # handle the QUIETLY and REQUIRED arguments and set CSOUND_FOUND to TRUE
 # if all listed variables are TRUE and the version satisfies the request
+if(WASM)
+    # Side modules call the browser engine through its API table.
+    set(_csound_required_vars CSOUND_INCLUDE_DIR)
+else()
+    set(_csound_required_vars CSOUND_LIBRARY CSOUND_INCLUDE_DIR)
+endif()
 find_package_handle_standard_args(CSOUND
-    REQUIRED_VARS CSOUND_LIBRARY CSOUND_INCLUDE_DIR
+    REQUIRED_VARS ${_csound_required_vars}
     VERSION_VAR CSOUND_VERSION
 )
 
