@@ -37,12 +37,11 @@
   },
   "scripts": {
     "build": "bash wasm/scripts/build.sh",
-    "build:runtime": "bash wasm/scripts/build-runtime.sh",
     "test": "node --test wasm/tests/*.test.js",
     "prepack": "npm test"
   },
   "devDependencies": {
-    "@csound/browser": "7.0.0-beta38",
+    "@csound/browser": "7.0.0-beta39",
     "@csound/wasm-bin": "7.0.0-beta29"
   },
   "keywords": [

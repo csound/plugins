@@ -34,10 +34,6 @@ jobs:
         run: npm ci
       - name: Build WASM plugins with CMake and Nix
         run: npm run build
-      - name: Build the browser wrapper with the released engine
-        run: |
-          npm run build:runtime
-          echo "CSOUND_BROWSER_URL=file://$GITHUB_WORKSPACE/.csound/platform/wasm-wasi/browser/dist/csound.js" >> "$GITHUB_ENV"
       - name: Test and pack
         run: npm pack
       - uses: actions/upload-artifact@v7.0.2
