@@ -36,6 +36,9 @@ Currently, the plugins available in this tree are
 - OpenCL (requires the OpenCL headers/loader; see note below)  
 **cladsyn**
 
+- STK (port of the Synthesis ToolKit instruments; STK 4.6.2 is vendored under this directory, see note below)  
+**STKBandedWG STKBeeThree STKBlowBotl STKBlowHole STKBowed STKBrass STKClarinet STKDrummer STKFlute STKFMVoices STKHevyMetl STKMandolin STKModalBar STKMoog STKPercFlut STKPlucked STKResonate STKRhodey STKSaxofony STKShakers STKSimple STKSitar STKStifKarp STKTubeBell STKVoicForm STKWhistle STKWurley**  
+
 
 Fluid settings opcodes
 ---
@@ -123,6 +126,34 @@ compile-only (the hosted runners have no OpenCL device) and it is included in
 the Linux, macOS and Windows release packages.
 
 
+STK opcodes
+---
+
+The `STK` opcodes are a port of the Csound 6.x plugin to the Csound 7 plugin
+API. They expose the instruments of Perry Cook and Gary Scavone's Synthesis
+ToolKit in C++ (STK), each named `STK` followed by the STK class, e.g.
+`STKSitar`. All of them share the same signature:
+
+```
+aout STKName ifrequency igain {kcontroller0, kvalue0, ..., kcontrollerN, kvalueN}
+```
+
+The STK sources are **vendored under this directory** (`include/`, `src/` and
+`rawwaves/`) and built from source, so no external STK installation is needed
+and the result is independent of any system or package-manager STK. The
+vendored copy carries a fix for the sample buildup reported in
+[csound/plugins#4](https://github.com/csound/plugins/issues/4): the noise
+modulation of the sitar delay line in `Sitar::setFrequency`, which could make
+`STKSitar` build up clipped output over time, has been removed.
+
+It is built by default; configure with `-DBUILD_STK_OPCODES=OFF` to exclude
+it. The wavetables the instruments need are installed alongside the plugin
+(under `stk/rawwaves`). At run time the `RAWWAVE_PATH` environment variable,
+if set, overrides the built-in default location; otherwise the installed
+`rawwaves` directory is used. The plugin is included in the Linux, macOS and
+Windows release packages.
+
+
 Release binaries and macOS architecture
 --------------
 
@@ -182,7 +213,8 @@ plugin from the build process, one can pass an option to the cmake command.
 The options are `BUILD_CHUA_OPCODES`, `BUILD_CUDA_OPCODES`,
 `BUILD_OPENCL_OPCODES`, `BUILD_FLUID_OPCODES`,
 `BUILD_IMAGE_OPCODES`, `BUILD_HDF5_OPCODES`, `BUILD_LINEAR_ALGEBRA_OPCODES`,
-`BUILD_P5GLOVE_OPCODES`, `BUILD_WIIMOTE_OPCODES`, `BUILD_WEBSOCKET_OPCODE` and
+`BUILD_P5GLOVE_OPCODES`, `BUILD_STK_OPCODES`, `BUILD_WIIMOTE_OPCODES`,
+`BUILD_WEBSOCKET_OPCODE` and
 `BUILD_PYTHON_OPCODES`. For example, to
 exclude the chua plugin, the `cmake` command would be:
 

@@ -1,0 +1,5 @@
+reviews:
+  path_filters:
+    - "!7.x/src/stk/src/**"
+    - "!7.x/src/stk/include/**"
+    - "!7.x/src/stk/rawwaves/**"
