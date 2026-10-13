@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 1
           submodules: true
@@ -86,7 +86,7 @@ jobs:
         run: iscc /o. .\installer\win64\Installer.iss
 
       - name: Upload installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: Csound_win_x64-${{env.CSOUND_VERSION}}.${{github.run_number}}-plugins-installer
           path: ./csound6-plugins-win_x86_64-*.exe

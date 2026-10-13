@@ -20,13 +20,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7.0.1
-      # csound/csound#3416 must land and ship before this package can publish.
-      - uses: actions/checkout@v7.0.1
-        with:
-          repository: csound/csound
-          ref: aed14beaa392dfe9c12270abd9cd63e57651be06
-          path: .csound
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -34,17 +28,19 @@ jobs:
       - uses: cachix/cachix-action@v17
         with:
           name: csound
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skipPush: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
       - name: Install JS dependencies
         run: npm ci
       - name: Build WASM plugins with CMake and Nix
         run: npm run build
-      - name: Build the required Csound runtime
+      - name: Build the browser wrapper with the released engine
         run: |
           npm run build:runtime
           echo "CSOUND_BROWSER_URL=file://$GITHUB_WORKSPACE/.csound/platform/wasm-wasi/browser/dist/csound.js" >> "$GITHUB_ENV"
       - name: Test and pack
         run: npm pack
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: csound-plugins-npm
           path: csound-plugins-*.tgz

@@ -33,7 +33,7 @@ jobs:
       release: ${{ steps.check_pr.outputs.has_label }}
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Install Csound build dependencies
         run: |
@@ -76,7 +76,7 @@ jobs:
 
       - name: Cache Csound install
         id: cache-csound
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: ~/csound-install
           key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
@@ -122,7 +122,7 @@ jobs:
           cp 7.x/src/stk/rawwaves/*.raw package/stk/rawwaves/
 
       - name: Upload plugins
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: csound7-plugins-linux
           path: package/
@@ -134,7 +134,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Install Csound build dependencies
         env:
@@ -151,7 +151,7 @@ jobs:
         run: 7.x/vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
       - name: Cache vcpkg binary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: vcpkg-cache
           key: vcpkg-macos-${{ github.run_id }}
@@ -159,7 +159,7 @@ jobs:
 
       - name: Cache Csound install
         id: cache-csound
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: ~/csound-install
           key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
@@ -228,7 +228,7 @@ jobs:
           cp 7.x/src/stk/rawwaves/*.raw package/stk/rawwaves/
 
       - name: Upload plugins
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: csound7-plugins-macos
           path: package/
@@ -243,7 +243,7 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Install Csound build dependencies
         run: choco install -y winflexbison3
@@ -255,7 +255,7 @@ jobs:
 
       - name: Cache Csound install
         id: cache-csound
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: ${{ runner.temp }}\csound-install
           key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
@@ -271,7 +271,7 @@ jobs:
         run: .\7.x\vcpkg\bootstrap-vcpkg.bat -disableMetrics
 
       - name: Cache vcpkg binary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: ${{ github.workspace }}\vcpkg-cache
           key: vcpkg-windows-${{ github.run_id }}
@@ -330,7 +330,7 @@ jobs:
           Copy-Item '7.x\src\stk\rawwaves\*.raw' -Destination $rawwaves
 
       - name: Upload plugins
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: csound7-plugins-windows
           path: package/
@@ -344,7 +344,7 @@ jobs:
       image: nvidia/cuda:12.4.1-devel-ubuntu22.04
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Install build dependencies
         run: |
@@ -360,7 +360,7 @@ jobs:
 
       - name: Cache Csound install
         id: cache-csound
-        uses: actions/cache@v4
+        uses: actions/cache@v6.1.0
         with:
           path: /csound-install
           key: csound-cuda-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
@@ -403,7 +403,7 @@ jobs:
           cp build/src/CUDA/*.so package/
 
       - name: Upload plugins
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: csound7-plugins-linux-cuda
           path: package/
@@ -418,25 +418,25 @@ jobs:
       contents: write
     steps:
       - name: Download Linux plugins
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.2
         with:
           name: csound7-plugins-linux
           path: release/linux
 
       - name: Download Linux CUDA plugins
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.2
         with:
           name: csound7-plugins-linux-cuda
           path: release/linux
 
       - name: Download macOS plugins
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.2
         with:
           name: csound7-plugins-macos
           path: release/macos
 
       - name: Download Windows plugins
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.2
         with:
           name: csound7-plugins-windows
           path: release/windows

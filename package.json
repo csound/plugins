@@ -19,9 +19,19 @@
   "engines": {
     "node": ">=22.13.0"
   },
-  "files": ["dist", "index.js", "index.d.ts", "LICENSE", "THIRD_PARTY.md", "wasm/README.md"],
+  "files": [
+    "dist",
+    "index.js",
+    "index.d.ts",
+    "LICENSE",
+    "THIRD_PARTY.md",
+    "wasm/README.md"
+  ],
   "exports": {
-    ".": { "types": "./index.d.ts", "import": "./index.js" },
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
     "./dist/*": "./dist/*",
     "./package.json": "./package.json"
   },
@@ -33,7 +43,14 @@
   },
   "devDependencies": {
     "@csound/browser": "7.0.0-beta38",
-    "@csound/wasm-bin": "7.0.0-beta28"
+    "@csound/wasm-bin": "7.0.0-beta29"
   },
-  "keywords": ["csound", "audio", "plugins", "wasm", "wasi", "webassembly"]
+  "keywords": [
+    "csound",
+    "audio",
+    "plugins",
+    "wasm",
+    "wasi",
+    "webassembly"
+  ]
 }
