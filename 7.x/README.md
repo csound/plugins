@@ -43,6 +43,55 @@ Currently, the plugins available in this tree are
 **STKBandedWG STKBeeThree STKBlowBotl STKBlowHole STKBowed STKBrass STKClarinet STKDrummer STKFlute STKFMVoices STKHevyMetl STKMandolin STKModalBar STKMoog STKPercFlut STKPlucked STKResonate STKRhodey STKSaxofony STKShakers STKSimple STKSitar STKStifKarp STKTubeBell STKVoicForm STKWhistle STKWurley**  
 
 
+WebAssembly (WASM) plugins
+---
+
+Besides the native plugin libraries described above, this tree can also be
+built for the browser: Csound 7 runs under WebAssembly (WASI) through the
+`@csound/browser` runtime, and a subset of these plugins is available as WASM
+side modules. The WASM build is driven by the Nix expression in
+[`wasm/default.nix`](../wasm/default.nix) and published as the `@csound/plugins`
+npm package; see [`wasm/README.md`](../wasm/README.md) for the build and test
+instructions.
+
+Only four plugins are built for WASM:
+
+- chua (`chuap`)
+- image
+- linear_algebra
+- STK (`stkops`)
+
+The remaining plugins are **disabled** in the WASM build, either because their
+dependencies do not exist in the WASI/static-PIC toolchain or because they need
+platform facilities the browser does not provide: fluidOpcodes (FluidSynth),
+hdf5, faust (libfaust), websockets, py (Python), wiimote, p5glove, CUDA and
+OpenCL.
+
+The `@csound/plugins` package exposes one asset URL per WASM plugin:
+
+| Export | Plugin | File |
+| --- | --- | --- |
+| `plugins.chua` | chua | `chua.wasm` |
+| `plugins.image` | image | `image.wasm` |
+| `plugins.linearAlgebra` | linear_algebra | `linear_algebra.wasm` |
+| `plugins.stk` | STK | `stkops.wasm` |
+
+The URLs are passed to the runtime's `withPlugins` option, e.g.:
+
+```js
+import { Csound } from "@csound/browser";
+import { plugins } from "@csound/plugins";
+
+const csound = await Csound({ withPlugins: [plugins.chua, plugins.image] });
+```
+
+Unlike the native build, the WASM STK plugin embeds its raw-wave samples in
+`stkops.wasm` (`STK_EMBED_RAWWAVES` defaults to ON for WASM): at initialization
+it writes them to Csound's virtual filesystem and sets the wave path, so no
+separate download or `RAWWAVE_PATH` setup is needed. An explicit `RAWWAVE_PATH`
+still overrides the embedded samples.
+
+
 Fluid settings opcodes
 ---
 
