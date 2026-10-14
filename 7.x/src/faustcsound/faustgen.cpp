@@ -32,15 +32,19 @@
     (convenient for one-off Faust programs)
 
 */
+/* The C++ standard headers must be included before "csdl.h": the latter pulls
+   in Csound's "interlocks.h", which defines short generic macros such as
+   _CR and TR that clash with identifiers used inside <chrono> (reached via
+   <mutex>) in both libstdc++ and the MSVC STL. */
+#include <string>
+#include <cstdlib>
+#include <mutex>
 #include "csdl.h"
 #ifndef FAUSTFLOAT
 #define FAUSTFLOAT cs_float
 #endif
 #include "faust/dsp/llvm-dsp.h"
 #include "faust/gui/UI.h"
-#include <string>
-#include <cstdlib>
-#include <mutex>
 #ifdef _WIN32
 #include <windows.h>
 #else
