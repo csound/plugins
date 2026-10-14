@@ -9,6 +9,9 @@ Currently, the plugins available in this tree are
 - fluidOpcodes (requires fluidsynth)  
 **fluidEngine fluidLoad fluidNote fluidCCi fluidCCk fluidControl fluidProgramSelect fluidAllOut fluidOut fluidInfo fluidSetInterpMethod**
 
+- faust (requires the Faust compiler library and headers, `libfaust`)  
+**faustgen faustcompile faustaudio faustdsp faustplay faustctl**
+
 - image (requires libpng)  
 **imageload imagesave imagecreate imagesize imagegetpixel imagesetpixel imagefree**
 
@@ -154,6 +157,61 @@ if set, overrides the built-in default location; otherwise the installed
 Windows release packages.
 
 
+Faust opcodes
+---
+
+The `faust` opcodes embed the [Faust](https://faust.grame.fr/) compiler and
+DSP runtime into Csound, so a Faust program supplied as a string is compiled
+at init time and run as a Csound opcode. They are a port of the Csound 6.x
+plugin to the Csound 7 plugin API:
+
+```
+ihandle[,asig1,...]  faustgen     Scode[,ain1,...]
+ihandle              faustcompile Scode, Sargs[, iasync, istacksize[, Starget]]
+ihandle[,asig1,...]  faustaudio   ifactory[,ain1,...]
+ihandle              faustdsp     ifactory
+asig1[,asig2,...]    faustplay    ihandle[,ain1,...]
+                     faustctl     ihandle, Slabel, kval[, Slabel1, kval1, ...]
+```
+
+Where:
+
+- `faustgen` compiles `Scode` and runs it in a single opcode, returning a
+  handle and the audio outputs.
+- `faustcompile` compiles `Scode` and returns `ihandle`, a handle to the
+  compiled factory, to be passed to `faustaudio` or `faustdsp`.
+- `faustaudio`/`faustdsp` instantiate the factory named by `ifactory`;
+  `faustaudio` has audio inputs and outputs, `faustdsp` has none.
+- `faustplay` runs the DSP instance named by `ihandle` (one returned by
+  `faustgen`, `faustaudio` or `faustdsp`) with explicit inputs and outputs.
+- `faustctl` sets the control `Slabel` of a DSP instance; both an i-rate
+  (`iSi`) and a k-rate (`iSk`) form are provided, the latter updating the
+  control every k-cycle.
+
+`Scode` is the Faust program (programs that use the standard library need
+`import("stdfaust.lib");`). `Sargs` holds any extra Faust compiler options;
+`iasync` selects asynchronous compilation (on by default), `istacksize` is
+accepted for backwards compatibility but ignored (the Csound 7 threading API
+no longer sets the thread stack size) and `Starget` is an optional LLVM
+target string (an empty string selects the native target).
+
+The opcodes need the Faust compiler library (`libfaust`) and headers. The
+build looks for them automatically; if Faust is in a non-standard location,
+point CMake at it with `FAUST_INCLUDE_DIR_HINT`, `FAUST_LIB_DIR_HINT` and
+`FAUST_STDLIB_DIR_HINT`. With `-DFAUST_STATIC=ON` the plugin is linked
+against the self-contained `libfaustwithllvm` archive, which bundles LLVM so
+the plugin has no runtime dependency on `libfaust` (at the cost of a much
+larger plugin).
+
+It is built by default; configure with `-DBUILD_FAUST_OPCODES=OFF` to
+exclude it. The Faust standard library is installed next to the plugin (in a
+`faust` subdirectory), so `import("stdfaust.lib")` works without a separate
+Faust installation; set `FAUST_LIB_PATH` at run time to override it. The CI
+downloads the official Faust release binaries, builds with `FAUST_STATIC=ON`
+and includes the plugin (and the standard library) in the Linux, macOS and
+Windows release packages.
+
+
 Release binaries and macOS architecture
 --------------
 
@@ -211,7 +269,7 @@ $ make
 By default, all the plugins are built. If one wants to exclude a
 plugin from the build process, one can pass an option to the cmake command.
 The options are `BUILD_CHUA_OPCODES`, `BUILD_CUDA_OPCODES`,
-`BUILD_OPENCL_OPCODES`, `BUILD_FLUID_OPCODES`,
+`BUILD_OPENCL_OPCODES`, `BUILD_FAUST_OPCODES`, `BUILD_FLUID_OPCODES`,
 `BUILD_IMAGE_OPCODES`, `BUILD_HDF5_OPCODES`, `BUILD_LINEAR_ALGEBRA_OPCODES`,
 `BUILD_P5GLOVE_OPCODES`, `BUILD_STK_OPCODES`, `BUILD_WIIMOTE_OPCODES`,
 `BUILD_WEBSOCKET_OPCODE` and
