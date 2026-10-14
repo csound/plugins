@@ -3,4 +3,5 @@ export const plugins = Object.freeze({
   chua: new URL("./dist/chua.wasm", import.meta.url).href,
   image: new URL("./dist/image.wasm", import.meta.url).href,
   linearAlgebra: new URL("./dist/linear_algebra.wasm", import.meta.url).href,
+  stk: new URL("./dist/stkops.wasm", import.meta.url).href,
 });

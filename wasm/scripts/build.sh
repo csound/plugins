@@ -12,7 +12,7 @@ fi
 nix-build wasm/default.nix "${args[@]}"
 staging=$(mktemp -d .wasm-dist.XXXXXX)
 trap 'rm -rf "$staging"' EXIT
-for plugin in chua image linear_algebra; do
+for plugin in chua image linear_algebra stkops; do
   install -m 644 "result-wasm/lib/$plugin.wasm" "$staging/$plugin.wasm"
 done
 cp -R result-wasm/share/licenses "$staging/licenses"

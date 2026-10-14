@@ -15,8 +15,13 @@ function(configure_wasm_plugin target)
     target_compile_options(${target} PRIVATE
         -fPIC "SHELL:-mllvm -wasm-enable-sjlj"
         "$<$<COMPILE_LANGUAGE:C>:-std=gnu11>"
-        "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-nostdinc++>"
+        "$<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>"
         "$<$<COMPILE_LANGUAGE:CXX>:-isystem${WASM_CXX_INCLUDE_DIR}>")
+    if(WASM_CXX_EXCEPTIONS)
+        target_compile_options(${target} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-fwasm-exceptions>")
+    else()
+        target_compile_options(${target} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
+    endif()
     target_link_options(${target} PRIVATE
         -shared -nostdlib -nostartfiles
         "LINKER:-Bsymbolic"
