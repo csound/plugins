@@ -4,6 +4,13 @@
 }:
 let
   wasi = pkgs.pkgsCross.wasi32.clangStdenv;
+  # Nix's WASI wrapper otherwise forces -fno-exceptions after CMake's flags.
+  # Let each target select its exception mode instead.
+  wasiCxx = pkgs.overrideCC wasi (wasi.cc.override (old: {
+    nixSupport = old.nixSupport // {
+      cc-cflags = builtins.filter (flag: flag != "-fno-exceptions") old.nixSupport.cc-cflags;
+    };
+  }));
   libc = pkgs.pkgsCross.wasi32.wasilibc.overrideAttrs (old: {
     NIX_CFLAGS_COMPILE = (old.NIX_CFLAGS_COMPILE or []) ++ [ "-fPIC" ];
     # Use the engine's allocator. wasi-libc also skips its fixed symbol list
@@ -18,6 +25,26 @@ let
       "-DLIBCXX_ENABLE_FILESYSTEM=ON"
     ];
     dontStrip = true;
+  });
+  libunwindSource = pkgs.pkgsCross.wasi32.llvmPackages.libunwind.src;
+  libunwind = wasi.mkDerivation {
+    pname = "libunwind-wasm-pic";
+    inherit (libcxx) version;
+    src = ./libunwind;
+    nativeBuildInputs = [ pkgs.cmake pkgs.ninja ];
+    cmakeFlags = [ "-DLIBUNWIND_SOURCE_DIR=${libunwindSource}/libunwind" ];
+    dontStrip = true;
+  };
+  libcxxExceptions = (libcxx.override { stdenv = wasiCxx; }).overrideAttrs (old: {
+    pname = "libcxx-wasm-exceptions";
+    cmakeFlags = old.cmakeFlags ++ [
+      "-DLIBCXX_ENABLE_EXCEPTIONS=ON"
+      "-DLIBCXX_ADDITIONAL_LIBRARIES="
+      "-DLIBCXXABI_ENABLE_EXCEPTIONS=ON"
+    ];
+    preConfigure = (old.preConfigure or "") + ''
+      cmakeFlagsArray+=("-DCMAKE_CXX_FLAGS=-fexceptions -fwasm-exceptions -I${libunwindSource}/libunwind/include")
+    '';
   });
   lock = builtins.fromJSON (builtins.readFile ../package-lock.json);
   wasmBin = lock.packages."node_modules/@csound/wasm-bin";
@@ -56,7 +83,7 @@ let
     NIX_CFLAGS_COMPILE = [ "-mllvm" "-wasm-enable-sjlj" ];
     dontStrip = true;
   };
-in wasi.mkDerivation {
+in wasiCxx.mkDerivation {
   pname = "csound-plugins-wasm";
   version = (builtins.fromJSON (builtins.readFile ../package.json)).version;
   src = pkgs.lib.cleanSource ../7.x;
@@ -71,13 +98,16 @@ in wasi.mkDerivation {
     "-DWASM_SETJMP=${libc}/lib/libsetjmp.a"
     "-DWASM_LIBCXX=${libcxx}/lib/libc++.a"
     "-DWASM_CXX_INCLUDE_DIR=${libcxx.dev}/include/c++/v1"
+    "-DWASM_LIBCXX_EXCEPTIONS=${libcxxExceptions}/lib/libc++.a"
+    "-DWASM_CXX_EXCEPTIONS_INCLUDE_DIR=${libcxxExceptions.dev}/include/c++/v1"
+    "-DWASM_LIBUNWIND=${libunwind}/lib/libunwind.a"
     "-DEIGEN3_INCLUDE_DIR=${pkgs.eigen}/include/eigen3"
     "-DZLIB_LIBRARY=${zlib}/lib/libzlibstatic.a"
     "-DPNG_LIBRARY=${libpng}/lib/libpng.a"
     "-DBUILD_CHUA_OPCODES=ON"
     "-DBUILD_IMAGE_OPCODES=ON"
     "-DBUILD_LINEAR_ALGEBRA_OPCODES=ON"
-    "-DBUILD_STK_OPCODES=OFF"
+    "-DBUILD_STK_OPCODES=ON"
     "-DBUILD_FLUID_OPCODES=OFF"
     "-DBUILD_HDF5_OPCODES=OFF"
     "-DBUILD_WEBSOCKET_OPCODE=OFF"
@@ -95,12 +125,14 @@ in wasi.mkDerivation {
     cp ${libc.src}/fts/musl-fts/COPYING $out/share/licenses/wasi-libc/musl-fts.txt
     cp ${libcxx.src}/libcxx/LICENSE.TXT $out/share/licenses/libcxx.txt
     cp ${libcxx.src}/libcxxabi/LICENSE.TXT $out/share/licenses/libcxxabi.txt
+    cp ${libunwindSource}/libunwind/LICENSE.TXT $out/share/licenses/libunwind.txt
+    cp ${../7.x/src/stk/LICENSE} $out/share/licenses/stk.txt
     cp ${pkgs.pkgsCross.wasi32.llvmPackages.compiler-rt.src}/compiler-rt/LICENSE.TXT $out/share/licenses/compiler-rt.txt
     cp ${pkgs.eigen.src}/COPYING* $out/share/licenses/eigen/
     sed -n '1,/^=*[*][/]$/p' ${../7.x/src/linear_algebra/gmm/gmm.h} > $out/share/licenses/gmm.txt
     tar -xOf ${pkgs.libpng.src} libpng-${pkgs.libpng.version}/LICENSE > $out/share/licenses/libpng.txt
     tar -xOf ${pkgs.zlib.src} zlib-${pkgs.zlib.version}/LICENSE > $out/share/licenses/zlib.txt
-    for plugin in chua image linear_algebra; do
+    for plugin in chua image linear_algebra stkops; do
       test -s "$out/lib/$plugin.wasm"
     done
   '';

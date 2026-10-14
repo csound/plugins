@@ -31,10 +31,11 @@ e
 
 /**
  * Load plugin bytes into Csound 7 and render the given instrument body.
+ * Run prepare before compilation to set options or supply files.
  * Call check with the API, Csound instance, and peak sample magnitude before
  * destroying the instance.
  */
-async function run(body, check, withPlugins = binaries) {
+async function run(body, check, withPlugins = binaries, prepare = () => {}) {
   const errors = [];
   const originalError = console.error;
   console.error = (...args) => errors.push(args.join(" "));
@@ -49,6 +50,7 @@ async function run(body, check, withPlugins = binaries) {
   assert.equal(api.csoundGetSizeOfMYFLT(), 8);
   const csound = api.csoundCreate();
   try {
+    await prepare(api, csound);
     assert.equal(api.csoundCompileCSD(csound, document(body)), 0);
     assert.equal(api.csoundStart(csound), 0);
     let peak = 0;
@@ -87,6 +89,53 @@ test("chua produces finite, nonzero audio alongside the other plugins", async ()
     a1, a2, a3 chuap 0.018, 0, 1e-7, 1/1500, -0.0008, -0.0005, 1, 1e-8, 0, 0, 0.1, 1e-5
     out a3 * 0.1
   `, (_, __, peak) => assert.ok(peak > 0));
+});
+
+for (const instrument of ["STKMandolin", "STKModalBar", "STKBeeThree", "STKDrummer"]) {
+  test(`${instrument} renders with embedded waves alongside the other plugins`, async () => {
+    await run(`
+      a1 ${instrument} 220, 0.5
+      out a1
+    `, (_, __, peak) => assert.ok(peak > 0));
+  });
+}
+
+test("STK loads on its own without a raw-wave path or extra files", async () => {
+  const stk = await readFile(new URL(plugins.stk));
+  await run("a1 STKMandolin 220, 0.5\nout a1", (_, __, peak) => assert.ok(peak > 0), [stk]);
+});
+
+test("RAWWAVE_PATH uses caller-supplied samples without overwriting them", async () => {
+  const silentWave = new Uint8Array(512);
+  await run("a1 STKModalBar 220, 0.5\nout a1", async (api, csound, peak) => {
+    assert.equal(peak, 0);
+    assert.deepEqual(await api.readFile(csound, "/custom-waves/marmstk1.raw"), silentWave);
+  }, binaries, async (api, csound) => {
+    await api.writeFile(csound, "/custom-waves/marmstk1.raw", silentWave);
+    assert.equal(api.csoundSetOption(csound, "--env:RAWWAVE_PATH=/custom-waves"), 0);
+  });
+});
+
+test("STK reports a missing sample through Csound instead of throwing out of WASM", async () => {
+  const api = await libcsound({ withPlugins: binaries });
+  const csound = api.csoundCreate();
+  const messages = [];
+  const originalLog = console.log;
+  console.log = (...args) => messages.push(args.join(" "));
+  try {
+    assert.equal(api.csoundSetOption(csound, "--env:RAWWAVE_PATH=/missing-stk-waves"), 0);
+    assert.equal(api.csoundCompileCSD(csound, document("a1 STKMandolin 220, 0.5\nout a1")), 0);
+    assert.equal(api.csoundStart(csound), 0);
+    let result = 0;
+    for (let block = 0; block < 100 && result === 0; block++) {
+      result = api.csoundPerformKsmps(csound);
+    }
+    assert.notEqual(result, 0, "the failed score must finish");
+    assert.ok(messages.some((message) => message.includes("STK: FileRead::open")), messages.join("\n"));
+  } finally {
+    api.csoundDestroy(csound);
+    console.log = originalLog;
+  }
 });
 
 test("linear algebra computes a vector norm", async () => {

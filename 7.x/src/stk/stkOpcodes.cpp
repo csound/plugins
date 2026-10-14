@@ -25,9 +25,10 @@
  *
  * The STK sources are bundled in this directory (include/, src/ and
  * rawwaves/) so that a patched copy is always used, independent of any system
- * or package-manager STK installation. The rawwaves path defaults to the
- * installed location (DEFAULT_RAWWAVE_PATH) and can be overridden with the
- * RAWWAVE_PATH environment variable.
+ * or package-manager STK installation. STK_EMBED_RAWWAVES stages the bundled
+ * samples at module initialization; otherwise the rawwaves path defaults to
+ * the installed location (DEFAULT_RAWWAVE_PATH). The RAWWAVE_PATH environment
+ * variable overrides either default.
  *
  * All these opcodes are named "STK" + the STK classname,
  * e.g. "STKBowed" for the Bowed instrument.
@@ -52,6 +53,16 @@
 #include <map>
 #include <string>
 #include <vector>
+
+#ifdef STK_EMBED_RAWWAVES
+#include <cerrno>
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
+#include "stk_rawwaves.inc"
+#endif
 
 #include "BandedWG.h"
 #include "BeeThree.h"
@@ -584,8 +595,45 @@ OENTRY oentries[] = {
 
 PUBLIC int32_t csoundModuleCreate(CSOUND *csound) { return 0; }
 
+#ifdef STK_EMBED_RAWWAVES
+// Keep STK's file reader unchanged by staging the embedded bytes at module init.
+static bool writeEmbeddedRawwaves(CSOUND *csound, const char *directory) {
+#ifdef _WIN32
+  const int result = _mkdir(directory);
+#else
+  const int result = mkdir(directory, 0700);
+#endif
+  if (result != 0 && errno != EEXIST) {
+    csound->Message(csound, "STK: cannot create raw-wave directory %s\n", directory);
+    return false;
+  }
+  for (const auto &wave : stkRawwaves) {
+    const std::string filename = std::string(directory) + "/" + wave.name;
+    FILE *file = fopen(filename.c_str(), "wb");
+    if (!file) {
+      csound->Message(csound, "STK: cannot open embedded raw wave %s\n", filename.c_str());
+      return false;
+    }
+    const bool written = fwrite(wave.bytes, 1, wave.size, file) == wave.size;
+    const int closed = fclose(file);
+    if (!written || closed != 0) {
+      csound->Message(csound, "STK: cannot write embedded raw wave %s\n", filename.c_str());
+      return false;
+    }
+  }
+  return true;
+}
+#endif
+
 PUBLIC int32_t csoundModuleInit(CSOUND *csound) {
   const char *path = csound->GetEnv(csound, "RAWWAVE_PATH");
+#ifdef STK_EMBED_RAWWAVES
+  if (path == NULL || strlen(path) == 0) {
+    path = ".csound-stk-rawwaves";
+    if (!writeEmbeddedRawwaves(csound, path))
+      return NOTOK;
+  }
+#endif
 #ifdef DEFAULT_RAWWAVE_PATH
   if (path == NULL || strlen(path) == 0)
     path = DEFAULT_RAWWAVE_PATH;

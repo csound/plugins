@@ -3,4 +3,5 @@ export declare const plugins: Readonly<{
   chua: string;
   image: string;
   linearAlgebra: string;
+  stk: string;
 }>;
