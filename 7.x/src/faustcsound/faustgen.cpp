@@ -32,14 +32,19 @@
     (convenient for one-off Faust programs)
 
 */
+/* The C++ standard headers must be included before "csdl.h": the latter pulls
+   in Csound's "interlocks.h", which defines short generic macros such as
+   _CR and TR that clash with identifiers used inside <chrono> (reached via
+   <mutex>) in both libstdc++ and the MSVC STL. */
+#include <string>
+#include <cstdlib>
+#include <mutex>
 #include "csdl.h"
 #ifndef FAUSTFLOAT
 #define FAUSTFLOAT cs_float
 #endif
 #include "faust/dsp/llvm-dsp.h"
 #include "faust/gui/UI.h"
-#include <string>
-#include <cstdlib>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -48,6 +53,17 @@
 #endif
 
 #define MAXARG 40
+
+/* Faust/LLVM factory creation is not thread-safe, so all calls to
+   createDSPFactoryFromString are serialised by this lock. It is deliberately
+   separate from the registry lock: a compilation can take a long time, and
+   holding the registry lock for its duration would stall factory lookups
+   (and thus the performance thread) in faustdsp/faustaudio. */
+static std::mutex faust_compile_mutex;
+
+/* Protects the shared ::factory and ::dsp registry lists. Held only for the
+   short operations that read or modify those lists. */
+static std::mutex faust_registry_mutex;
 
 static int dir_exists(const char *p) {
 #ifdef _WIN32
@@ -138,7 +154,7 @@ class controls : public UI {
     pctl->nxt = new ctl;
     pctl = pctl->nxt;
     strncpy(pctl->label, label, 63);
-    pctl->label[63] = '\n'; pctl->label[64] = '\0';
+    pctl->label[63] = '\0'; pctl->label[64] = '\0';
     pctl->zone = zone;
     pctl->min = min;
     pctl->max = max;
@@ -249,15 +265,16 @@ struct faustobj {
  * Faust compile opcode
 
  usage:
- ihandle  faustcompile Scode, Sargs[,iasync, istacksize]
+ ihandle  faustcompile Scode, Sargs[,iasync, istacksize[,Starget]]
 
  ihandle - handle to compiled code
  Scode - Faust program
  Sargs - Faust compiler args
  istacksize - compiler stack size in megabytes (default 1MB). NOTE: this
- argument is accepted for backwards compatibility but is currently ignored,
- as the Csound 7 threading API no longer supports setting the stack size.
+              argument is accepted for backwards compatibility but is currently ignored,
+              as the Csound 7 threading API no longer supports setting the stack size.
  iasync - async operation (1 = on, 0 = off) default to 1
+ Starget - optional LLVM target string (empty selects the native target)
 **/
 struct faustcompile {
   OPDS h;
@@ -266,10 +283,18 @@ struct faustcompile {
   STRINGDAT *args;
   cs_float *async;
   cs_float *stacksize;
-  cs_float *extra;
+  STRINGDAT *target;         /* optional LLVM target string */
+};
+
+/* Persistent state for a compiled factory. The asynchronous compilation
+   thread and the reset callback must not refer to the per-note faustcompile
+   opcode, whose memory is released as soon as the instrument that runs
+   faustcompile ends. */
+struct faustcompile_state {
+  CSOUND *csound;
   llvm_dsp_factory *factory;
   void *thread;
-  void *lock;
+  faustobj *node;  /* reserved ::factory slot, published by the worker */
 };
 
 char **parse_cmd(CSOUND *csound, char *str, int32_t *argc) {
@@ -308,105 +333,96 @@ char **parse_cmd(CSOUND *csound, char *str, int32_t *argc) {
 
 int32_t delete_faustcompile(CSOUND *csound, void *p) {
 
-  faustcompile *pp = ((faustcompile *)p);
+  faustcompile_state *st = ((faustcompile_state *)p);
   faustobj *fobj, *prv, **pfobj;
-  if (pp->thread)
-    csound->JoinThread(pp->thread);
-  pfobj = (faustobj **)csound->QueryGlobalVariable(csound, "::factory");
-  if(pfobj != NULL) {
-    fobj = *pfobj;
-    prv = fobj;
-    while (fobj != NULL) {
-      if (fobj->obj == (void *)pp->factory) {
-        prv->nxt = fobj->nxt;
-        break;
+  if (st->thread)
+    csound->JoinThread(st->thread);
+  {
+    std::lock_guard<std::mutex> guard(faust_registry_mutex);
+    pfobj = (faustobj **)csound->QueryGlobalVariable(csound, "::factory");
+    if(pfobj != NULL) {
+      fobj = *pfobj;
+      prv = NULL;
+      while (fobj != NULL) {
+        if (fobj == st->node) {
+          if (prv == NULL)
+            *pfobj = fobj->nxt;
+          else
+            prv->nxt = fobj->nxt;
+          break;
+        }
+        prv = fobj;
+        fobj = fobj->nxt;
       }
-      prv = fobj;
-      fobj = fobj->nxt;
-    }
-    if (fobj != NULL) {
-      if (*pfobj == fobj)
-        *pfobj = fobj->nxt;
-      deleteDSPFactory(pp->factory);
-      csound->Free(csound, fobj);
+      if (fobj != NULL) {
+        if (st->factory != NULL)
+          deleteDSPFactory(st->factory);
+        csound->Free(csound, fobj);
+      }
     }
   }
-  csound->DestroyMutex(pp->lock);
+  csound->Free(csound, st);
   return OK;
 }
 
 struct hdata {
-  faustcompile *p;
   CSOUND *csound;
+  char *code;
+  char *args;
+  char *target;
+  faustcompile_state *state;
 };
+
+/* A factory slot is published in three states: obj == NULL while the
+   asynchronous compilation is still running, obj == (void *)-1 if it
+   failed, and otherwise obj is the llvm_dsp_factory. */
+#define FAUST_SLOT_PENDING ((void *)NULL)
+#define FAUST_SLOT_FAILED ((void *)-1L)
 
 void *init_faustcompile_thread(void *pp) {
 
-  faustcompile *p = ((hdata *)pp)->p;
-  faustobj **pffactory, *ffactory;
-  CSOUND *csound = ((hdata *)pp)->csound;
+  hdata *hd = (hdata *)pp;
+  CSOUND *csound = hd->csound;
   llvm_dsp_factory *factory;
   int32_t argc = 0;
   std::string err_msg;
-  char *cmd = (char *) csound->Calloc(csound, p->args->size + 9);
-  char *ccode = csound->Strdup(csound, p->code->data);
-  char *extra;
-  cs_float test = *p->extra;
-  strcpy(cmd, p->args->data);
+  size_t alen = hd->args ? strlen(hd->args) : 0;
+  char *cmd = (char *) csound->Calloc(csound, alen + 9);
+  const char *ccode = hd->code;
+  const char *target = hd->target ? hd->target : "";
+  if (alen)
+    strcpy(cmd, hd->args);
 #ifdef USE_DOUBLE
   strcat(cmd, " -double");
 #endif
   const char **argv = (const char **) parse_cmd(csound, cmd, &argc);
-  const char *varname = "::factory";
 
-  if(test)
-    extra = ((STRINGDAT *) p->extra)->data;
-  else
-    extra = (char *) "";
+  {
+    std::lock_guard<std::mutex> guard(faust_compile_mutex);
+    factory = createDSPFactoryFromString("faustop", ccode,
+                                         argc, argv, target, err_msg, 3);
+  }
+  hd->state->factory = factory;
 
-  // Need to protect this
-  csound->LockMutex((void *) p->lock);
-  factory = createDSPFactoryFromString("faustop", (const char *) ccode,
-                                       argc, argv, extra, err_msg, 3);
-  csound->UnlockMutex((void *) p->lock);
-
-  if (factory == NULL) {
+  if (factory == NULL)
     csound->Message(csound, Str("\nFaust compilation problem:\nline %s\n"),
                     err_msg.c_str());
-    *(p->hptr) = FL(-2.0); // error code.
-    csound->Free(csound, argv);
-    csound->Free(csound, cmd);
-    csound->Free(csound, ccode);
-    csound->Free(csound, pp);
-    return NULL;
+
+  /* Publish the outcome into the slot reserved during init; never touch the
+     per-note output pointer, which may already have been reclaimed. */
+  {
+    std::lock_guard<std::mutex> guard(faust_registry_mutex);
+    if (hd->state->node != NULL)
+      hd->state->node->obj = factory ? (void *)factory : FAUST_SLOT_FAILED;
   }
 
-  pffactory = (faustobj **)csound->QueryGlobalVariable(csound, varname);
-  if (pffactory == NULL) {
-    csound->CreateGlobalVariable(csound, varname, sizeof(faustobj *));
-    pffactory = (faustobj **)csound->QueryGlobalVariable(csound, varname);
-    ffactory = (faustobj *)csound->Calloc(csound, sizeof(faustobj));
-    ffactory->obj = factory;
-    ffactory->nxt = NULL;
-    ffactory->cnt = 0ul;
-    *pffactory = ffactory;
-  } else {
-    ffactory = *pffactory;
-    while (ffactory->nxt) {
-      ffactory = ffactory->nxt;
-    }
-    ffactory->nxt = (faustobj *) csound->Calloc(csound, sizeof(faustobj));
-    ffactory->nxt->cnt = ffactory->cnt+1ul;
-    ffactory = ffactory->nxt;
-    ffactory->obj = factory;
-  }
-  p->factory = factory;
-  if(p->hptr)
-    *p->hptr = FL(ffactory->cnt);
   csound->Free(csound, argv);
   csound->Free(csound, cmd);
-  csound->Free(csound, ccode);
-  csound->Free(csound, pp);
+  csound->Free(csound, hd->code);
+  csound->Free(csound, hd->args);
+  if (hd->target)
+    csound->Free(csound, hd->target);
+  csound->Free(csound, hd);
 
   return NULL;
 }
@@ -416,23 +432,123 @@ static uintptr_t init_faustcompile_thread_runner(void *pp) {
   return 0;
 }
 
+/* Append a new (pending) entry to the ::factory registry and return it. Must
+   be called with faust_registry_mutex held. */
+static faustobj *reserve_factory_slot(CSOUND *csound) {
+  faustobj **pffactory, *ffactory, *fnew;
+  const char *varname = "::factory";
+
+  pffactory = (faustobj **)csound->QueryGlobalVariable(csound, varname);
+  if (pffactory == NULL) {
+    csound->CreateGlobalVariable(csound, varname, sizeof(faustobj *));
+    pffactory = (faustobj **)csound->QueryGlobalVariable(csound, varname);
+  }
+  ffactory = *pffactory;
+  if (ffactory == NULL) {
+    fnew = (faustobj *)csound->Calloc(csound, sizeof(faustobj));
+    fnew->obj = FAUST_SLOT_PENDING;
+    fnew->nxt = NULL;
+    fnew->cnt = 0ul;
+    *pffactory = fnew;
+    return fnew;
+  }
+  while (ffactory->nxt != NULL)
+    ffactory = ffactory->nxt;
+  fnew = (faustobj *)csound->Calloc(csound, sizeof(faustobj));
+  fnew->obj = FAUST_SLOT_PENDING;
+  fnew->nxt = NULL;
+  fnew->cnt = ffactory->cnt + 1ul;
+  ffactory->nxt = fnew;
+  return fnew;
+}
+
+/* Resolve a faustcompile handle to its registry entry, waiting for an
+   asynchronous compilation to publish the factory. Returns NULL (after
+   issuing an error) on failure. */
+static faustobj *resolve_factory(CSOUND *csound, int32_t handle) {
+  faustobj **fobjp, *fobj = NULL;
+  int timout = 0;
+  int failed = (handle < 0);
+
+  if (!failed) {
+    fobjp = (faustobj **)csound->QueryGlobalVariable(csound, "::factory");
+    if (fobjp == NULL) {
+      csound->InitError(csound, "%s", Str("no factory available\n"));
+      return NULL;
+    }
+    for (;;) {
+      {
+        std::lock_guard<std::mutex> guard(faust_registry_mutex);
+        fobj = *fobjp;
+        while (fobj != NULL && (int32_t)fobj->cnt != handle)
+          fobj = fobj->nxt;
+        if (fobj == NULL || fobj->obj != FAUST_SLOT_PENDING)
+          break;
+      }
+      csound->Sleep(1);
+      if (++timout > 1000) {
+        csound->InitError(csound, "%s", Str("Faust code was not ready. Try compiling it \n"
+                                            "in a separate instrument prior to running it here\n"));
+        return NULL;
+      }
+    }
+    if (fobj == NULL) {
+      csound->InitError(csound, Str("factory not found %d\n"), handle);
+      return NULL;
+    }
+    failed = (fobj->obj == FAUST_SLOT_FAILED);
+  }
+  if (failed) {
+    csound->InitError(csound, "%s", Str("Faust code did not compile properly.\n"
+                                        "Check above messages for Faust compiler errors\n"));
+    return NULL;
+  }
+  return fobj;
+}
+
 int32_t init_faustcompile(CSOUND *csound, faustcompile *p) {
+  faustcompile_state *st =
+      (faustcompile_state *)csound->Malloc(csound, sizeof(faustcompile_state));
+  st->csound = csound;
+  st->factory = NULL;
+  st->thread = NULL;
+  st->node = NULL;
+
+  /* Snapshot everything the asynchronous thread needs, so that it never
+     touches the per-note opcode memory (which is freed when this instrument
+     ends). The thread publishes its result into st->node, never into the
+     output pointer. */
   hdata *data = (hdata *)csound->Malloc(csound, sizeof(hdata));
   data->csound = csound;
-  data->p = p;
-  *p->hptr = -1.0;
-  p->lock = csound->Create_Mutex(0);
-  p->thread = NULL;
+  data->code = csound->Strdup(csound, p->code->data);
+  data->args = csound->Strdup(csound, p->args ? p->args->data : "");
+  data->target = NULL;
+  if (p->INOCOUNT > 4 && p->target != NULL && p->target->data != NULL)
+    data->target = csound->Strdup(csound, p->target->data);
+  data->state = st;
+
+  /* Reserve the registry slot and publish the handle while the opcode is
+     still alive, so that no write to per-note memory happens after the
+     instrument ends. */
+  {
+    std::lock_guard<std::mutex> guard(faust_registry_mutex);
+    st->node = reserve_factory_slot(csound);
+  }
+  *p->hptr = FL(st->node->cnt);
 
   if(!(int)*p->async) {
     /* synchronous compilation, run on the calling thread (large stack) */
     init_faustcompile_thread(data);
+    /* Preserve the historical output convention for synchronous failure. */
+    if (st->node->obj == FAUST_SLOT_FAILED)
+      *p->hptr = -2.0;
   } else {
-    p->thread = csound->CreateThread(init_faustcompile_thread_runner, data);
+    st->thread = csound->CreateThread(init_faustcompile_thread_runner, data);
   }
   /* Factory cleanup is deferred to reset, so that instruments using the
-     compiled factory are not affected when the compiling instrument ends. */
-  csound->RegisterResetCallback(csound, p, delete_faustcompile);
+     compiled factory are not affected when the compiling instrument ends.
+     The callback owns the persistent state, not the opcode. */
+  csound->RegisterResetCallback(csound, st, delete_faustcompile);
   return OK;
 }
 
@@ -465,6 +581,7 @@ int32_t delete_faustdsp(CSOUND *csound, void *p) {
     if (fobj != NULL) {
       if (*pfobj == fobj)
         *pfobj = fobj->nxt;
+      delete fobj->ctls;
       csound->Free(csound, fobj);
       delete pp->engine;
     } else
@@ -479,38 +596,15 @@ int32_t delete_faustdsp(CSOUND *csound, void *p) {
 
 int32_t init_faustdsp(CSOUND *csound, faustdsp *p) {
   int32_t factory;
-  faustobj *fobj, **fobjp, **pfdsp, *fdsp;
+  faustobj *fobj, **pfdsp, *fdsp;
   llvm_dsp *dsp;
   controls *ctls = new controls();
   const char *varname = "::dsp";
-  int timout = 0;
-  while (*((cs_float *)p->code) == -1.0) {
-    csound->Sleep(1);
-    timout++;
-    if(timout > 1000) {
-      return csound->InitError(
-                               csound, "%s", Str("Faust code was not ready. Try compiling it \n"
-                                                 "in a separate instrument prior to running it here\n"));
-    }
-  }
 
   factory = (int32_t)*((cs_float *)p->code);
-
-  if (factory == -2)
-    return csound->InitError(
-                             csound, "%s", Str("Faust code did not compile properly.\n"
-                                               "Check above messages for Faust compiler errors\n"));
-
-  fobjp = (faustobj **)csound->QueryGlobalVariable(csound, "::factory");
-  if (fobjp == NULL)
-    return csound->InitError(csound, "%s", Str("no factory available\n"));
-  fobj = *fobjp;
-  while ((int32_t)fobj->cnt != factory) {
-    fobj = fobj->nxt;
-    if (fobj == NULL)
-      return csound->InitError(csound, Str("factory not found %d\n"),
-                               (int32_t)factory);
-  }
+  fobj = resolve_factory(csound, factory);
+  if (fobj == NULL)
+    return CSOUND_ERROR;
 
   dsp = ((llvm_dsp_factory *)fobj->obj)->createDSPInstance();
   if (dsp == NULL)
@@ -577,6 +671,8 @@ int32_t init_faustplay(CSOUND *csound, faustplay *p) {
   if (fobjp == NULL)
     return csound->InitError(csound, "%s", Str("no dsp instances available\n"));
   fobj = *fobjp;
+  if (fobj == NULL)
+    return csound->InitError(csound, "%s", Str("no dsp instances available\n"));
 
   while ((int32_t)fobj->cnt != instance) {
     fobj = fobj->nxt;
@@ -586,14 +682,17 @@ int32_t init_faustplay(CSOUND *csound, faustplay *p) {
   }
 
   p->engine = (llvm_dsp *)fobj->obj;
-  p->engine->init((int)csound->GetEngineSr(csound));
 
+  /* The engine is owned and initialised by the opcode that created it
+     (faustdsp, faustaudio or faustgen), so it is neither re-initialised nor
+     deleted here; doing so would reset its state and invalidate the
+     registry. */
   if (p->engine->getNumInputs() != p->INOCOUNT - 1) {
-    delete p->engine;
+    p->engine = NULL;
     return csound->InitError(csound, "%s", Str("wrong number of input args\n"));
   }
   if (p->engine->getNumOutputs() != p->OUTOCOUNT) {
-    delete p->engine;
+    p->engine = NULL;
     return csound->InitError(csound, "%s", Str("wrong number of output args\n"));
   }
 
@@ -619,7 +718,7 @@ int32_t perf_faustplay(CSOUND *csound, faustplay *p) {
   cs_float **out_tmp = (cs_float **)p->memout.auxp;
 
   if (UNLIKELY(early)) {
-    for (i = 0; i < p->OUTOCOUNT - 1; i++)
+    for (i = 0; i < p->OUTOCOUNT; i++)
       memset(p->outs[i], '\0', nsmps * sizeof(cs_float));
     nsmps -= early;
   }
@@ -720,43 +819,32 @@ int32_t delete_faustgen(CSOUND *csound, void *p) {
 int32_t init_faustaudio(CSOUND *csound, faustgen *p) {
   int32_t factory;
   const OPARMS *parms = csound->GetOParms(csound);
-  faustobj *fobj, **fobjp, **pfdsp, *fdsp;
+  faustobj *fobj, **pfdsp, *fdsp;
   llvm_dsp *dsp;
   controls *ctls = new controls();
   const char *varname = "::dsp";
-  int timout = 0;
-  while (*((cs_float *)p->code) == -1.0) {
-    csound->Sleep(1);
-    timout++;
-    if(timout > 1000) {
-      return csound->InitError(
-                               csound, "%s", Str("Faust code was not ready. Try compiling it \n"
-                                                 "in a separate instrument prior to running it here\n"));
-    }
-  }
-
 
   factory = (int32_t)*((cs_float *)p->code);
-
-  if (factory == -2)
-    return csound->InitError(
-                             csound, "%s", Str("Faust code did not compile properly.\n"
-                                               "Check above messages for Faust compiler errors\n"));
-
-  fobjp = (faustobj **)csound->QueryGlobalVariable(csound, "::factory");
-  if (fobjp == NULL)
-    return csound->InitError(csound, "%s", Str("no factory available\n"));
-  fobj = *fobjp;
-  while ((int32_t)fobj->cnt != factory) {
-    fobj = fobj->nxt;
-    if (fobj == NULL)
-      return csound->InitError(csound, Str("factory not found %d\n"),
-                               (int32_t)factory);
-  }
+  fobj = resolve_factory(csound, factory);
+  if (fobj == NULL)
+    return CSOUND_ERROR;
 
   dsp = ((llvm_dsp_factory *)fobj->obj)->createDSPInstance();
   if (dsp == NULL)
     return csound->InitError(csound, "%s", Str("Faust instantiation problem\n"));
+
+  /* Validate the channel counts before publishing the instance, so that an
+     invalid DSP is never left reachable through the ::dsp registry. */
+  if (dsp->getNumInputs() != p->INOCOUNT - 1) {
+    delete ctls;
+    delete dsp;
+    return csound->InitError(csound, "%s", Str("wrong number of input args\n"));
+  }
+  if (dsp->getNumOutputs() != p->OUTOCOUNT - 1) {
+    delete ctls;
+    delete dsp;
+    return csound->InitError(csound, "%s", Str("wrong number of output args\n"));
+  }
 
   dsp->buildUserInterface(ctls);
   pfdsp = (faustobj **)csound->QueryGlobalVariable(csound, varname);
@@ -794,17 +882,6 @@ int32_t init_faustaudio(CSOUND *csound, faustgen *p) {
   p->engine = (llvm_dsp *)fdsp->obj;
   p->engine->init((int)csound->GetEngineSr(csound));
 
-  if (p->engine->getNumInputs() != p->INOCOUNT - 1) {
-    delete p->engine;
-    p->engine = NULL;
-    return csound->InitError(csound, "%s", Str("wrong number of input args\n"));
-  }
-  if (p->engine->getNumOutputs() != p->OUTOCOUNT - 1) {
-    delete p->engine;
-    p->engine = NULL;
-    return csound->InitError(csound, "%s", Str("wrong number of output args\n"));
-  }
-
   /* memory for sampAccurate offsets */
   if (parms->sampleAccurate) {
     size_t size;
@@ -838,8 +915,11 @@ void *init_faustgen_thread(void *pp) {
   controls *ctls = new controls();
   const char *varname = "::dsp";
   p->engine = NULL;
-  p->factory = createDSPFactoryFromString(
-                                          "faustop", (const char *)p->code->data, argc, argv, "", err_msg, 3);
+  {
+    std::lock_guard<std::mutex> guard(faust_compile_mutex);
+    p->factory = createDSPFactoryFromString(
+                                            "faustop", (const char *)p->code->data, argc, argv, "", err_msg, 3);
+  }
   if (p->factory == NULL) {
     csound->InitError(csound, Str("Faust compilation problem: %s\n"),
                       err_msg.c_str());
@@ -857,6 +937,30 @@ void *init_faustgen_thread(void *pp) {
 
   dsp->buildUserInterface(ctls);
 
+  /* Validate the channel counts before publishing the instance, so that an
+     invalid DSP is never left reachable through the ::dsp registry. */
+  if (dsp->getNumInputs() != p->INOCOUNT - 1) {
+    csound->InitError(csound, "%s", Str("wrong number of input args\n"));
+    delete ctls;
+    delete dsp;
+    deleteDSPFactory(p->factory);
+    p->factory = NULL;
+    csound->Free(csound, pp);
+    return NULL;
+  }
+  if (dsp->getNumOutputs() != p->OUTOCOUNT - 1) {
+    csound->InitError(csound,
+                      Str("wrong number of output args: need %d had %d\n"),
+                      dsp->getNumOutputs(),
+                      p->OUTOCOUNT - 1);
+    delete ctls;
+    delete dsp;
+    deleteDSPFactory(p->factory);
+    p->factory = NULL;
+    csound->Free(csound, pp);
+    return NULL;
+  }
+
   pfdsp = (faustobj **)csound->QueryGlobalVariable(csound, varname);
   if (pfdsp == NULL ||  *pfdsp == NULL) {
     csound->CreateGlobalVariable(csound, varname, sizeof(faustobj *));
@@ -873,7 +977,7 @@ void *init_faustgen_thread(void *pp) {
       fdsp = fdsp->nxt;
     }
     fdsp->nxt = (faustobj *)csound->Calloc(csound, sizeof(faustobj));
-    fdsp->nxt->cnt = fdsp->cnt++;
+    fdsp->nxt->cnt = fdsp->cnt + 1;
     fdsp = fdsp->nxt;
     fdsp->obj = dsp;
     fdsp->ctls = ctls;
@@ -881,27 +985,6 @@ void *init_faustgen_thread(void *pp) {
 
   p->engine = dsp;
   dsp->init((int)csound->GetEngineSr(csound));
-  if (p->engine->getNumInputs() != p->INOCOUNT - 1) {
-    csound->InitError(csound, "%s", Str("wrong number of input args\n"));
-    delete p->engine;
-    deleteDSPFactory(p->factory);
-    p->factory = NULL;
-    p->engine = NULL;
-    csound->Free(csound, pp);
-    return NULL;
-  }
-  if (p->engine->getNumOutputs() != p->OUTOCOUNT - 1) {
-    csound->InitError(csound,
-                      Str("wrong number of output args: need %d had %d\n"),
-                      p->engine->getNumOutputs(),
-                      p->OUTOCOUNT - 1);
-    delete p->engine;
-    deleteDSPFactory(p->factory);
-    csound->Free(csound, pp);
-    p->engine = NULL;
-    p->factory = NULL;
-    return NULL;
-  }
 
   /* memory for sampAccurate offsets */
   if (parms->sampleAccurate) {
@@ -1005,6 +1088,8 @@ int32_t init_faustctl(CSOUND *csound, faustctl *p) {
   if (fobjp == NULL)
     return csound->InitError(csound, "%s", Str("no dsp instances available\n"));
   fobj = *fobjp;
+  if (fobj == NULL)
+    return csound->InitError(csound, "%s", Str("no dsp instances available\n"));
 
   while ((int32_t)fobj->cnt != instance) {
     fobj = fobj->nxt;
@@ -1073,7 +1158,9 @@ static OENTRY localops[] = {
   {(char *)"faustgen", S(faustgen), 0,
    (char *)"immmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm", (char *)"SM",
    (SUBR)init_faustgen, (SUBR)perf_faust, (SUBR)delete_faustgen, NULL, 0},
-  {(char *)"faustcompile", S(faustcompile), 0, (char *)"i", (char *)"SSppo",
+  {(char *)"faustcompile", S(faustcompile), 0, (char *)"i", (char *)"SSpp",
+   (SUBR)init_faustcompile, NULL, NULL, NULL, 0},
+  {(char *)"faustcompile", S(faustcompile), 0, (char *)"i", (char *)"SSppS",
    (SUBR)init_faustcompile, NULL, NULL, NULL, 0},
   {(char *)"faustaudio", S(faustgen), 0,
    (char *)"immmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm", (char *)"iM",
