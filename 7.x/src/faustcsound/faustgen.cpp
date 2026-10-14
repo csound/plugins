@@ -54,10 +54,15 @@
 
 #define MAXARG 40
 
-/* Faust factory creation and the shared factory/DSP registries are not
-   thread-safe, so all factories are created and all registry lists are
-   updated while holding this lock. It is shared by every opcode instance,
-   including the asynchronous faustcompile threads. */
+/* Faust/LLVM factory creation is not thread-safe, so all calls to
+   createDSPFactoryFromString are serialised by this lock. It is deliberately
+   separate from the registry lock: a compilation can take a long time, and
+   holding the registry lock for its duration would stall factory lookups
+   (and thus the performance thread) in faustdsp/faustaudio. */
+static std::mutex faust_compile_mutex;
+
+/* Protects the shared ::factory and ::dsp registry lists. Held only for the
+   short operations that read or modify those lists. */
 static std::mutex faust_registry_mutex;
 
 static int dir_exists(const char *p) {
@@ -387,11 +392,11 @@ void *init_faustcompile_thread(void *pp) {
   const char *varname = "::factory";
 
   {
-    std::lock_guard<std::mutex> guard(faust_registry_mutex);
+    std::lock_guard<std::mutex> guard(faust_compile_mutex);
     factory = createDSPFactoryFromString("faustop", ccode,
                                          argc, argv, target, err_msg, 3);
-    hd->state->factory = factory;
   }
+  hd->state->factory = factory;
 
   if (factory == NULL) {
     csound->Message(csound, Str("\nFaust compilation problem:\nline %s\n"),
@@ -900,7 +905,7 @@ void *init_faustgen_thread(void *pp) {
   const char *varname = "::dsp";
   p->engine = NULL;
   {
-    std::lock_guard<std::mutex> guard(faust_registry_mutex);
+    std::lock_guard<std::mutex> guard(faust_compile_mutex);
     p->factory = createDSPFactoryFromString(
                                             "faustop", (const char *)p->code->data, argc, argv, "", err_msg, 3);
   }
