@@ -20,6 +20,7 @@ on:
 
 env:
   CSOUND_VERSION: 7.0.0-beta.18
+  FAUST_VERSION: 2.88.0
   VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
 
 jobs:
@@ -71,7 +72,7 @@ jobs:
             libsndfile1-dev libasound2-dev libportaudio2 libportmidi-dev \
             libeigen3-dev libfluidsynth-dev libpng-dev \
             libwebsockets-dev libuv1-dev libhdf5-dev \
-            ocl-icd-opencl-dev \
+            ocl-icd-opencl-dev libtinfo-dev \
             flex bison
 
       - name: Cache Csound install
@@ -94,16 +95,45 @@ jobs:
           cmake --build "$RUNNER_TEMP/csound-build" --parallel "$(nproc)"
           cmake --install "$RUNNER_TEMP/csound-build"
 
+      - name: Cache Faust
+        id: cache-faust
+        uses: actions/cache@v4
+        with:
+          path: ~/faust
+          key: faust-${{ runner.os }}-${{ runner.arch }}-${{ env.FAUST_VERSION }}
+
+      - name: Install Faust
+        if: steps.cache-faust.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/faust"
+          curl -sL -o "$RUNNER_TEMP/libfaust.zip" \
+            "https://github.com/grame-cncm/faust/releases/download/$FAUST_VERSION/libfaust-ubuntu-x86_64.zip"
+          curl -sL -o "$RUNNER_TEMP/faust-src.tar.gz" \
+            "https://github.com/grame-cncm/faust/releases/download/$FAUST_VERSION/faust-$FAUST_VERSION.tar.gz"
+          unzip -q "$RUNNER_TEMP/libfaust.zip" -d "$HOME/faust"
+          tar xzf "$RUNNER_TEMP/faust-src.tar.gz" -C "$RUNNER_TEMP" \
+            "faust-$FAUST_VERSION/architecture" "faust-$FAUST_VERSION/libraries"
+          mv "$RUNNER_TEMP/faust-$FAUST_VERSION/architecture" "$HOME/faust/include"
+          mv "$RUNNER_TEMP/faust-$FAUST_VERSION/libraries" "$HOME/faust/stdlib"
+          rm -f "$RUNNER_TEMP/libfaust.zip" "$RUNNER_TEMP/faust-src.tar.gz"
+
       - name: Configure plugin build
         run: |
           echo "CSOUND_INCLUDE_DIR_HINT=$HOME/csound-install/include/csound" >> "$GITHUB_ENV"
           echo "CSOUND_LIBRARY_DIR_HINT=$HOME/csound-install/lib" >> "$GITHUB_ENV"
+          echo "FAUST_INCLUDE_DIR_HINT=$HOME/faust/include" >> "$GITHUB_ENV"
+          echo "FAUST_LIB_DIR_HINT=$HOME/faust/lib" >> "$GITHUB_ENV"
+          echo "FAUST_STDLIB_DIR_HINT=$HOME/faust/stdlib" >> "$GITHUB_ENV"
 
       - name: Build plugins
         run: |
           cmake -S 7.x -B build -DCMAKE_BUILD_TYPE=Release \
+            -DFAUST_STATIC=ON \
             -DCSOUND_INCLUDE_DIR_HINT="$CSOUND_INCLUDE_DIR_HINT" \
-            -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT"
+            -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT" \
+            -DFAUST_INCLUDE_DIR_HINT="$FAUST_INCLUDE_DIR_HINT" \
+            -DFAUST_LIB_DIR_HINT="$FAUST_LIB_DIR_HINT" \
+            -DFAUST_STDLIB_DIR_HINT="$FAUST_STDLIB_DIR_HINT"
           cmake --build build --parallel "$(nproc)"
 
       - name: Stage plugins
@@ -118,8 +148,11 @@ jobs:
              build/src/py/*.so \
              build/src/OpenCL/*.so \
              build/src/stk/*.so package/
+          cp build/src/faustcsound/*.so package/
           mkdir -p package/stk/rawwaves
           cp 7.x/src/stk/rawwaves/*.raw package/stk/rawwaves/
+          mkdir -p package/faust
+          cp -R "$HOME/faust/stdlib/." package/faust/
 
       - name: Upload plugins
         uses: actions/upload-artifact@v7.0.2
@@ -192,6 +225,33 @@ jobs:
           cmake --build "$RUNNER_TEMP/csound-build" --parallel "$(sysctl -n hw.ncpu)"
           cmake --install "$RUNNER_TEMP/csound-build"
 
+      - name: Cache Faust
+        id: cache-faust
+        uses: actions/cache@v4
+        with:
+          path: ~/faust
+          key: faust-${{ runner.os }}-${{ runner.arch }}-${{ env.FAUST_VERSION }}
+
+      - name: Install Faust
+        if: steps.cache-faust.outputs.cache-hit != 'true'
+        run: |
+          if [ "$(uname -m)" = "arm64" ]; then
+            asset="Faust-$FAUST_VERSION-arm64.dmg"
+          else
+            asset="Faust-$FAUST_VERSION-x64.dmg"
+          fi
+          curl -sL -o "$RUNNER_TEMP/faust.dmg" \
+            "https://github.com/grame-cncm/faust/releases/download/$FAUST_VERSION/$asset"
+          mkdir -p "$HOME/faust" "$RUNNER_TEMP/faust_dmg"
+          hdiutil attach "$RUNNER_TEMP/faust.dmg" \
+            -mountpoint "$RUNNER_TEMP/faust_dmg" -nobrowse -quiet
+          root=$(dirname "$(find "$RUNNER_TEMP/faust_dmg" -maxdepth 2 -type d -name include | head -1)")
+          cp -R "$root/include" "$HOME/faust/include"
+          cp -R "$root/lib" "$HOME/faust/lib"
+          cp -R "$root/share/faust" "$HOME/faust/stdlib"
+          hdiutil detach "$RUNNER_TEMP/faust_dmg" -quiet
+          rm -f "$RUNNER_TEMP/faust.dmg"
+
       - name: Configure plugin build
         run: |
           framework="$HOME/csound-install/Frameworks/CsoundLib64.framework"
@@ -202,14 +262,21 @@ jobs:
           echo "CSOUND_INCLUDE_DIR_HINT=$headers" >> "$GITHUB_ENV"
           echo "CSOUND_FRAMEWORK_DIR_HINT=$HOME/csound-install/Frameworks" >> "$GITHUB_ENV"
           echo "CSOUND_LIBRARY_DIR_HINT=$HOME/csound-install/Frameworks" >> "$GITHUB_ENV"
+          echo "FAUST_INCLUDE_DIR_HINT=$HOME/faust/include" >> "$GITHUB_ENV"
+          echo "FAUST_LIB_DIR_HINT=$HOME/faust/lib" >> "$GITHUB_ENV"
+          echo "FAUST_STDLIB_DIR_HINT=$HOME/faust/stdlib" >> "$GITHUB_ENV"
 
       - name: Build plugins
         run: |
           cmake -S 7.x -B build -DCMAKE_BUILD_TYPE=Release \
             -DUSE_VCPKG=ON \
+            -DFAUST_STATIC=ON \
             -DCSOUND_INCLUDE_DIR_HINT="$CSOUND_INCLUDE_DIR_HINT" \
             -DCSOUND_FRAMEWORK_DIR_HINT="$CSOUND_FRAMEWORK_DIR_HINT" \
-            -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT"
+            -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT" \
+            -DFAUST_INCLUDE_DIR_HINT="$FAUST_INCLUDE_DIR_HINT" \
+            -DFAUST_LIB_DIR_HINT="$FAUST_LIB_DIR_HINT" \
+            -DFAUST_STDLIB_DIR_HINT="$FAUST_STDLIB_DIR_HINT"
           cmake --build build --parallel "$(sysctl -n hw.ncpu)"
 
       - name: Stage plugins
@@ -224,8 +291,11 @@ jobs:
              build/src/py/*.dylib \
              build/src/OpenCL/*.dylib \
              build/src/stk/*.dylib package/
+          cp build/src/faustcsound/*.dylib package/
           mkdir -p package/stk/rawwaves
           cp 7.x/src/stk/rawwaves/*.raw package/stk/rawwaves/
+          mkdir -p package/faust
+          cp -R "$HOME/faust/stdlib/." package/faust/
 
       - name: Upload plugins
         uses: actions/upload-artifact@v7.0.2
@@ -294,6 +364,23 @@ jobs:
           cmake --build csound-build --config Release --parallel
           cmake --install csound-build --config Release
 
+      - name: Cache Faust
+        id: cache-faust
+        uses: actions/cache@v4
+        with:
+          path: ~/faust
+          key: faust-${{ runner.os }}-${{ runner.arch }}-${{ env.FAUST_VERSION }}
+
+      - name: Install Faust
+        if: steps.cache-faust.outputs.cache-hit != 'true'
+        run: |
+          $faustDir = Join-Path $env:USERPROFILE 'faust'
+          New-Item -ItemType Directory -Force -Path $faustDir | Out-Null
+          curl.exe -sL -o "$env:RUNNER_TEMP\faust.exe" `
+            "https://github.com/grame-cncm/faust/releases/download/$env:FAUST_VERSION/Faust-$env:FAUST_VERSION-win64.exe"
+          & 'C:\Program Files\7-Zip\7z.exe' x "$env:RUNNER_TEMP\faust.exe" "-o$faustDir" -y | Out-Null
+          Remove-Item "$env:RUNNER_TEMP\faust.exe"
+
       - name: Configure plugin build
         run: |
           $install = Join-Path $env:RUNNER_TEMP 'csound-install'
@@ -305,13 +392,21 @@ jobs:
           if (-not $lib) { throw "csound64.lib not found under $install" }
           "CSOUND_INCLUDE_DIR_HINT=$($header.DirectoryName)" >> $env:GITHUB_ENV
           "CSOUND_LIBRARY_DIR_HINT=$($lib.DirectoryName)" >> $env:GITHUB_ENV
+          $faustDir = Join-Path $env:USERPROFILE 'faust'
+          "FAUST_INCLUDE_DIR_HINT=$faustDir\include" >> $env:GITHUB_ENV
+          "FAUST_LIB_DIR_HINT=$faustDir\lib" >> $env:GITHUB_ENV
+          "FAUST_STDLIB_DIR_HINT=$faustDir\share\faust" >> $env:GITHUB_ENV
 
       - name: Build plugins
         run: |
           cmake -S 7.x -B build -A x64 `
             -DUSE_VCPKG=ON `
+            -DFAUST_STATIC=ON `
             -DCSOUND_INCLUDE_DIR_HINT="$env:CSOUND_INCLUDE_DIR_HINT" `
-            -DCSOUND_LIBRARY_DIR_HINT="$env:CSOUND_LIBRARY_DIR_HINT"
+            -DCSOUND_LIBRARY_DIR_HINT="$env:CSOUND_LIBRARY_DIR_HINT" `
+            -DFAUST_INCLUDE_DIR_HINT="$env:FAUST_INCLUDE_DIR_HINT" `
+            -DFAUST_LIB_DIR_HINT="$env:FAUST_LIB_DIR_HINT" `
+            -DFAUST_STDLIB_DIR_HINT="$env:FAUST_STDLIB_DIR_HINT"
           cmake --build build --config Release --parallel
 
       - name: Stage plugins
@@ -328,6 +423,9 @@ jobs:
           $rawwaves = Join-Path $package 'stk/rawwaves'
           New-Item -ItemType Directory -Force -Path $rawwaves | Out-Null
           Copy-Item '7.x\src\stk\rawwaves\*.raw' -Destination $rawwaves
+          $faustOut = Join-Path $package 'faust'
+          New-Item -ItemType Directory -Force -Path $faustOut | Out-Null
+          Copy-Item "$env:USERPROFILE\faust\share\faust\*" -Destination $faustOut -Recurse
 
       - name: Upload plugins
         uses: actions/upload-artifact@v7.0.2
