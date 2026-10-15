@@ -9,6 +9,9 @@ Currently, the plugins available in this tree are
 - fluidOpcodes (requires fluidsynth)  
 **fluidEngine fluidLoad fluidNote fluidCCi fluidCCk fluidControl fluidProgramSelect fluidAllOut fluidOut fluidInfo fluidSetInterpMethod**
 
+- dssi4cs (hosts native DSSI/LADSPA plugins; Linux only, requires the ALSA headers)  
+**dssiinit dssiactivate dssiaudio dssisynth dssictls dssiget dssinote dssievent dssinrpn dssiprogram dssiconfigure dssiprograminfo dssiinfo dssilist**
+
 - faust (requires the Faust compiler library and headers, `libfaust`)  
 **faustgen faustcompile faustaudio faustdsp faustplay faustctl**
 
@@ -261,6 +264,46 @@ and includes the plugin (and the standard library) in the Linux, macOS and
 Windows release packages.
 
 
+DSSI and LADSPA opcodes
+---
+
+The `dssi4cs` plugin hosts native DSSI synths and LADSPA effects:
+
+```
+ih                    dssiinit      Sfilename, iindex [, iverbose]
+                      dssilist
+                      dssiinfo      ih
+                      dssiactivate  ih, kactive
+a1[,a2,...]           dssisynth     ih [, ain1, ...]
+a1[,a2,...]           dssiaudio     ih [, ain1, ...]
+                      dssinote      ktrigger, ih, knote, kvelocity, kduration [, ichannel]
+                      dssievent     ktrigger, ih, knote, kvelocity
+                      dssievent     ktrigger, ih, kstatus, kchannel, kdata1, kdata2 [, koffset]
+                      dssinrpn      ktrigger, ih, kchannel, kparameter, kvalue [, koffset]
+                      dssictls      ih, iport, kvalue, ktrigger
+kvalue                dssiget       ih, iport
+                      dssiprogram   ih, kbank, kprogram, ktrigger
+Sname, ibank, iprogram dssiprograminfo ih, iindex
+                      dssiconfigure ih, Skey, Svalue
+```
+
+The opcodes load a plugin library, instantiate a DSSI synth or LADSPA effect,
+feed it Csound audio and MIDI events, and return its audio. Libraries are
+looked up by path or through `DSSI_PATH` and `LADSPA_PATH`. See the
+[module README](src/dssi4cs/README.md) for the full opcode reference.
+
+Hosting native plugins is Linux-only: the opcodes load the shared objects with
+`dlopen` and use the ALSA sequencer event types, so they need the ALSA headers
+(`libasound2-dev` on Debian/Ubuntu) but not the ALSA library or a running
+sequencer. The DSSI and LADSPA API headers are **vendored under this
+directory** (in `src/dssi4cs/include`), so no system DSSI/LADSPA development
+package is required.
+
+It is built by default on Linux when the ALSA headers are found and silently
+disabled elsewhere; configure with `-DBUILD_DSSI_OPCODES=OFF` to exclude it.
+It is included in the Linux release package only.
+
+
 Release binaries and macOS architecture
 --------------
 
@@ -318,10 +361,10 @@ $ make
 By default, all the plugins are built. If one wants to exclude a
 plugin from the build process, one can pass an option to the cmake command.
 The options are `BUILD_CHUA_OPCODES`, `BUILD_CUDA_OPCODES`,
-`BUILD_OPENCL_OPCODES`, `BUILD_FAUST_OPCODES`, `BUILD_FLUID_OPCODES`,
-`BUILD_IMAGE_OPCODES`, `BUILD_HDF5_OPCODES`, `BUILD_LINEAR_ALGEBRA_OPCODES`,
-`BUILD_P5GLOVE_OPCODES`, `BUILD_STK_OPCODES`, `BUILD_WIIMOTE_OPCODES`,
-`BUILD_WEBSOCKET_OPCODE` and
+`BUILD_DSSI_OPCODES`, `BUILD_OPENCL_OPCODES`, `BUILD_FAUST_OPCODES`,
+`BUILD_FLUID_OPCODES`, `BUILD_IMAGE_OPCODES`, `BUILD_HDF5_OPCODES`,
+`BUILD_LINEAR_ALGEBRA_OPCODES`, `BUILD_P5GLOVE_OPCODES`, `BUILD_STK_OPCODES`,
+`BUILD_WIIMOTE_OPCODES`, `BUILD_WEBSOCKET_OPCODE` and
 `BUILD_PYTHON_OPCODES`. For example, to
 exclude the chua plugin, the `cmake` command would be:
 
