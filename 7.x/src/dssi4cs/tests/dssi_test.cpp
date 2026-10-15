@@ -34,6 +34,7 @@ protected:
     }
     int run(const std::string &orc, const std::string &score = "i1 0 .01", int ksmps = 16, int dbfs = 1) {
         pending.clear();
+        audio.clear();
         std::string csd = "<CsoundSynthesizer>\n<CsOptions>\n-n -d -m0 --sample-accurate\n</CsOptions>\n"
             "<CsInstruments>\nsr=8192\nksmps=" + std::to_string(ksmps) +
             "\nnchnls=2\n0dbfs=" + std::to_string(dbfs) + "\n" + orc +
@@ -232,6 +233,19 @@ instr 1
 endin
 )","i1 0 .01",16,32768),0) << messages();
     samples(0,64,8192);
+}
+
+TEST_F(DssiTests, DssiAudioAllowsOmittedInputs) {
+    // The audio inputs are optional. Every other dssiaudio call in this suite
+    // supplies them, so a regression that made them mandatory would go
+    // unnoticed without this case.
+    ASSERT_EQ(run(load() + R"(
+instr 1
+ dssiactivate gih,1
+ a1,a2 dssiaudio gih
+ outs a1,a2
+endin
+)"), 0) << messages();
 }
 
 TEST_F(DssiTests, RejectsBadDescriptorWithoutPublishingAnInstance) {
