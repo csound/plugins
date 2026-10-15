@@ -318,6 +318,9 @@ if(WIN32)
     add_definitions(-DWIN32)
 endif()
 
+# Register CTest so subdirectory regression tests (e.g. dssi4cs) can be run.
+enable_testing()
+
 add_subdirectory(./src/chua)
 add_subdirectory(./src/linear_algebra)
 add_subdirectory(./src/fluidOpcodes)

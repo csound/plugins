@@ -31,4 +31,36 @@ if(BUILD_DSSI_OPCODES)
         target_compile_definitions(dssi4cs PRIVATE
             "DSSI4CS_DEFAULT_PATH=\"/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/dssi:/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/ladspa:/usr/local/lib/dssi:/usr/lib/dssi:/usr/lib64/dssi:/usr/local/lib/ladspa:/usr/lib/ladspa:/usr/lib64/ladspa\"")
     endif()
+
+    # Regression tests for the host, built and registered with CTest when
+    # GoogleTest is available. The fixture is a small real DSSI/LADSPA plugin
+    # built from the vendored headers, so its ABI matches the host.
+    find_package(GTest QUIET)
+    if(GTest_FOUND)
+        add_library(dssi_test_plugin MODULE tests/fixtures/dssi_test_plugin.c)
+        add_library(ladspa_test_plugin MODULE tests/fixtures/dssi_test_plugin.c)
+        target_compile_definitions(ladspa_test_plugin PRIVATE DSSI_TEST_LADSPA)
+        foreach(plugin dssi_test_plugin ladspa_test_plugin)
+            target_include_directories(${plugin} PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/include/dssi
+                ${CMAKE_CURRENT_SOURCE_DIR}/include/ladspa
+                ${DSSI_ALSA_ASOUNDLIB_H})
+        endforeach()
+
+        add_executable(dssi_tests tests/dssi_test.cpp)
+        # Recent GoogleTest releases require C++14, which is newer than the
+        # C++11 default used for the plugin itself.
+        set_target_properties(dssi_tests PROPERTIES
+            CXX_STANDARD 14
+            CXX_STANDARD_REQUIRED ON)
+        target_include_directories(dssi_tests PRIVATE ${CSOUND_INCLUDE_DIRS})
+        target_link_libraries(dssi_tests PRIVATE
+            GTest::gtest_main ${CSOUND_LIBRARY} ${CMAKE_DL_LIBS})
+        target_compile_definitions(dssi_tests PRIVATE
+            CSOUND_TEST_DSSI_HOST="$<TARGET_FILE:dssi4cs>"
+            CSOUND_TEST_DSSI_PLUGIN="$<TARGET_FILE:dssi_test_plugin>"
+            CSOUND_TEST_LADSPA_PLUGIN="$<TARGET_FILE:ladspa_test_plugin>")
+        add_dependencies(dssi_tests dssi4cs dssi_test_plugin ladspa_test_plugin)
+        add_test(NAME dssi_tests COMMAND dssi_tests)
+    endif()
 endif()
