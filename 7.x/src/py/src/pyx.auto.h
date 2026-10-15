@@ -27,7 +27,7 @@ typedef struct {
 
 typedef struct {
     OPDS      h;
-    MYFLT     *trigger;
+    cs_float     *trigger;
     STRINGDAT *string;
 } PYEXECT;
 
@@ -38,34 +38,34 @@ typedef struct {
 
 typedef struct {
     OPDS      h;
-    MYFLT     *trigger;
+    cs_float     *trigger;
     STRINGDAT *string;
 } PYRUNT;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result;
+    cs_float     *result;
     STRINGDAT *string;
 } PYEVAL;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result;
-    MYFLT     *trigger;
+    cs_float     *result;
+    cs_float     *trigger;
     STRINGDAT *string;
-    MYFLT     oresult;
+    cs_float     oresult;
 } PYEVALT;
 
 typedef struct {
     OPDS      h;
     STRINGDAT *string;
-    MYFLT     *value;
+    cs_float     *value;
 } PYASSIGN;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *trigger;
+    cs_float     *trigger;
     STRINGDAT *string;
-    MYFLT     *value;
+    cs_float     *value;
 } PYASSIGNT;
 

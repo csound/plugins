@@ -39,8 +39,8 @@ typedef struct {
 typedef struct {
   OPDS h;
   STRINGDAT *function;
-  MYFLT *nresult;
-  MYFLT *args[VARGMAX];
+  cs_float *nresult;
+  cs_float *args[VARGMAX];
 } PYCALLN;
 
 #endif /* _pycsound_pythonopcodes_h_ */

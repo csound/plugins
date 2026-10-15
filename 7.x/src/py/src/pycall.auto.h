@@ -23,225 +23,225 @@
 typedef struct {
     OPDS      h;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
+    cs_float     *args[VARGMAX-3];
 } PYCALL0;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *trigger;
+    cs_float     *trigger;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
+    cs_float     *args[VARGMAX-3];
 } PYCALL0T;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result;
+    cs_float     *result;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
+    cs_float     *args[VARGMAX-3];
 } PYCALL1;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result;
-    MYFLT     *trigger;
+    cs_float     *result;
+    cs_float     *trigger;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
-    MYFLT     oresult
+    cs_float     *args[VARGMAX-3];
+    cs_float     oresult
 ;} PYCALL1T;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
+    cs_float     *result1;
+    cs_float     *result2;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
+    cs_float     *args[VARGMAX-3];
 } PYCALL2;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *trigger;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *trigger;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
-    MYFLT     oresult1;
-    MYFLT     oresult2;
+    cs_float     *args[VARGMAX-3];
+    cs_float     oresult1;
+    cs_float     oresult2;
 } PYCALL2T;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
+    cs_float     *args[VARGMAX-3];
 } PYCALL3;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *trigger;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *trigger;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
-    MYFLT     oresult1;
-    MYFLT     oresult2;
-    MYFLT     oresult3;
+    cs_float     *args[VARGMAX-3];
+    cs_float     oresult1;
+    cs_float     oresult2;
+    cs_float     oresult3;
 } PYCALL3T;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *result4;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *result4;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
+    cs_float     *args[VARGMAX-3];
 } PYCALL4;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *result4;
-    MYFLT     *trigger;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *result4;
+    cs_float     *trigger;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
-    MYFLT     oresult1;
-    MYFLT     oresult2;
-    MYFLT     oresult3;
-    MYFLT     oresult4;
+    cs_float     *args[VARGMAX-3];
+    cs_float     oresult1;
+    cs_float     oresult2;
+    cs_float     oresult3;
+    cs_float     oresult4;
 } PYCALL4T;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *result4;
-    MYFLT     *result5;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *result4;
+    cs_float     *result5;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
+    cs_float     *args[VARGMAX-3];
 } PYCALL5;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *result4;
-    MYFLT     *result5;
-    MYFLT     *trigger;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *result4;
+    cs_float     *result5;
+    cs_float     *trigger;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
-    MYFLT     oresult1;
-    MYFLT     oresult2;
-    MYFLT     oresult3;
-    MYFLT     oresult4;
-    MYFLT     oresult5;
+    cs_float     *args[VARGMAX-3];
+    cs_float     oresult1;
+    cs_float     oresult2;
+    cs_float     oresult3;
+    cs_float     oresult4;
+    cs_float     oresult5;
 } PYCALL5T;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *result4;
-    MYFLT     *result5;
-    MYFLT     *result6;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *result4;
+    cs_float     *result5;
+    cs_float     *result6;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
+    cs_float     *args[VARGMAX-3];
 } PYCALL6;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *result4;
-    MYFLT     *result5;
-    MYFLT     *result6;
-    MYFLT     *trigger;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *result4;
+    cs_float     *result5;
+    cs_float     *result6;
+    cs_float     *trigger;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
-    MYFLT     oresult1;
-    MYFLT     oresult2;
-    MYFLT     oresult3;
-    MYFLT     oresult4;
-    MYFLT     oresult5;
-    MYFLT     oresult6;
+    cs_float     *args[VARGMAX-3];
+    cs_float     oresult1;
+    cs_float     oresult2;
+    cs_float     oresult3;
+    cs_float     oresult4;
+    cs_float     oresult5;
+    cs_float     oresult6;
 } PYCALL6T;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *result4;
-    MYFLT     *result5;
-    MYFLT     *result6;
-    MYFLT     *result7;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *result4;
+    cs_float     *result5;
+    cs_float     *result6;
+    cs_float     *result7;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
+    cs_float     *args[VARGMAX-3];
 } PYCALL7;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *result4;
-    MYFLT     *result5;
-    MYFLT     *result6;
-    MYFLT     *result7;
-    MYFLT     *trigger;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *result4;
+    cs_float     *result5;
+    cs_float     *result6;
+    cs_float     *result7;
+    cs_float     *trigger;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
-    MYFLT     oresult1;
-    MYFLT     oresult2;
-    MYFLT     oresult3;
-    MYFLT     oresult4;
-    MYFLT     oresult5;
-    MYFLT     oresult6;
-    MYFLT     oresult7;
+    cs_float     *args[VARGMAX-3];
+    cs_float     oresult1;
+    cs_float     oresult2;
+    cs_float     oresult3;
+    cs_float     oresult4;
+    cs_float     oresult5;
+    cs_float     oresult6;
+    cs_float     oresult7;
 } PYCALL7T;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *result4;
-    MYFLT     *result5;
-    MYFLT     *result6;
-    MYFLT     *result7;
-    MYFLT     *result8;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *result4;
+    cs_float     *result5;
+    cs_float     *result6;
+    cs_float     *result7;
+    cs_float     *result8;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
+    cs_float     *args[VARGMAX-3];
 } PYCALL8;
 
 typedef struct {
     OPDS      h;
-    MYFLT     *result1;
-    MYFLT     *result2;
-    MYFLT     *result3;
-    MYFLT     *result4;
-    MYFLT     *result5;
-    MYFLT     *result6;
-    MYFLT     *result7;
-    MYFLT     *result8;
-    MYFLT     *trigger;
+    cs_float     *result1;
+    cs_float     *result2;
+    cs_float     *result3;
+    cs_float     *result4;
+    cs_float     *result5;
+    cs_float     *result6;
+    cs_float     *result7;
+    cs_float     *result8;
+    cs_float     *trigger;
     STRINGDAT *function;
-    MYFLT     *args[VARGMAX-3];
-    MYFLT     oresult1;
-    MYFLT     oresult2;
-    MYFLT     oresult3;
-    MYFLT     oresult4;
-    MYFLT     oresult5;
-    MYFLT     oresult6;
-    MYFLT     oresult7;
-    MYFLT     oresult8;
+    cs_float     *args[VARGMAX-3];
+    cs_float     oresult1;
+    cs_float     oresult2;
+    cs_float     oresult3;
+    cs_float     oresult4;
+    cs_float     oresult5;
+    cs_float     oresult6;
+    cs_float     oresult7;
+    cs_float     oresult8;
 } PYCALL8T;
 
