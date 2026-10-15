@@ -803,8 +803,33 @@ static int32_t dssilist(CSOUND *csound, DSSILIST *p)
 static OENTRY localops[] = {
     {"dssiinit", sizeof(DSSIINIT), 0, "i", "Tip", (SUBR)dssiinit},
     {"dssiactivate", sizeof(DSSIACTIVATE), 0, "", "ik", (SUBR)dssiactivate_init, (SUBR)dssiactivate},
-    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iyyyyyyyyy", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
-    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iyyyyyyyyy", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    /* The audio inputs are optional (see README) and must be a-rate. A single
+       'y' (indefinite a-rate list) entry would make every input mandatory,
+       because the parser only treats the 'M'/'N'/'m'/'W' lists as omittable.
+       Register one entry per possible input count instead: fixed 'a' inputs
+       are a-rate only (so the opcode never reads past a scalar) and the
+       matching entry is selected by argument count, allowing the inputs to be
+       omitted. */
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "i", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "ia", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaa", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaa", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaa", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaaa", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaaaa", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaaaaa", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaaaaaa", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaaaaaaa", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "i", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "ia", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaa", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaa", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaa", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaaa", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaaaa", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaaaaa", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaaaaaa", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iaaaaaaaaa", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
     {"dssictls", sizeof(DSSICTLS), 0, "", "iikk", (SUBR)dssictls_init, (SUBR)dssictls},
     {"dssiget", sizeof(DSSIGET), 0, "k", "ii", (SUBR)dssiget_init, (SUBR)dssiget},
     {"dssinote", sizeof(DSSINOTE), 0, "", "kikkko", (SUBR)dssinote_init, (SUBR)dssinote},

@@ -73,6 +73,7 @@ jobs:
             libeigen3-dev libfluidsynth-dev libpng-dev \
             libwebsockets-dev libuv1-dev libhdf5-dev \
             ocl-icd-opencl-dev libtinfo-dev \
+            libgtest-dev \
             flex bison
 
       - name: Cache Csound install
@@ -135,6 +136,9 @@ jobs:
             -DFAUST_LIB_DIR_HINT="$FAUST_LIB_DIR_HINT" \
             -DFAUST_STDLIB_DIR_HINT="$FAUST_STDLIB_DIR_HINT"
           cmake --build build --parallel "$(nproc)"
+
+      - name: Run plugin tests
+        run: ctest --test-dir build --output-on-failure
 
       - name: Stage plugins
         run: |
