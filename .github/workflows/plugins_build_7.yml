@@ -142,6 +142,7 @@ jobs:
           cp build/src/chua/*.so \
              build/src/linear_algebra/*.so \
              build/src/fluidOpcodes/*.so \
+             build/src/dssi4cs/*.so \
              build/src/image/*.so \
              build/src/websockets/*.so \
              build/src/hdf5/*.so \
@@ -481,6 +482,7 @@ jobs:
           cmake -S 7.x -B build -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_CUDA_OPCODES=ON \
             -DBUILD_CHUA_OPCODES=OFF \
+            -DBUILD_DSSI_OPCODES=OFF \
             -DBUILD_FLUID_OPCODES=OFF \
             -DBUILD_HDF5_OPCODES=OFF \
             -DBUILD_IMAGE_OPCODES=OFF \

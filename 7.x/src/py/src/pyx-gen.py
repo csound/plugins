@@ -154,14 +154,14 @@ def generate_pycall_opcode_struct(f, action, triggered):
     s = 'typedef struct {\n'
     s += '    OPDS      h;\n'
     if action == 'eval':
-        s += '    MYFLT     *result;\n'
+        s += '    cs_float     *result;\n'
     if triggered:
-        s += '    MYFLT     *trigger;\n'
+        s += '    cs_float     *trigger;\n'
     s += '    STRINGDAT *string;\n'
     if action == 'assign':
-        s += '    MYFLT     *value;\n'
+        s += '    cs_float     *value;\n'
     if action == 'eval' and triggered:
-        s += '    MYFLT     oresult;\n'
+        s += '    cs_float     oresult;\n'
     s += '} PY%(ACTION)s%(T)s;\n' % locals()
     print(s, file=f)
 

@@ -164,20 +164,20 @@ def generate_pycall_opcode_struct(f, n, triggered=0):
     s  = 'typedef struct {\n'
     s += '    OPDS      h;\n'
     if n == 1:
-        s += '    MYFLT     *result;\n'
+        s += '    cs_float     *result;\n'
     else:
         for i in range(n):
-            s += '    MYFLT     *result%d;\n' % (i+1)
+            s += '    cs_float     *result%d;\n' % (i+1)
     if triggered:
-        s += '    MYFLT     *trigger;\n'
+        s += '    cs_float     *trigger;\n'
     s += '    STRINGDAT *function;\n'
-    s += '    MYFLT     *args[VARGMAX-3];\n'
+    s += '    cs_float     *args[VARGMAX-3];\n'
     if triggered:
         if n == 1:
-            s += '    MYFLT     oresult\n;'
+            s += '    cs_float     oresult;\n'
         else:
             for i in range(n):
-                s += '    MYFLT     oresult%d;\n' % (i+1)
+                s += '    cs_float     oresult%d;\n' % (i+1)
     s += '} PYCALL%d%s;\n' % (n, T)
     print(s, file=f)
 

@@ -3,3 +3,5 @@ reviews:
     - "!7.x/src/stk/src/**"
     - "!7.x/src/stk/include/**"
     - "!7.x/src/stk/rawwaves/**"
+    - "!7.x/src/dssi4cs/include/dssi/**"
+    - "!7.x/src/dssi4cs/include/ladspa/**"

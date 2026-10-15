@@ -55,7 +55,7 @@ static CS_NOINLINE void create_private_namespace_if_needed(OPDS *o)
 }
 
 static void format_call_statement2(char *statement, char *callable,
-                                  int argc, MYFLT *argv[], long skip)
+                                  int argc, cs_float *argv[], long skip)
 {
     int       i;
 
@@ -77,7 +77,7 @@ static void format_call_statement2(char *statement, char *callable,
 }
 
 static void format_call_statement(char *statement, char *callable,
-                                  int argc, MYFLT *argv[], int skip)
+                                  int argc, cs_float *argv[], int skip)
 {
     int       i;
 
