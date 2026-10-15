@@ -803,8 +803,8 @@ static int32_t dssilist(CSOUND *csound, DSSILIST *p)
 static OENTRY localops[] = {
     {"dssiinit", sizeof(DSSIINIT), 0, "i", "Tip", (SUBR)dssiinit},
     {"dssiactivate", sizeof(DSSIACTIVATE), 0, "", "ik", (SUBR)dssiactivate_init, (SUBR)dssiactivate},
-    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iMMMMMMMMM", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
-    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iMMMMMMMMM", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssiaudio", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iyyyyyyyyy", (SUBR)dssiaudio_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
+    {"dssisynth", sizeof(DSSIAUDIO), 0, "mmmmmmmmm", "iyyyyyyyyy", (SUBR)dssisynth_init, (SUBR)dssiaudio, (SUBR)dssiaudio_deinit},
     {"dssictls", sizeof(DSSICTLS), 0, "", "iikk", (SUBR)dssictls_init, (SUBR)dssictls},
     {"dssiget", sizeof(DSSIGET), 0, "k", "ii", (SUBR)dssiget_init, (SUBR)dssiget},
     {"dssinote", sizeof(DSSINOTE), 0, "", "kikkko", (SUBR)dssinote_init, (SUBR)dssinote},

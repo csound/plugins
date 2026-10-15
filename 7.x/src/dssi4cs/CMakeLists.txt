@@ -22,4 +22,13 @@ if(BUILD_DSSI_OPCODES)
         ${DSSI_ALSA_ASOUNDLIB_H}
         ${CSOUND_INCLUDE_DIRS})
     target_compile_definitions(dssi4cs PRIVATE BUILD_PLUGINS)
+
+    # On multiarch distributions (Debian, Ubuntu, ...) plugins may be
+    # installed under /usr/lib/<triplet>/dssi and /usr/lib/<triplet>/ladspa.
+    # Prepend the triplet detected for this build to the default search path;
+    # DSSI_PATH and LADSPA_PATH still take precedence at runtime.
+    if(CMAKE_LIBRARY_ARCHITECTURE)
+        target_compile_definitions(dssi4cs PRIVATE
+            "DSSI4CS_DEFAULT_PATH=\"/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/dssi:/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/ladspa:/usr/local/lib/dssi:/usr/lib/dssi:/usr/lib64/dssi:/usr/local/lib/ladspa:/usr/lib/ladspa:/usr/lib64/ladspa\"")
+    endif()
 endif()

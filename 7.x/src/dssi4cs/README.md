@@ -27,8 +27,10 @@ colon-separated directories; empty entries are skipped. Lookup tries the
 name as supplied, then `.so`.
 
 Linux defaults include `/usr/local/lib`, `/usr/lib`, and `/usr/lib64`, each
-with `dssi` and `ladspa` subdirectories. Set the environment paths for
-multiarch directories such as `/usr/lib/aarch64-linux-gnu/dssi`.
+with `dssi` and `ladspa` subdirectories. On multiarch distributions the build
+also adds the detected triplet directory, such as
+`/usr/lib/x86_64-linux-gnu/dssi`; set the environment paths to search any
+other location.
 
 Instances and libraries remain loaded until Csound reset or destruction.
 Failed loads do not publish a handle. Cleanup calls the plugin's deactivate
