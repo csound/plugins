@@ -46,8 +46,8 @@ typedef struct {
     cs_float     *trigger;
     STRINGDAT *function;
     cs_float     *args[VARGMAX-3];
-    cs_float     oresult
-;} PYCALL1T;
+    cs_float     oresult;
+} PYCALL1T;
 
 typedef struct {
     OPDS      h;

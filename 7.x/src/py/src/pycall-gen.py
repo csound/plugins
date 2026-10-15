@@ -174,7 +174,7 @@ def generate_pycall_opcode_struct(f, n, triggered=0):
     s += '    cs_float     *args[VARGMAX-3];\n'
     if triggered:
         if n == 1:
-            s += '    cs_float     oresult\n;'
+            s += '    cs_float     oresult;\n'
         else:
             for i in range(n):
                 s += '    cs_float     oresult%d;\n' % (i+1)
