@@ -3,7 +3,16 @@
 , csoundSdkArchive ? null
 }:
 let
-  wasi = pkgs.pkgsCross.wasi32.clangStdenv;
+  lock = builtins.fromJSON (builtins.readFile ../package-lock.json);
+  wasmBin = lock.packages."node_modules/@csound/wasm-bin";
+  wasmPackage = pkgs.runCommand "csound-wasm-bin-${wasmBin.version}" {} ''
+    mkdir -p $out
+    tar -xzf ${pkgs.fetchurl { url = wasmBin.resolved; hash = wasmBin.integrity; }} --strip-components=1 -C $out
+  '';
+  # Use the same threaded WASI toolchain and memory limit as the engine.
+  toolchain = import "${wasmPackage}/src/wasi-realtime-toolchain.nix" { inherit pkgs; };
+  maxMemory = builtins.fromJSON (builtins.readFile "${wasmPackage}/src/shared-memory-max.txt");
+  wasi = toolchain.stdenv;
   # Nix's WASI wrapper otherwise forces -fno-exceptions after CMake's flags.
   # Let each target select its exception mode instead.
   wasiCxx = pkgs.overrideCC wasi (wasi.cc.override (old: {
@@ -11,15 +20,17 @@ let
       cc-cflags = builtins.filter (flag: flag != "-fno-exceptions") old.nixSupport.cc-cflags;
     };
   }));
-  libc = pkgs.pkgsCross.wasi32.wasilibc.overrideAttrs (old: {
-    NIX_CFLAGS_COMPILE = (old.NIX_CFLAGS_COMPILE or []) ++ [ "-fPIC" ];
+  libc = toolchain.libc.overrideAttrs (old: {
+    NIX_CFLAGS_COMPILE = (old.NIX_CFLAGS_COMPILE or []) ++ [
+      "-fPIC" "-mllvm" "-wasm-enable-sjlj" "-mllvm" "-wasm-use-legacy-eh=false"
+    ];
     # Use the engine's allocator. wasi-libc also skips its fixed symbol list
     # for this mode; PIC adds imports absent from that non-PIC list.
     makeFlags = (old.makeFlags or []) ++ [ "MALLOC_IMPL=none" ];
     preFixup = "";
     dontStrip = true;
   });
-  libcxx = pkgs.pkgsCross.wasi32.llvmPackages.libcxx.overrideAttrs (old: {
+  libcxx = toolchain.libcxx.overrideAttrs (old: {
     cmakeFlags = old.cmakeFlags ++ [
       "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
       "-DLIBCXX_ENABLE_FILESYSTEM=ON"
@@ -43,11 +54,9 @@ let
       "-DLIBCXXABI_ENABLE_EXCEPTIONS=ON"
     ];
     preConfigure = (old.preConfigure or "") + ''
-      cmakeFlagsArray+=("-DCMAKE_CXX_FLAGS=-fexceptions -fwasm-exceptions -I${libunwindSource}/libunwind/include")
+      cmakeFlagsArray+=("-DCMAKE_CXX_FLAGS=-fexceptions -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false -I${libunwindSource}/libunwind/include")
     '';
   });
-  lock = builtins.fromJSON (builtins.readFile ../package-lock.json);
-  wasmBin = lock.packages."node_modules/@csound/wasm-bin";
   sdkArchive = if csoundSdkArchive == null then null else builtins.path {
     path = csoundSdkArchive;
     name = "csound-plugin-sdk.tar.gz";
@@ -55,8 +64,7 @@ let
   sdk = pkgs.runCommand "csound-wasm-plugin-sdk-${wasmBin.version}" {} ''
     mkdir -p $out
     ${if csoundSdkArchive == null then ''
-      tar -xzf ${pkgs.fetchurl { url = wasmBin.resolved; hash = wasmBin.integrity; }}
-      tar -xzf package/lib/csound-plugin-sdk.tar.gz --strip-components=1 -C $out
+      tar -xzf ${wasmPackage}/lib/csound-plugin-sdk.tar.gz --strip-components=1 -C $out
     '' else ''
       tar -xzf ${sdkArchive} --strip-components=1 -C $out
     ''}
@@ -66,6 +74,16 @@ let
     inherit (pkgs.zlib) version src;
     nativeBuildInputs = [ pkgs.cmake pkgs.ninja ];
     cmakeFlags = [ "-DCMAKE_POSITION_INDEPENDENT_CODE=ON" "-DCMAKE_INSTALL_LIBDIR=lib" "-DZLIB_BUILD_EXAMPLES=OFF" ];
+    # zlib 1.3.1 has no CMake switch to omit its shared library. Build only
+    # the static target so it does not link the toolchain's non-PIC libc.
+    ninjaFlags = [ "zlibstatic" ];
+    installPhase = ''
+      runHook preInstall
+      install -Dm644 libzlibstatic.a $out/lib/libzlibstatic.a
+      install -Dm644 ../zlib.h $out/include/zlib.h
+      install -Dm644 zconf.h $out/include/zconf.h
+      runHook postInstall
+    '';
     dontStrip = true;
   };
   libpng = wasi.mkDerivation {
@@ -80,7 +98,7 @@ let
       "-DPNG_SHARED=OFF" "-DPNG_STATIC=ON" "-DPNG_TESTS=OFF" "-DPNG_TOOLS=OFF"
       "-DZLIB_LIBRARY=${zlib}/lib/libzlibstatic.a"
     ];
-    NIX_CFLAGS_COMPILE = [ "-mllvm" "-wasm-enable-sjlj" ];
+    NIX_CFLAGS_COMPILE = [ "-mllvm" "-wasm-enable-sjlj" "-mllvm" "-wasm-use-legacy-eh=false" ];
     dontStrip = true;
   };
 in wasiCxx.mkDerivation {
@@ -94,6 +112,7 @@ in wasiCxx.mkDerivation {
     "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
     "-DCMAKE_BUILD_TYPE=Release"
     "-DCSOUND_INCLUDE_DIR=${sdk}/include/csound"
+    "-DWASM_MAX_MEMORY=${toString maxMemory}"
     "-DWASM_LIBC=${libc}/lib/libc.a"
     "-DWASM_SETJMP=${libc}/lib/libsetjmp.a"
     "-DWASM_LIBCXX=${libcxx}/lib/libc++.a"

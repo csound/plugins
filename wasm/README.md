@@ -8,9 +8,11 @@ Csound 6 is not supported.
 
 ## Runtime dependency
 
-Builds use the plugin SDK from `@csound/wasm-bin`, and tests use the published
-`@csound/browser` runtime. [package.json](../package.json) and
+Builds use the shared-memory plugin SDK and toolchain from `@csound/wasm-bin`.
+Tests use the published `@csound/browser` runtime. [package.json](../package.json) and
 [package-lock.json](../package-lock.json) record the versions used together.
+Rebuild after updating these dependencies. Plugins built for the old,
+non-shared engine cannot load in the shared-memory runtime.
 
 ## Use
 
@@ -62,8 +64,10 @@ npm pack
 ```
 
 Nix pins the toolchain and builds the existing `7.x` CMake targets with Ninja.
-Dependencies use static PIC builds. The C runtime imports the engine's allocator;
-it does not link its own heap. STK uses a separate libc++ build with C++ exceptions
+Dependencies use threaded static PIC builds. Each plugin exports its TLS size,
+alignment, and initializer so the engine can set up thread-local storage.
+The C runtime imports the engine's allocator; it does not link its own heap.
+STK uses a separate libc++ build with C++ exceptions
 and a static WASM unwinder. Other C++ plugins keep exceptions disabled.
 CMake's `STK_EMBED_RAWWAVES` option embeds the samples and defaults to on for WASM.
 Native builds keep using the installed raw-wave directory by default.
@@ -93,10 +97,9 @@ uses the `csound` Cachix cache and uploads builds when `CACHIX_AUTH_TOKEN` is
 available. Fork PRs read from the cache without the secret. Native builds use
 GitHub Actions caches.
 
-## First npm release
+## npm releases
 
-Run the build, test, and pack commands against the published browser package
-with `CSOUND_BROWSER_URL` unset. When ready to publish, remove `private` from
-`package.json`, set the package version with `npm version`, and run
-`npm publish --tag beta --access public` from a clean build. No workflow publishes
-this package yet.
+Set the next package version with `npm version`, then run the build, test, and
+pack commands against the published browser package with `CSOUND_BROWSER_URL`
+unset. Publish with `npm publish --tag beta --access public` from that build.
+No workflow publishes this package yet.
