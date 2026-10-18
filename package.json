@@ -1,7 +1,6 @@
 {
   "name": "@csound/plugins",
-  "version": "7.0.0-beta.0",
-  "private": true,
+  "version": "7.0.0-beta.1",
   "description": "Csound 7 opcode plugins for WebAssembly",
   "type": "module",
   "license": "LGPL-2.1-or-later",
@@ -41,8 +40,8 @@
     "prepack": "npm test"
   },
   "devDependencies": {
-    "@csound/browser": "7.0.0-beta39",
-    "@csound/wasm-bin": "7.0.0-beta29"
+    "@csound/browser": "7.0.0-beta41",
+    "@csound/wasm-bin": "7.0.0-beta31"
   },
   "keywords": [
     "csound",

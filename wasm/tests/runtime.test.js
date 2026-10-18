@@ -70,7 +70,7 @@ async function run(body, check, withPlugins = binaries, prepare = () => {}) {
   }
 }
 
-test("all plugins are WASI side modules", async () => {
+test("all plugins are WASI side modules with the shared-memory TLS exports", async () => {
   for (const bytes of binaries) {
     const module = await WebAssembly.compile(bytes);
     const imports = WebAssembly.Module.imports(module);
@@ -79,6 +79,16 @@ test("all plugins are WASI side modules", async () => {
     assert.ok(imports.some(({ kind, name }) => kind === "memory" && name === "memory"));
     assert.ok(imports.some(({ kind }) => kind === "table"));
     assert.ok(exports.some(({ name }) => name === "__wasm_call_ctors"));
+    for (const [name, kind] of [
+      ["__wasm_init_tls", "function"],
+      ["__tls_size", "global"],
+      ["__tls_align", "global"],
+    ]) {
+      assert.ok(
+        exports.some((entry) => entry.name === name && entry.kind === kind),
+        `${name} must be exported as a ${kind}`,
+      );
+    }
     assert.ok(exports.some(({ name }) => ["csoundModuleInit", "csound_opcode_init"].includes(name)));
     assert.ok(!exports.some(({ name }) => name === "_start"));
   }
