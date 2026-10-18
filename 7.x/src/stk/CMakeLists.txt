@@ -53,5 +53,23 @@ if(BUILD_STK_OPCODES)
         endif()
     endif()
 
+    # Native unit tests exercise both adapters without an audio device or engine.
+    if(NOT WASM)
+        find_package(GTest QUIET)
+        if(GTest_FOUND)
+            add_executable(stk_adapter_tests tests/stk_adapter_test.cpp src/Stk.cpp)
+            set_target_properties(stk_adapter_tests PROPERTIES
+                CXX_STANDARD 14
+                CXX_STANDARD_REQUIRED ON)
+            target_include_directories(stk_adapter_tests PRIVATE
+                ${CSOUND_INCLUDE_DIRS}
+                "${CMAKE_CURRENT_SOURCE_DIR}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/include")
+            target_compile_definitions(stk_adapter_tests PRIVATE BUILD_PLUGINS)
+            target_link_libraries(stk_adapter_tests PRIVATE GTest::gtest_main)
+            add_test(NAME stk_adapter_tests COMMAND stk_adapter_tests)
+        endif()
+    endif()
+
     message(STATUS "Building STK opcodes")
 endif()
