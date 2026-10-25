@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 env:
-  CSOUND_VERSION: 7.0.0-beta.18
+  CSOUND_VERSION: 7.0.0
   FAUST_VERSION: 2.88.0
   VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
 

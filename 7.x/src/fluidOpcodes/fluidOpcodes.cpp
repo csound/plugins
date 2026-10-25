@@ -283,7 +283,7 @@ public:
     soundFontId = -1;
     toa(csound, iFluidSynth, fluidSynth);
     listPresets = (int32_t)*iListPresets;
-    CS_TYPE *argType = GetTypeForArg(iFilename);
+    const CS_TYPE *argType = GetTypeForArg(iFilename);
     if (strcmp("S", argType->varTypeName) == 0) {
       filename = csound->Strdup(csound, ((STRINGDAT *)iFilename)->data);
     } else {
