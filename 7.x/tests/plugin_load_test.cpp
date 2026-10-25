@@ -7,7 +7,7 @@ protected:
     CSOUND *csound = nullptr;
 
     void SetUp() override {
-        // Load the selected library, without scanning installed plugins.
+        // Skip the default plugin directories; rc files may still add libraries.
         csound = csoundCreate(nullptr, "");
         ASSERT_NE(csound, nullptr);
         csoundCreateMessageBuffer(csound, 0);
@@ -27,9 +27,14 @@ protected:
     }
 
     void compile(const char *plugin, const char *orchestra) {
-        std::string option = std::string("--opcode-lib=") + plugin;
+        std::string option = std::string("--opcode-lib=\"") + plugin + "\"";
         ASSERT_EQ(csoundSetOption(csound, option.c_str()), 0);
-        EXPECT_EQ(csoundCompileOrc(csound, orchestra, 0), 0) << messages();
+        const int result = csoundCompileOrc(csound, orchestra, 0);
+        const std::string log = messages();
+        EXPECT_EQ(result, 0) << log;
+        // An installed copy can supply the opcodes if the requested library fails.
+        const std::string loaded = std::string("\nloaded ") + plugin + "\n";
+        EXPECT_NE(("\n" + log).find(loaded), std::string::npos) << log;
     }
 };
 
