@@ -611,6 +611,8 @@ OENTRY oentries[] = {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     }};
 
+PUBLIC int32_t csoundModuleInfo(void) { return CSOUND_MODULE_INFO; }
+
 PUBLIC int32_t csoundModuleCreate(CSOUND *csound) { return 0; }
 
 PUBLIC int32_t csoundModuleInit(CSOUND *csound) {
