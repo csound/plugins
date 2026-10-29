@@ -1,7 +1,7 @@
 # Third-party code in the WASM package
 
 The plugins use the LGPL-2.1-or-later license in `LICENSE`. Their source and
-copyright notices live under [`7.x/src`](https://github.com/csound/plugins/tree/develop/7.x/src).
+copyright notices live under [`src`](https://github.com/csound/plugins/tree/develop/src).
 The package also contains code from these libraries:
 
 | Library | Used by | License notices |

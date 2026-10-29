@@ -104,7 +104,15 @@ let
 in wasiCxx.mkDerivation {
   pname = "csound-plugins-wasm";
   version = (builtins.fromJSON (builtins.readFile ../package.json)).version;
-  src = pkgs.lib.cleanSource ../7.x;
+  src = pkgs.lib.sourceByRegex ../. [
+    "CMakeLists\\.txt"
+    "cmake"
+    "cmake/.*"
+    "src"
+    "src/.*"
+    "tests"
+    "tests/.*"
+  ];
   nativeBuildInputs = [ pkgs.cmake pkgs.ninja ];
   buildInputs = [ libpng zlib ];
   dontStrip = true;
@@ -145,10 +153,10 @@ in wasiCxx.mkDerivation {
     cp ${libcxx.src}/libcxx/LICENSE.TXT $out/share/licenses/libcxx.txt
     cp ${libcxx.src}/libcxxabi/LICENSE.TXT $out/share/licenses/libcxxabi.txt
     cp ${libunwindSource}/libunwind/LICENSE.TXT $out/share/licenses/libunwind.txt
-    cp ${../7.x/src/stk/LICENSE} $out/share/licenses/stk.txt
+    cp ${../src/stk/LICENSE} $out/share/licenses/stk.txt
     cp ${pkgs.pkgsCross.wasi32.llvmPackages.compiler-rt.src}/compiler-rt/LICENSE.TXT $out/share/licenses/compiler-rt.txt
     cp ${pkgs.eigen.src}/COPYING* $out/share/licenses/eigen/
-    sed -n '1,/^=*[*][/]$/p' ${../7.x/src/linear_algebra/gmm/gmm.h} > $out/share/licenses/gmm.txt
+    sed -n '1,/^=*[*][/]$/p' ${../src/linear_algebra/gmm/gmm.h} > $out/share/licenses/gmm.txt
     tar -xOf ${pkgs.libpng.src} libpng-${pkgs.libpng.version}/LICENSE > $out/share/licenses/libpng.txt
     tar -xOf ${pkgs.zlib.src} zlib-${pkgs.zlib.version}/LICENSE > $out/share/licenses/zlib.txt
     for plugin in chua image linear_algebra stkops; do
