@@ -1,10 +1,8 @@
-CSOUND PLUGINS
-===
+Plugins for Csound 6.x
+====
 
-This repository contains the code for Csound plugins that require
-external dependencies, as well as code for new third-party contributed
-plugins. This is actually very experimental and it should become fully
-effective in version 7 of Csound.
+This branch is the archival home of the Csound 6 plugin tree. Csound 6 is
+end-of-life; active development happens on the `develop` and `main` branches.
 
 Currently, the plugins available in this tree are
 

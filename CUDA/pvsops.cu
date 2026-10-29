@@ -437,9 +437,9 @@ static int destroy_pvanal(CSOUND *csound, void *pp){
 }
 
 static OENTRY localops[] = {
-  {"cudasynth", sizeof(PVSYN),0, 5, "a", "f", (SUBR) pvsynset, NULL,
+  {"cudasynth", sizeof(PVSYN),0, 3, "a", "f", (SUBR) pvsynset,
    (SUBR) pvsynperf},
-   {"cudanal", sizeof(PVAN),0, 5, "f", "aiiii", (SUBR) pvanalset, NULL,
+   {"cudanal", sizeof(PVAN),0, 3, "f", "aiiii", (SUBR) pvanalset,
    (SUBR) pvanalperf}
 };
 
