@@ -1,6 +1,14 @@
 # @csound/plugins
 
-WASM opcode plugins for the double-precision Csound 7 browser engine.
+WASI Preview 2 opcode plugins for Csound 7.
+
+| Entry point | Target | Samples | Assets |
+| --- | --- | --- | --- |
+| `@csound/plugins/wasm32` | wasm32-wasip2 | float | `chua.wasm`, etc. |
+| `@csound/plugins/wasm64` | wasm64-wasip2 | double | `chua-wasm64.wasm`, etc. |
+
+`@csound/plugins` selects wasm64, matching the browser engine. Each entry
+exports one `plugins` object. Both builds use the same plugin sources.
 
 This package includes Chua (`chuap`), image, linear algebra, and STK. This build
 disables FluidSynth, HDF5, Python, WebSockets, device, and GPU plugins.
@@ -8,25 +16,28 @@ Csound 6 is not supported.
 
 ## Runtime dependency
 
-Builds use the shared-memory plugin SDK and toolchain from `@csound/wasm-bin`.
-Tests use the published `@csound/browser` runtime. [package.json](../package.json) and
-[package-lock.json](../package-lock.json) record the versions used together.
-Rebuild after updating these dependencies. Plugins built for the old,
-non-shared engine cannot load in the shared-memory runtime.
+This change depends on [csound/csound#3556](https://github.com/csound/csound/pull/3556).
+The npm versions in `package.json` predate that change. Until matching releases
+exist, use its built source directory as described below. CI pins the upstream
+commit and builds its engines and SDKs from source.
+
+A plugin's pointer width, sample types, and memory mode must match the engine.
+The old wasm32 double/shared-memory plugins cannot load in either new engine.
+The SDK's generated `float-version.h` sets precision; do not pass
+`-DUSE_DOUBLE=0` to the compiler, since the headers check whether it is defined.
 
 ## Use
 
-Use a compatible `@csound/browser` release, such as the version pinned in
-[package.json](../package.json):
+Use the wasm64 browser built from the upstream PR, or a later matching release:
 
 ```js
 import { Csound } from "@csound/browser";
-import { plugins } from "@csound/plugins";
+import { plugins } from "@csound/plugins/wasm64";
 
 const csound = await Csound({ withPlugins: [plugins.chua, plugins.image] });
 ```
 
-Use `plugins.stk` to load the STK instruments. Its single `stkops.wasm` file
+Use `plugins.stk` to load the STK instruments. Each target's `stkops` WASM file
 contains all bundled raw-wave samples. At initialization, the plugin writes
 them to Csound's virtual filesystem and sets its wave path. No extra downloads
 or `RAWWAVE_PATH` setup are needed. An explicit `RAWWAVE_PATH` overrides the
@@ -63,24 +74,51 @@ npm test
 npm pack
 ```
 
-Nix pins the toolchain and builds the CMake targets in the repository root with Ninja.
-Dependencies use threaded static PIC builds. Each plugin exports its TLS size,
-alignment, and initializer so the engine can set up thread-local storage.
+Nix pins the toolchain and builds both CMake targets with Ninja.
+Dependencies use static PIC builds for the matching pointer width. The engines
+use unshared WASM memory; Preview 2 has no pthread spawning ABI. Web Audio's
+shared transport buffers do not change the plugin memory type.
 The C runtime imports the engine's allocator; it does not link its own heap.
 STK uses a separate libc++ build with C++ exceptions
 and a static WASM unwinder. Other C++ plugins keep exceptions disabled.
 CMake's `STK_EMBED_RAWWAVES` option embeds the samples and defaults to on for WASM.
 Native builds keep using the installed raw-wave directory by default.
-To use another Csound 7 SDK, set `CSOUND_PLUGIN_SDK` to an absolute archive path.
+The build uses `csound-plugin-sdk.tar.gz` for wasm32 and
+`csound-wasm64-plugin-sdk.tar.gz` for wasm64. To override them, set
+`CSOUND_PLUGIN_SDK` and `CSOUND_WASM64_PLUGIN_SDK` to absolute archive paths.
+Set `CSOUND_WASM_PACKAGE` to the matching `@csound/wasm-bin` directory to also
+override its toolchain and ABI metadata tools.
 Set `NIX_SYSTEM=x86_64-linux` when using a Linux remote builder from macOS.
 
-Tests load all plugins together, render Chua and STK, compute a vector norm, and
+For each target, tests load all plugins together, render Chua and STK, compute a vector norm, and
 save and reload a PNG through the WASI filesystem. STK tests also cover loading
 it alone, overriding its wave path, and catching a missing-sample error.
 Packing runs the tests and includes the WASM files and their license notices.
-For work on the browser loader,
-`CSOUND_BROWSER_URL` can point to an absolute file URL of a local browser bundle;
-leave it unset to test the published package as CI does.
+Each wasm64 plugin embeds its own Preview 2 adapter, so its WASI imports need
+not be present in the engine. The private libc maps engine paths to its own
+file descriptors while following the engine's working directory.
+Tests use the upstream browser loader with each engine and check that it rejects
+the other pointer width. `CSOUND_BROWSER_SOURCE` can select another browser
+source directory; it defaults to `$CSOUND_WASM_PACKAGE/browser` for a source
+checkout, or the installed `@csound/browser` package.
+
+### Test against the upstream PR
+
+Check out the commit pinned in the WASM workflow, then run from this repository:
+
+```sh
+export CSOUND_WASM_PACKAGE=/absolute/path/to/csound/platform/wasm-wasi
+bash wasm/scripts/prepare-csound.sh
+npm ci
+npm run build
+npm test
+npm pack
+```
+
+The prepare step builds the two engines and SDK archives with Nix. It does not
+download a WASI SDK bundle. Skip it when those artifacts already exist.
+Before releasing, update the npm pins to versions containing #3556, remove the
+source checkout from CI, and verify with the source overrides unset.
 
 ## Updating dependencies
 
@@ -101,7 +139,7 @@ GitHub Actions caches.
 
 Native and npm packages share the version in `package.json`; see the
 [release process](../README.md#releasing) for version changes and Git tags.
-Run the build, test, and pack commands against the published browser package
-with `CSOUND_BROWSER_URL` unset. Publish a prerelease with
+Run the build, test, and pack commands against matching published packages
+with the source overrides unset. Publish a prerelease with
 `npm publish --tag beta --access public`, or a stable release with
 `npm publish --access public`, from that build. No workflow publishes to npm.
