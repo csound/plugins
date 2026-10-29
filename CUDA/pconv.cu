@@ -143,14 +143,19 @@ int pconv_init(CSOUND *csound, PCONV *p){
       tmp[j] = j < parts && k < tlen ? tab[k++] : 0.f;
       float *pp = p->coef + (nparts - 1 - i)*(dftsize+2);
     cudaMemcpy(pp, tmp, sizeof(float)*dftsize, 
-               cudaMemcpyHostToDevice); 
+               cudaMemcpyHostToDevice);
+    // csound->Message(csound,"CUDA init: copy buffer %d to device\n",i);
     cufftExecR2C(p->plan,pp,(cufftComplex*)pp);
+    //csound->Message(csound,"CUDA init: done transform %d\n",i);
    }
 
   cudaDeviceSynchronize();
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, 0);
   int blockspt = deviceProp.maxThreadsPerBlock;
+  csound->Message(csound, "CUDApconv: using device %s (capability %d.%d)\n",
+        deviceProp.name,deviceProp.major, deviceProp.minor);
+  
  
   end >>= 1;
 
@@ -193,11 +198,13 @@ int pconv_perf(CSOUND *csound, PCONV *p){
     memset(&asig[nsmps], '\0', early*sizeof(MYFLT));
   }
 
+  //csound->Message(csound,"pconv perf count: %d\n", cnt);  
   for(n = offset; n < nsmps; n++){
     bufin[cnt] = (float) asig[n];
     aout[n] = (MYFLT) bufout[cnt]/dftsize;
   
     if(++cnt == parts){
+      //csound->Message(csound,"CUDA execution:\n");
        /* in buffer pos */
       int pos = wp*(dftsize+2);
 
@@ -210,27 +217,33 @@ int pconv_perf(CSOUND *csound, PCONV *p){
        /* copy current buffer into newest partition */
        cudaMemset(out, 0, sizeof(float)*(dftsize+2));
        cudaMemcpy(&in[pos],bufin,sizeof(float)*dftsize,cudaMemcpyHostToDevice);
+       //csound->Message(csound,"done copy to device\n");
 
        /* apply transform */
        if(cufftExecR2C(p->plan,&in[pos],(cufftComplex*)&in[pos])
         != CUFFT_SUCCESS) csound->Message(csound, "cuda fft error\n");
        if (cudaDeviceSynchronize() != cudaSuccess)
         csound->Message(csound,"Cuda error: Failed to synchronize\n");
+       //csound->Message(csound,"done transform\n");
 
        /* convolution */
        pconvol<<<p->blocks,p->threads>>>(out, in, coef, wp, dftsize, nparts, end);
        if (cudaDeviceSynchronize() != cudaSuccess)
         csound->Message(csound,"Cuda error: Failed to synchronize\n");
+       //csound->Message(csound,"done convolution\n");
 
        /* transform output */
        if(cufftExecC2R(p->iplan,(cufftComplex*)out,out) 
           != CUFFT_SUCCESS) csound->Message(csound, "cuda fft error\n");
+       //csound->Message(csound,"done inverse transform\n");
 
        /* overlap-add */
-       olapadd<<<p->oblocks,p->othreads>>>(buf,out,parts); 
+       olapadd<<<p->oblocks,p->othreads>>>(buf,out,parts);
+       //csound->Message(csound,"done overlap-add\n");
  
        /* copy buffer out */
        cudaMemcpy(bufout,buf, sizeof(float)*parts,cudaMemcpyDeviceToHost);
+       //csound->Message(csound,"done copy from device\n");
 
        cnt = 0;
     }
@@ -241,7 +254,7 @@ int pconv_perf(CSOUND *csound, PCONV *p){
 }
 
 static OENTRY localops[] = {
-  {"cudapconv", sizeof(PCONV),0, 5, "a", "aii", (SUBR) pconv_init, NULL,
+  {"cudapconv", sizeof(PCONV),0, 3, "a", "aii", (SUBR) pconv_init, 
     (SUBR) pconv_perf},
 };
 

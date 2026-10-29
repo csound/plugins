@@ -28,12 +28,32 @@
 #include <stdbool.h>
 #include "csdl.h"
 //#include "csound.h"
+
+#ifdef WIN32
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+void usleep(unsigned int usec)
+{
+    HANDLE timer;
+    LARGE_INTEGER ft;
+
+    ft.QuadPart = -(10 * (__int64)usec);
+
+    timer = CreateWaitableTimer(NULL, TRUE, NULL);
+    SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
+    WaitForSingleObject(timer, INFINITE);
+    CloseHandle(timer);
+}
+
+#endif
+
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-
     typedef struct OpcodeArgument OpcodeArgument;
     typedef struct WebSocket WebSocket;
 
