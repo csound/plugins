@@ -1,2 +1,2 @@
-/** The browser engine uses wasm64 with double samples. */
-export { plugins } from "./wasm64.js";
+/** The default browser engine uses wasm32 with float samples. */
+export { plugins } from "./wasm32.js";

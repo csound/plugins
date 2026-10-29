@@ -6,7 +6,7 @@ import { plugins as wasm64 } from "@csound/plugins/wasm64";
 import { plugins as defaults } from "@csound/plugins";
 import { runtime } from "./runtime.js";
 
-test("the package default selects wasm64", () => assert.equal(defaults, wasm64));
+test("the package default selects wasm32", () => assert.equal(defaults, wasm32));
 
 for (const [target, plugins, Samples] of [
   ["wasm32", wasm32, Float32Array],

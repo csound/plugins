@@ -1,6 +1,6 @@
 { system ? builtins.currentSystem
 , pkgs ? import (import ./nixpkgs.nix) { inherit system; }
-, wasm64 ? true
+, wasm64 ? false
 , csoundWasmPackage ? null
 , csoundSdkArchive ? null
 }:

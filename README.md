@@ -78,9 +78,9 @@ platform facilities the browser does not provide: fluidOpcodes (FluidSynth),
 hdf5, faust (libfaust), websockets, py (Python), wiimote, p5glove, CUDA and
 OpenCL.
 
-The default entry and `@csound/plugins/wasm64` expose wasm64 double plugins.
-Use `@csound/plugins/wasm32` for the wasm32 float engine. Each entry exports
-one `plugins` object with these URLs:
+The default entry and `@csound/plugins/wasm32` expose wasm32 float plugins.
+Use `@csound/plugins/wasm64` with the opt-in `@csound/browser/wasm64.js` engine.
+Each entry exports one `plugins` object with these URLs:
 
 | Export | wasm32 file | wasm64 file |
 | --- | --- | --- |

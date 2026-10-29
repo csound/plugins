@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           repository: hlolli/csound
-          ref: 51ba33840217393ff0dd3794d98cb3088b328cbd
+          ref: 623c6e8fa1f76ed02fc74dfe178061e7b6ef7aec
           path: .csound
           persist-credentials: false
       - name: Build the upstream Preview 2 engines and SDKs
