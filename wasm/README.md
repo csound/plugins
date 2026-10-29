@@ -7,8 +7,8 @@ WASI Preview 2 opcode plugins for Csound 7.
 | `@csound/plugins/wasm32` | wasm32-wasip2 | float | `chua.wasm`, etc. |
 | `@csound/plugins/wasm64` | wasm64-wasip2 | double | `chua-wasm64.wasm`, etc. |
 
-`@csound/plugins` selects wasm64, matching the browser engine. Each entry
-exports one `plugins` object. Both builds use the same plugin sources.
+`@csound/plugins` selects wasm32 float, matching the default browser engine.
+Each entry exports one `plugins` object. Both builds use the same plugin sources.
 
 This package includes Chua (`chuap`), image, linear algebra, and STK. This build
 disables FluidSynth, HDF5, Python, WebSockets, device, and GPU plugins.
@@ -28,13 +28,20 @@ The SDK's generated `float-version.h` sets precision; do not pass
 
 ## Use
 
-Use the wasm64 browser built from the upstream PR, or a later matching release:
+Use the browser built from the upstream PR, or a later matching release:
 
 ```js
 import { Csound } from "@csound/browser";
-import { plugins } from "@csound/plugins/wasm64";
+import { plugins } from "@csound/plugins";
 
 const csound = await Csound({ withPlugins: [plugins.chua, plugins.image] });
+```
+
+To opt into wasm64 with double samples, change both imports:
+
+```js
+import { Csound } from "@csound/browser/wasm64.js";
+import { plugins } from "@csound/plugins/wasm64";
 ```
 
 Use `plugins.stk` to load the STK instruments. Each target's `stkops` WASM file
