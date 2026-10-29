@@ -378,6 +378,9 @@ library instalation directory (customisable) on LINUX. These are:
     * For doubles: `%LOCALAPPDATA%\csound\${APIVERSION}\plugins64`
     * For floats: `%LOCALAPPDATA%\csound\${APIVERSION}\plugins`
 
+On all platforms, the install directory can be overridden by setting the
+`PLUGIN_INSTALL_DIR` CMake cache variable (e.g. `-DPLUGIN_INSTALL_DIR=/custom/path`).
+
 
 Build Instructions for Linux and MacOS
 ---
