@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build only the two reactors and SDKs needed by this package.
 set -euo pipefail
-: "${CSOUND_WASM_PACKAGE:?Set CSOUND_WASM_PACKAGE to a Csound checkout's platform/wasm-wasi directory}"
+: "${CSOUND_WASM_PACKAGE:?Set CSOUND_WASM_PACKAGE to the platform/wasm-wasi directory in a Csound checkout}"
 cd "$CSOUND_WASM_PACKAGE"
 source scripts/nixpkgs-pin.sh
 mkdir -p lib
