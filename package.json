@@ -1,6 +1,6 @@
 {
   "name": "@csound/plugins",
-  "version": "7.0.0-beta.1",
+  "version": "7.0.0",
   "description": "Csound 7 opcode plugins for WebAssembly",
   "type": "module",
   "license": "LGPL-2.1-or-later",
