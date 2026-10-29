@@ -1,7 +1,7 @@
 reviews:
   path_filters:
-    - "!7.x/src/stk/src/**"
-    - "!7.x/src/stk/include/**"
-    - "!7.x/src/stk/rawwaves/**"
-    - "!7.x/src/dssi4cs/include/dssi/**"
-    - "!7.x/src/dssi4cs/include/ladspa/**"
+    - "!src/stk/src/**"
+    - "!src/stk/include/**"
+    - "!src/stk/rawwaves/**"
+    - "!src/dssi4cs/include/dssi/**"
+    - "!src/dssi4cs/include/ladspa/**"

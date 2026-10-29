@@ -63,7 +63,7 @@ npm test
 npm pack
 ```
 
-Nix pins the toolchain and builds the existing `7.x` CMake targets with Ninja.
+Nix pins the toolchain and builds the CMake targets in the repository root with Ninja.
 Dependencies use threaded static PIC builds. Each plugin exports its TLS size,
 alignment, and initializer so the engine can set up thread-local storage.
 The C runtime imports the engine's allocator; it does not link its own heap.
