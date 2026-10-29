@@ -78,14 +78,16 @@ platform facilities the browser does not provide: fluidOpcodes (FluidSynth),
 hdf5, faust (libfaust), websockets, py (Python), wiimote, p5glove, CUDA and
 OpenCL.
 
-The `@csound/plugins` package exposes one asset URL per WASM plugin:
+The default entry and `@csound/plugins/wasm32` expose wasm32 float plugins.
+Use `@csound/plugins/wasm64` with the opt-in `@csound/browser/wasm64.js` engine.
+Each entry exports one `plugins` object with these URLs:
 
-| Export | Plugin | File |
+| Export | wasm32 file | wasm64 file |
 | --- | --- | --- |
-| `plugins.chua` | chua | `chua.wasm` |
-| `plugins.image` | image | `image.wasm` |
-| `plugins.linearAlgebra` | linear_algebra | `linear_algebra.wasm` |
-| `plugins.stk` | STK | `stkops.wasm` |
+| `plugins.chua` | `chua.wasm` | `chua-wasm64.wasm` |
+| `plugins.image` | `image.wasm` | `image-wasm64.wasm` |
+| `plugins.linearAlgebra` | `linear_algebra.wasm` | `linear_algebra-wasm64.wasm` |
+| `plugins.stk` | `stkops.wasm` | `stkops-wasm64.wasm` |
 
 The URLs are passed to the runtime's `withPlugins` option, e.g.:
 
@@ -97,7 +99,7 @@ const csound = await Csound({ withPlugins: [plugins.chua, plugins.image] });
 ```
 
 Unlike the native build, the WASM STK plugin embeds its raw-wave samples in
-`stkops.wasm` (`STK_EMBED_RAWWAVES` defaults to ON for WASM): at initialization
+each target's `stkops` binary (`STK_EMBED_RAWWAVES` defaults to ON for WASM): at initialization
 it writes them to Csound's virtual filesystem and sets the wave path, so no
 separate download or `RAWWAVE_PATH` setup is needed. An explicit `RAWWAVE_PATH`
 still overrides the embedded samples.

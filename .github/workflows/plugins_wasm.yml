@@ -17,14 +17,16 @@ concurrency:
 jobs:
   package:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
+    env:
+      CSOUND_WASM_PACKAGE: ${{ github.workspace }}/.csound/platform/wasm-wasi
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - uses: cachix/install-nix-action@v31.11.1
       - uses: cachix/cachix-action@v17
@@ -32,6 +34,16 @@ jobs:
           name: csound
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           skipPush: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+      # Depends on csound/csound#3556. Replace this checkout with published
+      # package pins once the matching browser and wasm-bin releases exist.
+      - uses: actions/checkout@v7.0.1
+        with:
+          repository: hlolli/csound
+          ref: 623c6e8fa1f76ed02fc74dfe178061e7b6ef7aec
+          path: .csound
+          persist-credentials: false
+      - name: Build the upstream Preview 2 engines and SDKs
+        run: bash wasm/scripts/prepare-csound.sh
       - name: Install JS dependencies
         run: npm ci
       - name: Build WASM plugins with CMake and Nix

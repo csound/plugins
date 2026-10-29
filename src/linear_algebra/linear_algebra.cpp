@@ -373,13 +373,13 @@ extern "C" {
 
 using namespace csound;
 
-static std::ostream &operator<<(std::ostream &o, const std::vector<double> &m) {
+static std::ostream &operator<<(std::ostream &o, const std::vector<cs_float> &m) {
   gmm::write(o, m);
   return o;
 }
 
 static std::ostream &operator<<(std::ostream &o,
-                                const std::vector<std::complex<double>> &m) {
+                                const std::vector<std::complex<cs_float>> &m) {
   gmm::write(o, m);
   return o;
 }
@@ -3783,7 +3783,7 @@ public:
     toa(lhs_eigenvalues_, lhs_eigenvalues);
     toa(rhs_A_, rhs_A);
     gmm::implicit_qr_algorithm(rhs_A->mr, lhs_eigenvalues->vr,
-                               double(*itolerance));
+                               *itolerance);
     return OK;
   }
 };
@@ -3802,7 +3802,7 @@ public:
   }
   int32_t kontrol(CSOUND *) {
     gmm::implicit_qr_algorithm(rhs_A->mr, lhs_eigenvalues->vr,
-                               double(*ktolerance));
+                               *ktolerance);
     return OK;
   }
 };
@@ -3818,7 +3818,7 @@ public:
     toa(lhs_eigenvalues_, lhs_eigenvalues);
     toa(rhs_A_, rhs_A);
     gmm::implicit_qr_algorithm(rhs_A->mc, lhs_eigenvalues->vc,
-                               double(*itolerance));
+                               *itolerance);
     return OK;
   }
 };
@@ -3837,7 +3837,7 @@ public:
   }
   int32_t kontrol(CSOUND *) {
     gmm::implicit_qr_algorithm(rhs_A->mc, lhs_eigenvalues->vc,
-                               double(*ktolerance));
+                               *ktolerance);
     return OK;
   }
 };
@@ -3856,7 +3856,7 @@ public:
     toa(lhs_eigenvectors_, lhs_eigenvectors);
     toa(rhs_A_, rhs_A);
     gmm::implicit_qr_algorithm(rhs_A->mr, lhs_eigenvalues->vr,
-                               lhs_eigenvectors->mr, double(*itolerance));
+                               lhs_eigenvectors->mr, *itolerance);
     return OK;
   }
 };
@@ -3878,7 +3878,7 @@ public:
   }
   int32_t kontrol(CSOUND *) {
     gmm::implicit_qr_algorithm(rhs_A->mr, lhs_eigenvalues->vr,
-                               lhs_eigenvectors->mr, double(*ktolerance));
+                               lhs_eigenvectors->mr, *ktolerance);
     return OK;
   }
 };
@@ -3897,7 +3897,7 @@ public:
     toa(lhs_eigenvectors_, lhs_eigenvectors);
     toa(rhs_A_, rhs_A);
     gmm::implicit_qr_algorithm(rhs_A->mc, lhs_eigenvalues->vc,
-                               lhs_eigenvectors->mc, double(*itolerance));
+                               lhs_eigenvectors->mc, *itolerance);
     return OK;
   }
 };
@@ -3919,7 +3919,7 @@ public:
   }
   int32_t kontrol(CSOUND *) {
     gmm::implicit_qr_algorithm(rhs_A->mc, lhs_eigenvalues->vc,
-                               lhs_eigenvectors->mc, double(*ktolerance));
+                               lhs_eigenvectors->mc, *ktolerance);
     return OK;
   }
 };

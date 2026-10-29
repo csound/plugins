@@ -16,7 +16,7 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=24"
   },
   "files": [
     "dist",
@@ -24,7 +24,9 @@
     "index.d.ts",
     "LICENSE",
     "THIRD_PARTY.md",
-    "wasm/README.md"
+    "wasm/README.md",
+    "wasm32.js",
+    "wasm64.js"
   ],
   "exports": {
     ".": {
@@ -32,11 +34,19 @@
       "import": "./index.js"
     },
     "./dist/*": "./dist/*",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./wasm32": {
+      "types": "./index.d.ts",
+      "import": "./wasm32.js"
+    },
+    "./wasm64": {
+      "types": "./index.d.ts",
+      "import": "./wasm64.js"
+    }
   },
   "scripts": {
     "build": "bash wasm/scripts/build.sh",
-    "test": "node --test wasm/tests/*.test.js",
+    "test": "node --experimental-wasm-exnref --test wasm/tests/*.test.js",
     "prepack": "npm test"
   },
   "devDependencies": {
