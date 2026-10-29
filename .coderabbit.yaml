@@ -1,0 +1,7 @@
+reviews:
+  path_filters:
+    - "!src/stk/src/**"
+    - "!src/stk/include/**"
+    - "!src/stk/rawwaves/**"
+    - "!src/dssi4cs/include/dssi/**"
+    - "!src/dssi4cs/include/ladspa/**"

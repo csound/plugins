@@ -1,98 +1,578 @@
-name: Csound plugins build
+name: Csound 7 plugins build
 
-env:
-  VCPKG_BINARY_SOURCES: "clear;nuget,GitHub,readwrite"
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
   push:
     branches:
-      - master
+      - develop
+      - main
   pull_request:
     branches:
-      - master
+      - develop
+      - main
+  workflow_dispatch:
+
+env:
+  CSOUND_VERSION: 7.0.0
+  FAUST_VERSION: 2.88.0
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
 
 jobs:
-  build_package:
-    runs-on: ${{ matrix.os }}
-
-    env:
-      CSOUND_VERSION: 6.17.2
-
-    strategy:
-      matrix:
-        os: [windows-latest]
-        version: ["6.17.0"]
-        include:
-          - os: "windows-latest"
-            mono: ""
-          # - os: "ubuntu-latest"
-          #   mono: "mono"
-          # - os: "macos-latest"
-          #   mono: "mono"
-
+  update_version:
+    name: Read release version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      release: ${{ steps.release.outputs.release }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v1
+      - name: Checkout source
+        uses: actions/checkout@v7.0.1
         with:
-          fetch-depth: 1
-          submodules: true
+          persist-credentials: false
 
-      - name: Setup platform (windows)
-        if: startsWith(matrix.os, 'windows')
+      - name: Check release rules
+        run: python3 -B -m unittest discover -s .github/scripts -p 'test_*.py'
+
+      - name: Read version and check the merged PR
+        id: release
         env:
-          FAUST_URL: https://github.com/grame-cncm/faust/releases/download/2.60.3/Faust-2.60.3-win64.exe
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/release.py
+
+  linux:
+    name: Linux (ubuntu-latest)
+    needs: update_version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7.0.1
+
+      - name: Install Csound build dependencies
         run: |
-          Invoke-WebRequest $env:FAUST_URL -OutFile faustInstaller.exe
-          ./faustInstaller.exe /S
-          echo "C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          echo "OPCODE6DIR64=C:/Program Files/csound/plugins64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          echo "PYTHONPATH=C:/Program Files/csound/bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          echo "RAWWAVE_PATH=C:/Program Files/csound/samples" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          .\6.x\vcpkg\bootstrap-vcpkg.bat
-          choco install csound --version=6.17.0
-          echo $GITHUB_ENV
-          ls 'C:\Program Files\Faust\'
-          echo "C:\Program Files\Faust\;C:\Program Files\Faust\lib" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake pkg-config \
+            libsndfile1-dev libsamplerate0-dev libasound2-dev libportaudio2 libportmidi-dev \
+            libeigen3-dev libfluidsynth-dev libpng-dev \
+            libwebsockets-dev libuv1-dev libhdf5-dev \
+            ocl-icd-opencl-dev libtinfo-dev \
+            libgtest-dev \
+            flex bison
 
-        # - name: Setup platform (linux)
-        #   if: startsWith(matrix.os, 'ubuntu')
-        #   run: |
-        #     ./vcpkg/bootstrap-vcpkg.sh
-        #     sudo apt-get update
-        #     sudo apt-get install libcsound64-dev
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/csound-install
+          key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
 
-        # - name: Setup platform (macos)
-        #   if: startsWith(matrix.os, 'macos')
-        #   run: |
-        #     ./vcpkg/bootstrap-vcpkg.sh
-        #     brew install csound
-
-      - name: Setup VCPKG cache
-        shell: bash
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
         run: |
-          ${{ matrix.mono }} `./6.x/vcpkg/vcpkg fetch nuget | tail -n 1` \
-          sources add \
-          -source "https://nuget.pkg.github.com/csound/index.json" \
-          -storepasswordincleartext \
-          -name "GitHub" \
-          -username "csound" \
-          -password "${{ secrets.GITHUB_TOKEN }}"
-          ${{ matrix.mono }} `./6.x/vcpkg/vcpkg fetch nuget | tail -n 1` \
-            setapikey "${{ secrets.GITHUB_TOKEN }}" \
-            -source "https://nuget.pkg.github.com/csound/index.json"
+          git clone --depth 1 --branch "$CSOUND_VERSION" \
+            https://github.com/csound/csound.git "$RUNNER_TEMP/csound"
+          cmake -S "$RUNNER_TEMP/csound" -B "$RUNNER_TEMP/csound-build" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$HOME/csound-install" \
+            -DBUILD_TESTS=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF
+          cmake --build "$RUNNER_TEMP/csound-build" --parallel "$(nproc)"
+          cmake --install "$RUNNER_TEMP/csound-build"
 
-      - name: Generate CMake build
-        run: cmake 6.x/. -B build -DUSE_VCPKG=1 -DBUILD_ABLETON_LINK_OPCODES=OFF
+      - name: Cache Faust
+        id: cache-faust
+        uses: actions/cache@v4
+        with:
+          path: ~/faust
+          key: faust-${{ runner.os }}-${{ runner.arch }}-${{ env.FAUST_VERSION }}
+
+      - name: Install Faust
+        if: steps.cache-faust.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/faust"
+          curl -sL -o "$RUNNER_TEMP/libfaust.zip" \
+            "https://github.com/grame-cncm/faust/releases/download/$FAUST_VERSION/libfaust-ubuntu-x86_64.zip"
+          curl -sL -o "$RUNNER_TEMP/faust-src.tar.gz" \
+            "https://github.com/grame-cncm/faust/releases/download/$FAUST_VERSION/faust-$FAUST_VERSION.tar.gz"
+          unzip -q "$RUNNER_TEMP/libfaust.zip" -d "$HOME/faust"
+          tar xzf "$RUNNER_TEMP/faust-src.tar.gz" -C "$RUNNER_TEMP" \
+            "faust-$FAUST_VERSION/architecture" "faust-$FAUST_VERSION/libraries"
+          mv "$RUNNER_TEMP/faust-$FAUST_VERSION/architecture" "$HOME/faust/include"
+          mv "$RUNNER_TEMP/faust-$FAUST_VERSION/libraries" "$HOME/faust/stdlib"
+          rm -f "$RUNNER_TEMP/libfaust.zip" "$RUNNER_TEMP/faust-src.tar.gz"
+
+      - name: Configure plugin build
+        run: |
+          {
+            echo "CSOUND_INCLUDE_DIR_HINT=$HOME/csound-install/include/csound"
+            echo "CSOUND_LIBRARY_DIR_HINT=$HOME/csound-install/lib"
+            echo "FAUST_INCLUDE_DIR_HINT=$HOME/faust/include"
+            echo "FAUST_LIB_DIR_HINT=$HOME/faust/lib"
+            echo "FAUST_STDLIB_DIR_HINT=$HOME/faust/stdlib"
+          } >> "$GITHUB_ENV"
 
       - name: Build plugins
-        run: cmake --build build --config Release
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+            -DFAUST_STATIC=ON \
+            -DCSOUND_INCLUDE_DIR_HINT="$CSOUND_INCLUDE_DIR_HINT" \
+            -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT" \
+            -DFAUST_INCLUDE_DIR_HINT="$FAUST_INCLUDE_DIR_HINT" \
+            -DFAUST_LIB_DIR_HINT="$FAUST_LIB_DIR_HINT" \
+            -DFAUST_STDLIB_DIR_HINT="$FAUST_STDLIB_DIR_HINT"
+          cmake --build build --parallel "$(nproc)"
 
-      - name: Build installer
-        run: iscc /o. .\installer\win64\Installer.iss
+      - name: Run plugin tests
+        run: ctest --test-dir build --output-on-failure
 
-      - name: Upload installer
-        uses: actions/upload-artifact@v4
+      - name: Stage plugins
+        run: |
+          mkdir -p package
+          cp build/src/chua/*.so \
+             build/src/linear_algebra/*.so \
+             build/src/fluidOpcodes/*.so \
+             build/src/dssi4cs/*.so \
+             build/src/image/*.so \
+             build/src/websockets/*.so \
+             build/src/hdf5/*.so \
+             build/src/py/*.so \
+             build/src/OpenCL/*.so \
+             build/src/stk/*.so package/
+          cp build/src/faustcsound/*.so package/
+          mkdir -p package/stk/rawwaves
+          cp src/stk/rawwaves/*.raw package/stk/rawwaves/
+          mkdir -p package/faust
+          cp -R "$HOME/faust/stdlib/." package/faust/
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v7.0.2
         with:
-          name: Csound_win_x64-${{env.CSOUND_VERSION}}.${{github.run_number}}-plugins-installer
-          path: ./csound6-plugins-win_x86_64-*.exe
+          name: csound7-plugins-linux
+          path: package/
           if-no-files-found: error
+
+  macos:
+    name: macOS (macos-latest)
+    needs: update_version
+    runs-on: macos-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7.0.1
+
+      - name: Install Csound build dependencies
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          brew install cmake ninja pkg-config bison flex libsndfile
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
+
+      - name: Checkout vcpkg submodule
+        run: git submodule update --init vcpkg
+
+      - name: Set up vcpkg
+        run: vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
+      - name: Cache vcpkg binary cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: vcpkg-cache
+          key: vcpkg-macos-${{ github.run_id }}
+          restore-keys: vcpkg-macos-
+
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/csound-install
+          key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
+
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$CSOUND_VERSION" \
+            https://github.com/csound/csound.git "$RUNNER_TEMP/csound"
+          cmake -S "$RUNNER_TEMP/csound" -B "$RUNNER_TEMP/csound-build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$HOME/csound-install" \
+            -DCS_FRAMEWORK_DEST="$HOME/csound-install/Frameworks" \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix)" \
+            -DBUILD_TESTS=OFF \
+            -DBUILD_STATIC_LIBRARY=OFF \
+            -DBUILD_VIRTUAL_KEYBOARD=OFF \
+            -DBUILD_JAVA_INTERFACE=OFF \
+            -DBUILD_PYTHON_INTERFACE=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF \
+            -DBUILD_LUA_INTERFACE=OFF \
+            -DBUILD_CSBEATS=OFF \
+            -DUSE_LIBSAMPLERATE=OFF \
+            -DUSE_CURL=OFF \
+            -DUSE_GETTEXT=OFF \
+            -DUSE_JACK=OFF \
+            -DUSE_PORTAUDIO=OFF \
+            -DUSE_PORTMIDI=OFF \
+            -DUSE_MP3=OFF
+          cmake --build "$RUNNER_TEMP/csound-build" --parallel "$(sysctl -n hw.ncpu)"
+          cmake --install "$RUNNER_TEMP/csound-build"
+
+      - name: Cache Faust
+        id: cache-faust
+        uses: actions/cache@v4
+        with:
+          path: ~/faust
+          key: faust-${{ runner.os }}-${{ runner.arch }}-${{ env.FAUST_VERSION }}
+
+      - name: Install Faust
+        if: steps.cache-faust.outputs.cache-hit != 'true'
+        run: |
+          if [ "$(uname -m)" = "arm64" ]; then
+            asset="Faust-$FAUST_VERSION-arm64.dmg"
+          else
+            asset="Faust-$FAUST_VERSION-x64.dmg"
+          fi
+          curl -sL -o "$RUNNER_TEMP/faust.dmg" \
+            "https://github.com/grame-cncm/faust/releases/download/$FAUST_VERSION/$asset"
+          mkdir -p "$HOME/faust" "$RUNNER_TEMP/faust_dmg"
+          hdiutil attach "$RUNNER_TEMP/faust.dmg" \
+            -mountpoint "$RUNNER_TEMP/faust_dmg" -nobrowse -quiet
+          root=$(dirname "$(find "$RUNNER_TEMP/faust_dmg" -maxdepth 2 -type d -name include | head -1)")
+          cp -R "$root/include" "$HOME/faust/include"
+          cp -R "$root/lib" "$HOME/faust/lib"
+          cp -R "$root/share/faust" "$HOME/faust/stdlib"
+          hdiutil detach "$RUNNER_TEMP/faust_dmg" -quiet
+          rm -f "$RUNNER_TEMP/faust.dmg"
+
+      - name: Configure plugin build
+        run: |
+          framework="$HOME/csound-install/Frameworks/CsoundLib64.framework"
+          headers="$framework/Versions/7.0/Headers"
+          if [ ! -f "$headers/csound.h" ]; then
+            headers="$framework/Headers"
+          fi
+          {
+            echo "CSOUND_INCLUDE_DIR_HINT=$headers"
+            echo "CSOUND_FRAMEWORK_DIR_HINT=$HOME/csound-install/Frameworks"
+            echo "CSOUND_LIBRARY_DIR_HINT=$HOME/csound-install/Frameworks"
+            echo "FAUST_INCLUDE_DIR_HINT=$HOME/faust/include"
+            echo "FAUST_LIB_DIR_HINT=$HOME/faust/lib"
+            echo "FAUST_STDLIB_DIR_HINT=$HOME/faust/stdlib"
+          } >> "$GITHUB_ENV"
+
+      - name: Build plugins
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+            -DUSE_VCPKG=ON \
+            -DFAUST_STATIC=ON \
+            -DCSOUND_INCLUDE_DIR_HINT="$CSOUND_INCLUDE_DIR_HINT" \
+            -DCSOUND_FRAMEWORK_DIR_HINT="$CSOUND_FRAMEWORK_DIR_HINT" \
+            -DCSOUND_LIBRARY_DIR_HINT="$CSOUND_LIBRARY_DIR_HINT" \
+            -DFAUST_INCLUDE_DIR_HINT="$FAUST_INCLUDE_DIR_HINT" \
+            -DFAUST_LIB_DIR_HINT="$FAUST_LIB_DIR_HINT" \
+            -DFAUST_STDLIB_DIR_HINT="$FAUST_STDLIB_DIR_HINT"
+          cmake --build build --parallel "$(sysctl -n hw.ncpu)"
+
+      - name: Stage plugins
+        run: |
+          mkdir -p package
+          cp build/src/chua/*.dylib \
+             build/src/linear_algebra/*.dylib \
+             build/src/fluidOpcodes/*.dylib \
+             build/src/image/*.dylib \
+             build/src/websockets/*.dylib \
+             build/src/hdf5/*.dylib \
+             build/src/py/*.dylib \
+             build/src/OpenCL/*.dylib \
+             build/src/stk/*.dylib package/
+          cp build/src/faustcsound/*.dylib package/
+          mkdir -p package/stk/rawwaves
+          cp src/stk/rawwaves/*.raw package/stk/rawwaves/
+          mkdir -p package/faust
+          cp -R "$HOME/faust/stdlib/." package/faust/
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: csound7-plugins-macos
+          path: package/
+          if-no-files-found: error
+
+  windows:
+    name: Windows (windows-latest)
+    needs: update_version
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7.0.1
+
+      - name: Install Csound build dependencies
+        run: choco install -y winflexbison3
+
+      - name: Clone Csound (with vcpkg)
+        run: |
+          git clone --recursive --depth 1 --branch "$env:CSOUND_VERSION" `
+            https://github.com/csound/csound.git csound
+
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.temp }}\csound-install
+          key: csound-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
+
+      - name: Bootstrap vcpkg (Csound)
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: .\csound\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Checkout vcpkg submodule
+        run: git submodule update --init vcpkg
+
+      - name: Bootstrap vcpkg (plugins)
+        run: .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Cache vcpkg binary cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: ${{ github.workspace }}\vcpkg-cache
+          key: vcpkg-windows-${{ github.run_id }}
+          restore-keys: vcpkg-windows-
+
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: |
+          cmake -S csound -B csound-build -A x64 `
+            -DUSE_VCPKG=ON `
+            -DCMAKE_INSTALL_PREFIX="$env:RUNNER_TEMP\csound-install" `
+            -DBUILD_TESTS=OFF `
+            -DBUILD_STATIC_LIBRARY=OFF `
+            -DBUILD_VIRTUAL_KEYBOARD=OFF `
+            -DBUILD_JAVA_INTERFACE=OFF `
+            -DBUILD_PYTHON_INTERFACE=OFF `
+            -DINSTALL_PYTHON_INTERFACE=OFF `
+            -DBUILD_LUA_INTERFACE=OFF `
+            -DBUILD_CSBEATS=OFF
+          cmake --build csound-build --config Release --parallel
+          cmake --install csound-build --config Release
+
+      - name: Cache Faust
+        id: cache-faust
+        uses: actions/cache@v4
+        with:
+          path: ~/faust
+          key: faust-${{ runner.os }}-${{ runner.arch }}-${{ env.FAUST_VERSION }}
+
+      - name: Install Faust
+        if: steps.cache-faust.outputs.cache-hit != 'true'
+        run: |
+          $faustDir = Join-Path $env:USERPROFILE 'faust'
+          New-Item -ItemType Directory -Force -Path $faustDir | Out-Null
+          curl.exe -sL -o "$env:RUNNER_TEMP\faust.exe" `
+            "https://github.com/grame-cncm/faust/releases/download/$env:FAUST_VERSION/Faust-$env:FAUST_VERSION-win64.exe"
+          & 'C:\Program Files\7-Zip\7z.exe' x "$env:RUNNER_TEMP\faust.exe" "-o$faustDir" -y | Out-Null
+          Remove-Item "$env:RUNNER_TEMP\faust.exe"
+
+      - name: Configure plugin build
+        run: |
+          $install = Join-Path $env:RUNNER_TEMP 'csound-install'
+          $header = Get-ChildItem -Path $install -Recurse -File -Filter 'csound.h' |
+            Select-Object -First 1
+          $lib = Get-ChildItem -Path $install -Recurse -File -Filter 'csound64.lib' |
+            Select-Object -First 1
+          if (-not $header) { throw "csound.h not found under $install" }
+          if (-not $lib) { throw "csound64.lib not found under $install" }
+          "CSOUND_INCLUDE_DIR_HINT=$($header.DirectoryName)" >> $env:GITHUB_ENV
+          "CSOUND_LIBRARY_DIR_HINT=$($lib.DirectoryName)" >> $env:GITHUB_ENV
+          $faustDir = Join-Path $env:USERPROFILE 'faust'
+          "FAUST_INCLUDE_DIR_HINT=$faustDir\include" >> $env:GITHUB_ENV
+          "FAUST_LIB_DIR_HINT=$faustDir\lib" >> $env:GITHUB_ENV
+          "FAUST_STDLIB_DIR_HINT=$faustDir\share\faust" >> $env:GITHUB_ENV
+
+      - name: Build plugins
+        run: |
+          cmake -S . -B build -A x64 `
+            -DUSE_VCPKG=ON `
+            -DFAUST_STATIC=ON `
+            -DCSOUND_INCLUDE_DIR_HINT="$env:CSOUND_INCLUDE_DIR_HINT" `
+            -DCSOUND_LIBRARY_DIR_HINT="$env:CSOUND_LIBRARY_DIR_HINT" `
+            -DFAUST_INCLUDE_DIR_HINT="$env:FAUST_INCLUDE_DIR_HINT" `
+            -DFAUST_LIB_DIR_HINT="$env:FAUST_LIB_DIR_HINT" `
+            -DFAUST_STDLIB_DIR_HINT="$env:FAUST_STDLIB_DIR_HINT"
+          cmake --build build --config Release --parallel
+
+      - name: Stage plugins
+        run: |
+          $package = 'package'
+          New-Item -ItemType Directory -Force -Path $package | Out-Null
+          Get-ChildItem -Path build/src -Recurse -Include *.dll |
+            Where-Object { $_.FullName -match 'Release' } |
+            Copy-Item -Destination $package
+          $vcpkgBin = Join-Path 'build' 'vcpkg_installed\x64-windows-csound\bin'
+          if (Test-Path $vcpkgBin) {
+            Copy-Item (Join-Path $vcpkgBin '*.dll') -Destination $package -ErrorAction SilentlyContinue
+          }
+          $rawwaves = Join-Path $package 'stk/rawwaves'
+          New-Item -ItemType Directory -Force -Path $rawwaves | Out-Null
+          Copy-Item 'src\stk\rawwaves\*.raw' -Destination $rawwaves
+          $faustOut = Join-Path $package 'faust'
+          New-Item -ItemType Directory -Force -Path $faustOut | Out-Null
+          Copy-Item "$env:USERPROFILE\faust\share\faust\*" -Destination $faustOut -Recurse
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: csound7-plugins-windows
+          path: package/
+          if-no-files-found: error
+
+  linux_cuda:
+    name: Linux CUDA (ubuntu-latest)
+    needs: update_version
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.4.1-devel-ubuntu22.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7.0.1
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential cmake git ca-certificates pkg-config \
+            libsndfile1-dev libsamplerate0-dev libasound2-dev flex bison
+
+      - name: Show CUDA toolchain
+        run: |
+          nvcc --version
+          nvidia-smi || true
+
+      - name: Cache Csound install
+        id: cache-csound
+        uses: actions/cache@v6.1.0
+        with:
+          path: /csound-install
+          key: csound-cuda-${{ runner.os }}-${{ runner.arch }}-${{ env.CSOUND_VERSION }}
+
+      - name: Build and install Csound
+        if: steps.cache-csound.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$CSOUND_VERSION" \
+            https://github.com/csound/csound.git /tmp/csound
+          cmake -S /tmp/csound -B /tmp/csound-build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/csound-install \
+            -DBUILD_TESTS=OFF \
+            -DINSTALL_PYTHON_INTERFACE=OFF
+          cmake --build /tmp/csound-build --parallel "$(nproc)"
+          cmake --install /tmp/csound-build
+
+      - name: Build CUDA plugins
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_CUDA_OPCODES=ON \
+            -DBUILD_CHUA_OPCODES=OFF \
+            -DBUILD_DSSI_OPCODES=OFF \
+            -DBUILD_FLUID_OPCODES=OFF \
+            -DBUILD_HDF5_OPCODES=OFF \
+            -DBUILD_IMAGE_OPCODES=OFF \
+            -DBUILD_LINEAR_ALGEBRA_OPCODES=OFF \
+            -DBUILD_PYTHON_OPCODES=OFF \
+            -DBUILD_WEBSOCKET_OPCODE=OFF \
+            -DBUILD_WIIMOTE_OPCODES=OFF \
+            -DBUILD_P5GLOVE_OPCODES=OFF \
+            -DCMAKE_CUDA_ARCHITECTURES="50;60;70;75;80;86" \
+            -DCSOUND_INCLUDE_DIR_HINT=/csound-install/include/csound \
+            -DCSOUND_LIBRARY_DIR_HINT=/csound-install/lib
+          cmake --build build --parallel "$(nproc)" \
+            --target cudaop1 cudaop2 cudaop3 cudaop4 cudaop5
+
+      - name: Stage plugins
+        run: |
+          mkdir -p package
+          cp build/src/CUDA/*.so package/
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: csound7-plugins-linux-cuda
+          path: package/
+          if-no-files-found: error
+
+  publish_release:
+    name: Publish release
+    if: ${{ github.event_name == 'push' && needs.update_version.outputs.release == 'true' }}
+    needs: [update_version, linux, linux_cuda, macos, windows]
+    runs-on: ubuntu-latest
+    concurrency:
+      group: plugin-release-${{ needs.update_version.outputs.version }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check existing release tag
+        run: python3 .github/scripts/release.py --check-tag
+
+      - name: Download Linux plugins
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: csound7-plugins-linux
+          path: release/linux
+
+      - name: Download Linux CUDA plugins
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: csound7-plugins-linux-cuda
+          path: release/linux
+
+      - name: Download macOS plugins
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: csound7-plugins-macos
+          path: release/macos
+
+      - name: Download Windows plugins
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: csound7-plugins-windows
+          path: release/windows
+
+      - name: Package release assets
+        run: |
+          version="${{ needs.update_version.outputs.version }}"
+          ( cd release/linux && zip -r "../../csound7-plugins-${version}-linux-x86_64.zip" . )
+          ( cd release/macos && zip -r "../../csound7-plugins-${version}-macos.zip" . )
+          ( cd release/windows && zip -r "../../csound7-plugins-${version}-windows.zip" . )
+          ls -l csound7-plugins-*.zip
+
+      - name: Create release
+        uses: softprops/action-gh-release@v3.0.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ needs.update_version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ needs.update_version.outputs.version }}
+          generate_release_notes: true
+          prerelease: ${{ needs.update_version.outputs.prerelease == 'true' }}
+          fail_on_unmatched_files: true
+          files: |
+            csound7-plugins-${{ needs.update_version.outputs.version }}-linux-x86_64.zip
+            csound7-plugins-${{ needs.update_version.outputs.version }}-macos.zip
+            csound7-plugins-${{ needs.update_version.outputs.version }}-windows.zip

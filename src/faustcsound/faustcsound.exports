@@ -1,0 +1,4 @@
+_csoundModuleCreate
+_csoundModuleInit
+_csoundModuleDestroy
+_csoundModuleInfo
