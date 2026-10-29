@@ -99,7 +99,9 @@ GitHub Actions caches.
 
 ## npm releases
 
-Set the next package version with `npm version`, then run the build, test, and
-pack commands against the published browser package with `CSOUND_BROWSER_URL`
-unset. Publish with `npm publish --tag beta --access public` from that build.
-No workflow publishes this package yet.
+Native and npm packages share the version in `package.json`; see the
+[release process](../README.md#releasing) for version changes and Git tags.
+Run the build, test, and pack commands against the published browser package
+with `CSOUND_BROWSER_URL` unset. Publish a prerelease with
+`npm publish --tag beta --access public`, or a stable release with
+`npm publish --access public`, from that build. No workflow publishes to npm.

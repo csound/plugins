@@ -312,6 +312,34 @@ disabled elsewhere; configure with `-DBUILD_DSSI_OPCODES=OFF` to exclude it.
 It is included in the Linux release package only.
 
 
+Releasing
+--------------
+
+[`package.json`](package.json) holds the plugin version for both native and npm
+packages. GitHub release tags and asset names use that version as written,
+without a `v` prefix. The workflow's `CSOUND_VERSION` selects the Csound build
+used to compile and test native plugins; it does not set the plugin version.
+
+1. Set the next version with `npm version <version> --no-git-tag-version` and
+   commit both `package.json` and `package-lock.json`. The workflow checks that
+   their versions match. Use a stable version for a release from `main`, or a
+   prerelease version for a release from `develop`.
+2. Open a PR into the release branch (normally `develop` into `main`) and add
+   the `release` label before merging it.
+3. Merge the PR. Once all native build jobs pass, the push workflow publishes
+   the release and tags that exact merge commit. A prerelease version creates
+   a GitHub prerelease.
+
+PR builds, manual runs, and pushes without a matching merged PR carrying the
+`release` label only build and test. New pushes do not cancel release builds.
+To retry a failed release, rerun its original workflow run. A tag that already
+points to the same commit is safe to reuse; if it points elsewhere, choose a
+new version. The workflow never moves an existing tag.
+
+npm publication remains a separate manual step; see the
+[npm release instructions](wasm/README.md#npm-releases).
+
+
 Release binaries and macOS architecture
 --------------
 
