@@ -45,10 +45,17 @@ if(APPLE)
             ${CSOUND_LIBRARY_DIR_HINT}
     )
 else()
+    # Csound 7 on Windows is named csound7_64 (double) or csound7 (single).
+    if(WIN32)
+        set(_csound_library_names csound7_64 csound7 csound64 csound)
+    else()
+        set(_csound_library_names csound64 csound)
+    endif()
     find_library(CSOUND_LIBRARY
-        NAMES csound64 csound
+        NAMES ${_csound_library_names}
         HINTS ${CSOUND_LIBRARY_DIR_HINT}
     )
+    unset(_csound_library_names)
 endif()
 
 if(CSOUND_INCLUDE_DIR AND EXISTS "${CSOUND_INCLUDE_DIR}/version.h")
