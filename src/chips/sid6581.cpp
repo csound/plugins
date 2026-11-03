@@ -27,10 +27,12 @@
 
     OPCODE
 
-    aOut sid6581 kFreq1, kWave1, kPw1, kGate1, \
-                   kFreq2, kWave2, kPw2, kGate2, \
-                   kFreq3, kWave3, kPw3, kGate3, \
-                   kCutoff, kRes, iFilterMode, iRouteMask
+    iEnv:ChipADSR  chipadsr  kA, kD, kS, kR
+
+    aOut sid6581 kFreq1, kWave1, kPw1, kGate1, iEnv1, \
+                  kFreq2, kWave2, kPw2, kGate2, iEnv2, \
+                  kFreq3, kWave3, kPw3, kGate3, iEnv3, \
+                  kCutoff, kRes, iFilterMode, iRouteMask
 
     Parameters
       kFreq1..3   voice frequency in Hz (0..~4 kHz); converted to the
@@ -42,6 +44,15 @@
                   unless the pulse waveform is selected.
       kGate1..3   envelope gate: >= 0.5 gates on (attack/sustain),
                   otherwise off (release).
+      iEnv1..3    ChipADSR envelope for each voice. A ChipADSR value is
+                  built with the chipadsr opcode and has four k-rate
+                  members accessible with dot notation - .att (attack
+                  seconds), .dec (decay seconds), .sus (sustain 0..1) and
+                  .rel (release seconds) - which may be read or written
+                  individually (e.g. env1.sus = 0.5). The SID envelope
+                  registers are only written on a gate transition: A/D/S/R
+                  are latched on note-on and R is refreshed on note-off,
+                  so k-rate changes take effect on the next note.
       kCutoff     filter cutoff register value (0..2047, 11-bit).
       kRes        filter resonance (0..15, 4-bit).
       iFilterMode filter mode bitmask: 1 = low-pass, 2 = band-pass,
@@ -49,10 +60,8 @@
       iRouteMask  filter routing bitmask: 1 = voice 1, 2 = voice 2,
                   4 = voice 3 (which voices pass through the filter).
 
-    The output volume is fixed at maximum (15), the SID clock is the PAL
-    rate (985248 Hz) and the voice envelopes are a fixed gate-friendly ADSR
-    (fast attack, full sustain, quick release); none of these are exposed as
-    arguments yet.
+    The output volume is fixed at maximum (15) and the SID clock is the PAL
+    rate (985248 Hz); neither is exposed as an argument.
 */
 
 /* m6581.h must be included before any Csound header so that its <math.h>
@@ -66,6 +75,7 @@ extern "C" {
 }
 
 #include <plugin.h>
+#include <csound_structs.h>
 
 /* SID clock frequency (PAL). */
 #define SID_TICK_HZ 985248
@@ -93,11 +103,172 @@ static uint8_t voice_ctrl(cs_float wave, cs_float gate) {
     return ctrl;
 }
 
-struct Sid6581 : csnd::Plugin<1, 16> {
+/* Register base addresses for each of the three voices, as
+   { freq_lo, pw_lo, ctrl }. */
+static const uint8_t VOICE_REGS[3][3] = {
+    { M6581_V1_FREQ_LO, M6581_V1_PW_LO, M6581_V1_CTRL },
+    { M6581_V2_FREQ_LO, M6581_V2_PW_LO, M6581_V2_CTRL },
+    { M6581_V3_FREQ_LO, M6581_V3_PW_LO, M6581_V3_CTRL },
+};
+static const uint8_t VOICE_ATKDEC[3] = {
+    M6581_V1_ATKDEC, M6581_V2_ATKDEC, M6581_V3_ATKDEC,
+};
+static const uint8_t VOICE_SUSREL[3] = {
+    M6581_V1_SUSREL, M6581_V2_SUSREL, M6581_V3_SUSREL,
+};
+
+/* -------------------------------------------------------------------------
+   ChipADSR user-defined struct (named members A/D/S/R)
+   ------------------------------------------------------------------------- */
+
+/* The ChipADSR orchestra type holds four k-rate members: att (attack
+   seconds), dec (decay seconds), sus (sustain 0..1) and rel (release
+   seconds). It is registered with csound->RegisterStruct() so the members
+   can be read and written with dot notation in the orchestra, e.g.
+   env1.sus = 0.5. Csound stores each member in its own CS_VAR_MEM block, so
+   the members are NOT contiguous; opcode code reads/writes them through
+   CS_STRUCT_VAR::members[i]->value. */
+static const CSOUND_STRUCT_MEMBER CHIPADSR_MEMBERS[4] = {
+    { "att", "k" },
+    { "dec", "k" },
+    { "sus", "k" },
+    { "rel", "k" },
+};
+
+/* Read the i-th numeric member of a ChipADSR value (0 if absent). */
+static cs_float chipadsr_member(const CS_STRUCT_VAR *env, int i) {
+    if (env == NULL || env->members == NULL || env->members[i] == NULL)
+        return FL(0.0);
+    return env->members[i]->value;
+}
+
+/* -------------------------------------------------------------------------
+   Envelope conversion: "friendly" seconds / 0..1 values -> SID nibbles
+   ------------------------------------------------------------------------- */
+
+/* Number of SID ticks per envelope step, one entry per rate nibble (0..15).
+   The SID envelope counter is a 15-bit LFSR loaded with 0x7FFF and clocked
+   until it matches _m6581_rate_count_period[nibble]; simulate it here to
+   recover the exact per-step tick count. */
+static double env_step_ticks[16];
+
+/* Cumulative sum of _m6581_env_gen_dr_divisors:
+   dr_prefix[k] = sum(0..k). Used to count envelope steps for decay/release,
+   which advance through the exponential divisor table. */
+static int dr_prefix[256];
+
+static void build_env_tables(void) {
+    int n, i;
+    for (n = 0; n < 16; n++) {
+        uint32_t lfsr = 0x7FFF;
+        uint32_t target = _m6581_rate_count_period[n];
+        uint32_t steps = 0;
+        while (lfsr != target && steps < 0x8000) {
+            uint32_t fb = ((lfsr >> 14) ^ (lfsr >> 13)) & 1u;
+            lfsr = ((lfsr << 1) | fb) & 0x7FFFu;
+            steps++;
+        }
+        env_step_ticks[n] = (double)steps;
+    }
+    {
+        int acc = 0;
+        for (i = 0; i < 256; i++) {
+            acc += (int)_m6581_env_gen_dr_divisors[i];
+            dr_prefix[i] = acc;
+        }
+    }
+}
+
+/* Clamp a sustain value to a 4-bit nibble. */
+static int sustain_nibble(cs_float s) {
+    int n = (int)(s * 15.0 + 0.5);
+    if (n < 0)
+        n = 0;
+    if (n > 15)
+        n = 15;
+    return n;
+}
+
+/* Sustain level (0..255) for a sustain nibble. */
+static int sustain_level(int nib) { return nib * 0x11; }
+
+/* Nearest rate nibble whose per-step tick count matches `target`. */
+static uint8_t nearest_rate_nibble(double target) {
+    double best = env_step_ticks[0] - target;
+    uint8_t best_n = 0;
+    int n;
+    if (best < 0.0)
+        best = -best;
+    for (n = 1; n < 16; n++) {
+        double d = env_step_ticks[n] - target;
+        if (d < 0.0)
+            d = -d;
+        if (d < best) {
+            best = d;
+            best_n = (uint8_t)n;
+        }
+    }
+    return best_n;
+}
+
+/* Attack: 255 linear steps from level 0 to 255. */
+static uint8_t attack_nibble(cs_float sec) {
+    return nearest_rate_nibble((double)sec * (double)SID_TICK_HZ / 255.0);
+}
+
+/* Decay: exponential drop from level 255 down to the sustain level. */
+static uint8_t decay_nibble(cs_float sec, int s_nib) {
+    int steps = dr_prefix[255] - dr_prefix[sustain_level(s_nib)];
+    if (steps < 1)
+        steps = 1;
+    return nearest_rate_nibble((double)sec * (double)SID_TICK_HZ / (double)steps);
+}
+
+/* Release: exponential drop from the sustain level down to 0. */
+static uint8_t release_nibble(cs_float sec, int s_nib) {
+    int steps = dr_prefix[sustain_level(s_nib)] - dr_prefix[0];
+    if (steps < 1)
+        steps = 1;
+    return nearest_rate_nibble((double)sec * (double)SID_TICK_HZ / (double)steps);
+}
+
+/* Convert a ChipADSR value into SID ATKDEC/SUSREL register bytes. */
+static void adsr_to_regs(const CS_STRUCT_VAR *env, uint8_t &atkdec,
+                         uint8_t &susrel) {
+    int s = sustain_nibble(chipadsr_member(env, 2));
+    uint8_t a = attack_nibble(chipadsr_member(env, 0));
+    uint8_t d = decay_nibble(chipadsr_member(env, 1), s);
+    uint8_t r = release_nibble(chipadsr_member(env, 3), s);
+    atkdec = (uint8_t)((a << 4) | d);
+    susrel = (uint8_t)((s << 4) | r);
+}
+
+/* -------------------------------------------------------------------------
+   chipadsr: build a ChipADSR value from k-rate A/D/S/R inputs
+   ------------------------------------------------------------------------- */
+struct ChipAdsr : csnd::Plugin<1, 4> {
+    int kperf() {
+        CS_STRUCT_VAR *out = (CS_STRUCT_VAR *)outargs.data(0);
+        if (out == NULL || out->members == NULL)
+            return OK;
+        out->members[0]->value = inargs[0]; /* A */
+        out->members[1]->value = inargs[1]; /* D */
+        out->members[2]->value = inargs[2]; /* S */
+        out->members[3]->value = inargs[3]; /* R */
+        return OK;
+    }
+};
+
+/* -------------------------------------------------------------------------
+   sid6581: one full SID chip (three voices + filter)
+   ------------------------------------------------------------------------- */
+struct Sid6581 : csnd::Plugin<1, 19> {
     /* state */
     m6581_t sid;
     uint8_t filter_mode;
     uint8_t route_mask;
+    bool prev_gate[3];
+    uint8_t latched_sustain[3];
 
     /* Write one SID register (one bus cycle, i.e. one m6581_tick). */
     void sid_write(uint8_t reg, uint8_t data) {
@@ -114,22 +285,18 @@ struct Sid6581 : csnd::Plugin<1, 16> {
         m6581_init(&sid, &desc);
         m6581_reset(&sid);
 
-        /* The ADSR parameters are not part of the opcode signature, so give
-           every voice a fixed, gate-friendly envelope: fast attack, full
-           sustain and a quick release. Without this the SID's zeroed sustain
-           level would silence each note right after its attack/decay
-           transient (ATKDEC: attack 2, decay 0; SUSREL: sustain 15,
-           release 2). */
-        sid_write(M6581_V1_ATKDEC, 0x20);
-        sid_write(M6581_V1_SUSREL, 0xF2);
-        sid_write(M6581_V2_ATKDEC, 0x20);
-        sid_write(M6581_V2_SUSREL, 0xF2);
-        sid_write(M6581_V3_ATKDEC, 0x20);
-        sid_write(M6581_V3_SUSREL, 0xF2);
+        /* A default gate-friendly envelope (fast attack, full sustain, quick
+           release); it is overwritten on the first gate transition. */
+        for (int v = 0; v < 3; v++) {
+            sid_write(VOICE_ATKDEC[v], 0x20);
+            sid_write(VOICE_SUSREL[v], 0xF2);
+            prev_gate[v] = false;
+            latched_sustain[v] = 15;
+        }
 
         /* i-rate inputs */
-        filter_mode = (uint8_t)((int)inargs[14] & 0x0F);
-        route_mask = (uint8_t)((int)inargs[15] & 0x07);
+        filter_mode = (uint8_t)((int)inargs[17] & 0x0F);
+        route_mask = (uint8_t)((int)inargs[18] & 0x07);
         return OK;
     }
 
@@ -137,21 +304,45 @@ struct Sid6581 : csnd::Plugin<1, 16> {
         cs_float *aout = outargs.data(0);
         uint32_t ksmps = (uint32_t)insdshead->ksmps;
         uint32_t n;
+        int v;
 
-        /* Write the voice registers from the k-rate inputs. */
-        write_voice(M6581_V1_FREQ_LO, M6581_V1_PW_LO, M6581_V1_CTRL,
-                    inargs[0], inargs[1], inargs[2], inargs[3]);
-        write_voice(M6581_V2_FREQ_LO, M6581_V2_PW_LO, M6581_V2_CTRL,
-                    inargs[4], inargs[5], inargs[6], inargs[7]);
-        write_voice(M6581_V3_FREQ_LO, M6581_V3_PW_LO, M6581_V3_CTRL,
-                    inargs[8], inargs[9], inargs[10], inargs[11]);
+        /* Write the voice registers from the k-rate inputs, latching each
+           voice's envelope on a gate transition. */
+        for (v = 0; v < 3; v++) {
+            int base = v * 5;
+            cs_float gate = inargs[base + 3];
+            bool gate_on = gate >= FL(0.5);
+            const CS_STRUCT_VAR *env =
+                (const CS_STRUCT_VAR *)inargs.data(base + 4);
+
+            if (gate_on && !prev_gate[v]) {
+                /* note-on: latch A/D/S/R */
+                uint8_t atkdec, susrel;
+                adsr_to_regs(env, atkdec, susrel);
+                sid_write(VOICE_ATKDEC[v], atkdec);
+                sid_write(VOICE_SUSREL[v], susrel);
+                latched_sustain[v] = susrel >> 4;
+            }
+            else if (!gate_on && prev_gate[v]) {
+                /* note-off: refresh the release rate only */
+                uint8_t r = release_nibble(chipadsr_member(env, 3),
+                                           latched_sustain[v]);
+                sid_write(VOICE_SUSREL[v],
+                          (uint8_t)((latched_sustain[v] << 4) | r));
+            }
+            prev_gate[v] = gate_on;
+
+            write_voice(VOICE_REGS[v][0], VOICE_REGS[v][1], VOICE_REGS[v][2],
+                        inargs[base], inargs[base + 1], inargs[base + 2],
+                        inargs[base + 3]);
+        }
 
         /* Filter registers. */
         {
             uint16_t cutoff = 0;
             uint8_t res = 0;
-            cs_float c = inargs[12];
-            cs_float r = inargs[13];
+            cs_float c = inargs[15];
+            cs_float r = inargs[16];
             if (c > FL(0.0))
                 cutoff = (c > FL(2047.0)) ? 2047 : (uint16_t)(c + FL(0.5));
             if (r > FL(0.0))
@@ -198,8 +389,20 @@ struct Sid6581 : csnd::Plugin<1, 16> {
 };
 
 static void onload(csnd::Csound *csound) {
+    CSOUND *cs = csound->get_csound();
+
+    /* Build the envelope conversion tables once, before any performance. */
+    build_env_tables();
+
+    /* Register the ChipADSR struct type (named members A/D/S/R). */
+    if (cs->RegisterStruct != NULL)
+        cs->RegisterStruct(cs, "ChipADSR", CHIPADSR_MEMBERS, 4);
+
+    csnd::plugin<ChipAdsr>(csound, "chipadsr", ":ChipADSR;", "kkkk",
+                           csnd::thread::k);
     csnd::plugin<Sid6581>(csound, "sid6581", "a",
-                            "kkkkkkkkkkkkkkii", csnd::thread::ik);
+                          "kkkk:ChipADSR;kkkk:ChipADSR;kkkk:ChipADSR;kkii",
+                          csnd::thread::ik);
 }
 
 #ifdef BUILD_PLUGINS

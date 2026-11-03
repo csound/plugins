@@ -10,11 +10,13 @@ nchnls = 2
 
 
 ; A single gated voice, envelope triggered by a k-rate gate.
+; The ChipADSR value is k-rate and latched on the gate's rising edge.
 instr 2
   kGate oscili 1, 10
-  aL sid6581 randh:k(1000, 10), 4, 2048, kGate, \
-               0,   0, 0,    0,     \
-               0,   0, 0,    0,     \
+  env:ChipADSR chipadsr 0.01, 0.1, 0.7, 0.3
+  aL sid6581 randh:k(1000, 10), 4, 2048, kGate, env, \
+               0,   0, 0,    0,     env, \
+               0,   0, 0,    0,     env, \
                0, 0, 0, 0
   outs aL * 0.5, aL * 0.5
 endin
