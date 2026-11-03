@@ -322,6 +322,7 @@ endif()
 enable_testing()
 
 add_subdirectory(./src/chua)
+add_subdirectory(./src/chips)
 add_subdirectory(./src/linear_algebra)
 add_subdirectory(./src/fluidOpcodes)
 add_subdirectory(./src/dssi4cs)
