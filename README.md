@@ -15,7 +15,7 @@ Currently, the plugins available in this tree are
 **chuap**
 
 - chips (uses the floooh/chips `m6581.h` SID 6581 emulator, header-only; vendored under this directory)  
-**sid6581 chipadsr**
+**sid6581 sid6581adsr sid6581voice**
 
 - fluidOpcodes (requires fluidsynth)  
 **fluidEngine fluidLoad fluidNote fluidCCi fluidCCk fluidControl fluidProgramSelect fluidAllOut fluidOut fluidInfo fluidSetInterpMethod**
@@ -226,18 +226,20 @@ chips opcodes
 The `chips` plugin's `sid6581` opcode wraps the
 [floooh/chips](https://github.com/floooh/chips) MOS 6581 "SID" emulator
 (`m6581.h`), which is **vendored under this directory** (header-only), so no
-external dependency is required. A companion `chipadsr` opcode builds a
-`ChipADSR` user-defined type (attack/decay/release in seconds, sustain 0..1),
+external dependency is required. A companion `sid6581adsr` opcode builds a
+`Sid6581ADSR` user-defined type (attack/decay/release in seconds, sustain 0..1),
 whose `.att`, `.dec`, `.sus` and `.rel` members can be read or written with
-dot notation:
+dot notation, and a `sid6581voice` opcode builds a `Sid6581Voice` type whose
+`.freq`, `.wave` and `.pw` members describe a voice's tone:
 
 ```
-iEnv:ChipADSR  chipadsr  kA, kD, kS, kR
+iEnv:Sid6581ADSR     sid6581adsr   kA, kD, kS, kR
+iVoice:Sid6581Voice  sid6581voice  kFreq, kWave, kPw
 
-aOut  sid6581  kFreq1, kWave1, kPw1, kGate1, iEnv1, \
-                 kFreq2, kWave2, kPw2, kGate2, iEnv2, \
-                 kFreq3, kWave3, kPw3, kGate3, iEnv3, \
-                 kCutoff, kRes, iFilterMode, iRouteMask
+aOut  sid6581  iVoice1, kGate1, iEnv1, \
+               iVoice2, kGate2, iEnv2, \
+               iVoice3, kGate3, iEnv3, \
+               kCutoff, kRes, iFilterMode, iRouteMask
 ```
 
 Where:
@@ -245,11 +247,12 @@ Where:
 | Argument | Rate | Meaning |
 | --- | --- | --- |
 | `aOut` | a | output signal (single channel) |
-| `kFreq1..3` | k | voice frequency in Hz |
-| `kWave1..3` | k | waveform bitmask: 1 = triangle, 2 = sawtooth, 4 = pulse, 8 = noise (values combine) |
-| `kPw1..3` | k | pulse-width register (0..4095); used only by the pulse waveform |
+| `kFreq` | k | voice frequency in Hz (`.freq`) |
+| `kWave` | k | waveform bitmask: 1 = triangle, 2 = sawtooth, 4 = pulse, 8 = noise (values combine) (`.wave`) |
+| `kPw` | k | pulse-width register (0..4095); used only by the pulse waveform (`.pw`) |
+| `iVoice1..3` | Sid6581Voice | per-voice tone (from `sid6581voice`) |
 | `kGate1..3` | k | envelope gate (>= 0.5 on, otherwise off) |
-| `iEnv1..3` | ChipADSR | per-voice envelope (from `chipadsr`) |
+| `iEnv1..3` | Sid6581ADSR | per-voice envelope (from `sid6581adsr`) |
 | `kCutoff` | k | filter cutoff register (0..2047) |
 | `kRes` | k | filter resonance (0..15) |
 | `iFilterMode` | i | filter mode bitmask: 1 = low-pass, 2 = band-pass, 4 = high-pass, 8 = voice 3 off |

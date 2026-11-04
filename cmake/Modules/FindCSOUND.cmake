@@ -30,10 +30,20 @@ if(APPLE)
             ${CSOUND_FRAMEWORK32_DIR_HINT}
     )
 else()
-    find_path(CSOUND_INCLUDE_DIR csound.h
-        PATH_SUFFIXES csound
-        HINTS ${CSOUND_INCLUDE_DIR_HINT}
-    )
+    if(WIN32)
+        find_path(CSOUND_INCLUDE_DIR csound.h
+            PATH_SUFFIXES csound
+            HINTS
+                ${CSOUND_INCLUDE_DIR_HINT}
+                "$ENV{ProgramFiles}/Csound7/include"
+                "$ENV{ProgramW6432}/Csound7/include"
+        )
+    else()
+        find_path(CSOUND_INCLUDE_DIR csound.h
+            PATH_SUFFIXES csound
+            HINTS ${CSOUND_INCLUDE_DIR_HINT}
+        )
+    endif()
 endif()
 
 if(APPLE)
@@ -51,10 +61,20 @@ else()
     else()
         set(_csound_library_names csound64 csound)
     endif()
-    find_library(CSOUND_LIBRARY
-        NAMES ${_csound_library_names}
-        HINTS ${CSOUND_LIBRARY_DIR_HINT}
-    )
+    if(WIN32)
+        find_library(CSOUND_LIBRARY
+            NAMES ${_csound_library_names}
+            HINTS
+                ${CSOUND_LIBRARY_DIR_HINT}
+                "$ENV{ProgramFiles}/Csound7/lib64"
+                "$ENV{ProgramW6432}/Csound7/lib64"
+        )
+    else()
+        find_library(CSOUND_LIBRARY
+            NAMES ${_csound_library_names}
+            HINTS ${CSOUND_LIBRARY_DIR_HINT}
+        )
+    endif()
     unset(_csound_library_names)
 endif()
 
