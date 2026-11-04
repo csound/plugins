@@ -153,6 +153,7 @@ static cs_float struct_member(const CS_STRUCT_VAR *s, int i) {
     return s->members[i]->value;
 }
 
+/* Read the i-th member (0=att, 1=dec, 2=sus, 3=rel) of a Sid6581ADSR value. */
 static cs_float adsr_member(const CS_STRUCT_VAR *env, int i) {
     return struct_member(env, i);
 }
@@ -172,6 +173,8 @@ static double env_step_ticks[16];
    which advance through the exponential divisor table. */
 static int dr_prefix[256];
 
+/* Fill env_step_ticks and dr_prefix. Must run once before any envelope
+   conversion. */
 static void build_env_tables(void) {
     int n, i;
     for (n = 0; n < 16; n++) {
@@ -262,6 +265,7 @@ static void adsr_to_regs(const CS_STRUCT_VAR *env, uint8_t &atkdec,
    sid6581adsr: build a Sid6581ADSR value from k-rate A/D/S/R inputs
    ------------------------------------------------------------------------- */
 struct Sid6581Adsr : csnd::Plugin<1, 4> {
+    /* Copy the four k-rate inputs into the output struct's members. */
     int kperf() {
         CS_STRUCT_VAR *out = (CS_STRUCT_VAR *)outargs.data(0);
         if (out == NULL || out->members == NULL)
@@ -278,6 +282,7 @@ struct Sid6581Adsr : csnd::Plugin<1, 4> {
    sid6581voice: build a Sid6581Voice value from k-rate freq/wave/pw inputs
    ------------------------------------------------------------------------- */
 struct Sid6581VoiceOp : csnd::Plugin<1, 3> {
+    /* Copy the three k-rate inputs into the output struct's members. */
     int kperf() {
         CS_STRUCT_VAR *out = (CS_STRUCT_VAR *)outargs.data(0);
         if (out == NULL || out->members == NULL)
@@ -308,6 +313,8 @@ struct Sid6581 : csnd::Plugin<1, 13> {
         m6581_tick(&sid, pins); /* RW pin low => write */
     }
 
+    /* Initialise and reset the emulator, set a default envelope on each
+       voice and read the i-rate filter mode and route mask. */
     int init() {
         m6581_desc_t desc;
         desc.tick_hz = SID_TICK_HZ;
@@ -331,6 +338,8 @@ struct Sid6581 : csnd::Plugin<1, 13> {
         return OK;
     }
 
+    /* Per k-cycle: update voice, envelope and filter registers, then render
+       ksmps samples of audio from the emulator. */
     int kperf() {
         cs_float *aout = outargs.data(0);
         uint32_t ksmps = (uint32_t)insdshead->ksmps;
@@ -421,6 +430,8 @@ struct Sid6581 : csnd::Plugin<1, 13> {
     }
 };
 
+/* Build the envelope tables, then register the Sid6581ADSR and Sid6581Voice
+   types and the sid6581adsr, sid6581voice and sid6581 opcodes. */
 static void onload(csnd::Csound *csound) {
     CSOUND *cs = csound->get_csound();
 
@@ -447,8 +458,10 @@ static void onload(csnd::Csound *csound) {
 
 #ifdef BUILD_PLUGINS
 #include <modload.h>
+/* Entry point used when the plugin is built as part of the plugins tree. */
 void csnd::on_load(csnd::Csound *csound) { onload(csound); }
 #else
+/* Entry point used when Csound loads the library as a standalone module. */
 extern "C" int32_t sid6581_init_modules(CSOUND *csound) {
     onload((csnd::Csound *)csound);
     return OK;
