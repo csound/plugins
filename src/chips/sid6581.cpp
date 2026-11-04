@@ -308,11 +308,10 @@ struct Sid6581 : csnd::Plugin<1, 13> {
     bool prev_gate[3];
     uint8_t latched_sustain[3];
 
-    /* Write one SID register (one bus cycle, i.e. one m6581_tick). */
+    /* Write one SID register without advancing the emulated clock, so
+       register updates don't alter the chip's timing relative to Csound. */
     void sid_write(uint8_t reg, uint8_t data) {
-        uint64_t pins = M6581_CS | ((uint64_t)(reg & M6581_ADDR_MASK)) |
-                        ((uint64_t)data << 16);
-        m6581_tick(&sid, pins); /* RW pin low => write */
+        m6581_write_reg(&sid, reg, data);
     }
 
     /* Initialise and reset the emulator, set a default envelope on each

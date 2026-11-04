@@ -248,6 +248,8 @@ void m6581_init(m6581_t* sid, const m6581_desc_t* desc);
 void m6581_reset(m6581_t* sid);
 // tick a m6581_t instance
 uint64_t m6581_tick(m6581_t* sid, uint64_t pins);
+// write a register without advancing the chip clock
+void m6581_write_reg(m6581_t* sid, uint8_t reg, uint8_t data);
 
 #ifdef __cplusplus
 } // extern "C"
@@ -832,6 +834,12 @@ uint64_t m6581_tick(m6581_t* sid, uint64_t pins) {
     }
     sid->pins = pins;
     return pins;
+}
+
+/* write a register without advancing the chip clock */
+void m6581_write_reg(m6581_t* sid, uint8_t reg, uint8_t data) {
+    CHIPS_ASSERT(sid);
+    _m6581_write(sid, (uint64_t)(reg & M6581_ADDR_MASK) | ((uint64_t)data << 16));
 }
 
 #endif /* CHIPS_IMPL */

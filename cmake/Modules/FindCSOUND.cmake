@@ -37,7 +37,7 @@ else()
                 ${CSOUND_INCLUDE_DIR_HINT}
                 "$ENV{ProgramFiles}/Csound7/include"
                 "$ENV{ProgramW6432}/Csound7/include"
-                "$ENV{ProgramFiles(x86)}/Csound7/include"
+                "$ENV{ProgramFiles\(x86\)}/Csound7/include"
         )
     else()
         find_path(CSOUND_INCLUDE_DIR csound.h
