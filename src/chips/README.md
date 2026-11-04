@@ -165,12 +165,10 @@ Disable it with `-DBUILD_CHIPS_OPCODES=OFF`.
 
 ## Examples
 
-The directory ships three examples, all in the modern (functional) orchestra
-syntax with explicit type declarations: `example.csd` (a gated voice),
-`example2.csd` (a complete three-voice "Double Dragon" style sequencer) and
-`example3.csd` (a longer arranged track with lead, bass, arpeggio and
-drums). The listing below is a chord and a gated note in the style of
-`example.csd`.
+The directory ships `example.csd`, a longer arranged track with lead, bass,
+arpeggio and drums, along with `chiptune.ogg`, a rendering of it. Both use
+the modern (functional) orchestra syntax with explicit type declarations.
+The listing below is a simplified chord and gated note.
 
 ```csound
 <CsoundSynthesizer>
@@ -194,11 +192,11 @@ instr 1
   v2:Sid6581Voice = sid6581voice(329.63, 2, 1024)   ; E4  sawtooth
   v3:Sid6581Voice = sid6581voice(392.00, 4,  512)   ; G4  pulse
 
-  a1:a = sid6581(v1, 1, env1, \
+  out:a = sid6581(v1, 1, env1, \
                  v2, 1, env2, \
                  v3, 1, env3, \
                  1200, 6, 1, 7)             ; cutoff, res, low-pass, route all
-  outs(a1, a1)
+  outs(out, out)
 endin
 
 ; A single gated voice, envelope triggered by a k-rate gate.
@@ -223,15 +221,9 @@ e
 </CsoundSynthesizer>
 ```
 
-The `--opcode-lib` option loads the plugin library. The examples use a
+The `--opcode-lib` option loads the plugin library. The example uses a
 relative path (`../../build/src/chips/Release/`) to the build output, so
-run them from this `src/chips` directory:
-
-```
-csound example.csd
-csound example2.csd
-csound example3.csd
-```
+run it from this `src/chips` directory.
 
 On Windows the library is `chips.dll`; on Linux/macOS it is
 `chips.so`/`chips.dylib` (adjust the path to your build directory if it
