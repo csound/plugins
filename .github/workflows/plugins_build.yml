@@ -139,6 +139,7 @@ jobs:
         run: |
           mkdir -p package
           cp build/src/chua/*.so \
+             build/src/chips/*.so \
              build/src/linear_algebra/*.so \
              build/src/fluidOpcodes/*.so \
              build/src/dssi4cs/*.so \
@@ -285,6 +286,7 @@ jobs:
         run: |
           mkdir -p package
           cp build/src/chua/*.dylib \
+             build/src/chips/*.dylib \
              build/src/linear_algebra/*.dylib \
              build/src/fluidOpcodes/*.dylib \
              build/src/image/*.dylib \

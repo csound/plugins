@@ -255,7 +255,7 @@ Where:
 | `iEnv1..3` | Sid6581ADSR | per-voice envelope (from `sid6581adsr`) |
 | `kCutoff` | k | filter cutoff register (0..2047) |
 | `kRes` | k | filter resonance (0..15) |
-| `iFilterMode` | i | filter mode bitmask: 1 = low-pass, 2 = band-pass, 4 = high-pass, 8 = voice 3 off |
+| `iFilterMode` | i | filter mode bitmask: 1 = low-pass, 2 = band-pass, 4 = high-pass, 8 = voice 3 off (no effect if voice 3 is in `iRouteMask`; e.g. `iRouteMask = 7` still plays voice 3) |
 | `iRouteMask` | i | filter routing bitmask: 1 = voice 1, 2 = voice 2, 4 = voice 3 |
 
 The SID clock is fixed at the PAL rate (985248 Hz) and the master volume at
