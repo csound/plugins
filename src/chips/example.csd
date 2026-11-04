@@ -105,7 +105,8 @@ instr 1
             bass_note = bass_pitch
             arp_note = chord + arp_offset
         elseif section == 6 then
-            lead_note = table(phrase_index, lead_hook) + 12
+            lead_note = table(phrase_index, lead_hook)
+            lead_note = (lead_note > 0 ? lead_note + 12 : 0)
             bass_note = bass_pitch
             arp_note = chord + arp_offset
         elseif section == 7 then
