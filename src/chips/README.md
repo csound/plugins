@@ -126,7 +126,10 @@ exponential decay/release), so the values are musical approximations.
 | 2 | 4 | high-pass |
 | 3 | 8 | voice 3 off (3OFF) |
 
-Modes combine (e.g. `3` = LP + BP). With `8`, voice 3 is silenced.
+Modes combine (e.g. `3` = LP + BP). With `8`, voice 3 is silenced, except when voice 3 is included in
+`iRouteMask`: the emulator applies the mute only to voices outside the filter
+route, so with `iRouteMask = 7` (or any mask containing `4`) voice 3 is still
+heard.
 
 ### Filter routing (`iRouteMask`)
 

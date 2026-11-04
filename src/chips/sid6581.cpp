@@ -58,7 +58,9 @@
       kCutoff     filter cutoff register value (0..2047, 11-bit).
       kRes        filter resonance (0..15, 4-bit).
       iFilterMode filter mode bitmask: 1 = low-pass, 2 = band-pass,
-                  4 = high-pass, 8 = voice 3 off (3OFF).
+                  4 = high-pass, 8 = voice 3 off (3OFF). The mute applies
+                  only to voices outside the filter route, so if voice 3
+                  is in iRouteMask (e.g. iRouteMask = 7) it is still heard.
       iRouteMask  filter routing bitmask: 1 = voice 1, 2 = voice 2,
                   4 = voice 3 (which voices pass through the filter).
 
