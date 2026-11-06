@@ -14,6 +14,9 @@ Currently, the plugins available in this tree are
 - chua (requires the Eigen library, header-only)  
 **chuap**
 
+- chips (uses the floooh/chips `m6581.h` SID 6581 emulator, header-only; vendored under this directory)  
+**sid6581 sid6581adsr sid6581voice**
+
 - fluidOpcodes (requires fluidsynth)  
 **fluidEngine fluidLoad fluidNote fluidCCi fluidCCk fluidControl fluidProgramSelect fluidAllOut fluidOut fluidInfo fluidSetInterpMethod**
 
@@ -217,6 +220,55 @@ if set, overrides the built-in default location; otherwise the installed
 Windows release packages.
 
 
+chips opcodes
+---
+
+The `chips` plugin's `sid6581` opcode wraps the
+[floooh/chips](https://github.com/floooh/chips) MOS 6581 "SID" emulator
+(`m6581.h`), which is **vendored under this directory** (header-only), so no
+external dependency is required. A companion `sid6581adsr` opcode builds a
+`Sid6581ADSR` user-defined type (attack/decay/release in seconds, sustain 0..1),
+whose `.att`, `.dec`, `.sus` and `.rel` members can be read or written with
+dot notation, and a `sid6581voice` opcode builds a `Sid6581Voice` type whose
+`.freq`, `.wave` and `.pw` members describe a voice's tone:
+
+```
+iEnv:Sid6581ADSR     sid6581adsr   kA, kD, kS, kR
+iVoice:Sid6581Voice  sid6581voice  kFreq, kWave, kPw
+
+aOut  sid6581  iVoice1, kGate1, iEnv1, \
+               iVoice2, kGate2, iEnv2, \
+               iVoice3, kGate3, iEnv3, \
+               kCutoff, kRes, iFilterMode, iRouteMask
+```
+
+Where:
+
+| Argument | Rate | Meaning |
+| --- | --- | --- |
+| `aOut` | a | output signal (single channel) |
+| `kFreq` | k | voice frequency in Hz (`.freq`) |
+| `kWave` | k | waveform bitmask: 1 = triangle, 2 = sawtooth, 4 = pulse, 8 = noise (values combine) (`.wave`) |
+| `kPw` | k | pulse-width register (0..4095); used only by the pulse waveform (`.pw`) |
+| `iVoice1..3` | Sid6581Voice | per-voice tone (from `sid6581voice`) |
+| `kGate1..3` | k | envelope gate (>= 0.5 on, otherwise off) |
+| `iEnv1..3` | Sid6581ADSR | per-voice envelope (from `sid6581adsr`) |
+| `kCutoff` | k | filter cutoff register (0..2047) |
+| `kRes` | k | filter resonance (0..15) |
+| `iFilterMode` | i | filter mode bitmask: 1 = low-pass, 2 = band-pass, 4 = high-pass, 8 = voice 3 off (no effect if voice 3 is in `iRouteMask`; e.g. `iRouteMask = 7` still plays voice 3) |
+| `iRouteMask` | i | filter routing bitmask: 1 = voice 1, 2 = voice 2, 4 = voice 3 |
+
+The SID clock is fixed at the PAL rate (985248 Hz) and the master volume at
+maximum (15). Each voice's ADSR is latched on a gate transition (note-on
+latches A/D/S/R, note-off refreshes R), so k-rate envelope changes apply to
+the next note.
+The emulator is licensed under zlib/libpng (the SID implementation derives
+from tedplay, Unlicense); see the notices in `src/chips/m6581.h`.
+
+It is built by default; configure with `-DBUILD_CHIPS_OPCODES=OFF` to
+exclude it.
+
+
 Faust opcodes
 ---
 
@@ -399,7 +451,7 @@ $ make
 
 By default, all the plugins are built. If one wants to exclude a
 plugin from the build process, one can pass an option to the cmake command.
-The options are `BUILD_CHUA_OPCODES`, `BUILD_CUDA_OPCODES`,
+The options are `BUILD_CHUA_OPCODES`, `BUILD_CHIPS_OPCODES`, `BUILD_CUDA_OPCODES`,
 `BUILD_DSSI_OPCODES`, `BUILD_OPENCL_OPCODES`, `BUILD_FAUST_OPCODES`,
 `BUILD_FLUID_OPCODES`, `BUILD_IMAGE_OPCODES`, `BUILD_HDF5_OPCODES`,
 `BUILD_LINEAR_ALGEBRA_OPCODES`, `BUILD_P5GLOVE_OPCODES`, `BUILD_STK_OPCODES`,

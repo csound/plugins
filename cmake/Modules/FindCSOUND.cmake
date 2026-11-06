@@ -5,50 +5,87 @@
 #  CSOUND_LIBRARIES - The libraries needed to use the Csound library.
 
 if(APPLE)
+    # Hints are tried in order: explicit overrides, local builds in ~/Library,
+    # the Csound 7 installer, then the system framework.
+    set(CMAKE_FIND_FRAMEWORK LAST)
     find_path(CSOUND_INCLUDE_DIR csound.h
         HINTS
+            ${CSOUND_INCLUDE_DIR_HINT}
             "$ENV{HOME}/Library/Frameworks/CsoundLib64.framework/Headers"
             "$ENV{HOME}/Library/Frameworks/CsoundLib.framework/Headers"
+            /Applications/csound/CsoundLib64.framework/Headers
             /Library/Frameworks/CsoundLib64.framework/Headers
             /Library/Frameworks/CsoundLib.framework/Headers
-            ${CSOUND_INCLUDE_DIR_HINT}
     )
 
     find_path(CSOUND_FRAMEWORK CsoundLib64
         HINTS
-            "$ENV{HOME}/Library/Frameworks/CsoundLib64.framework"
-            /Library/Frameworks/CsoundLib64.framework
             ${CSOUND_FRAMEWORK_DIR_HINT}
+            "$ENV{HOME}/Library/Frameworks/CsoundLib64.framework"
+            /Applications/csound/CsoundLib64.framework
+            /Library/Frameworks/CsoundLib64.framework
     )
 
     find_path(CSOUND_FRAMEWORK32 CsoundLib
         HINTS
+            ${CSOUND_FRAMEWORK32_DIR_HINT}
             "$ENV{HOME}/Library/Frameworks/CsoundLib64.framework"
             "$ENV{HOME}/Library/Frameworks/CsoundLib.framework"
+            /Applications/csound/CsoundLib64.framework
             /Library/Frameworks/CsoundLib64.framework
             /Library/Frameworks/CsoundLib.framework
-            ${CSOUND_FRAMEWORK32_DIR_HINT}
     )
 else()
-    find_path(CSOUND_INCLUDE_DIR csound.h
-        PATH_SUFFIXES csound
-        HINTS ${CSOUND_INCLUDE_DIR_HINT}
-    )
+    if(WIN32)
+        find_path(CSOUND_INCLUDE_DIR csound.h
+            PATH_SUFFIXES csound
+            HINTS
+                ${CSOUND_INCLUDE_DIR_HINT}
+                "$ENV{ProgramFiles}/Csound7/include"
+                "$ENV{ProgramW6432}/Csound7/include"
+                "$ENV{ProgramFiles\(x86\)}/Csound7/include"
+        )
+    else()
+        find_path(CSOUND_INCLUDE_DIR csound.h
+            PATH_SUFFIXES csound
+            HINTS ${CSOUND_INCLUDE_DIR_HINT}
+        )
+    endif()
 endif()
 
 if(APPLE)
+    # Hints are framework parent dirs; find_library resolves CsoundLib64.framework inside them.
     find_library(CSOUND_LIBRARY
         NAMES CsoundLib64
+        NO_DEFAULT_PATH
         HINTS
-            /Library/Frameworks/CsoundLib64.framework/
-            "$ENV{HOME}/Library/Frameworks/CsoundLib64.framework"
             ${CSOUND_LIBRARY_DIR_HINT}
+            "$ENV{HOME}/Library/Frameworks"
+            /Applications/csound
+            /Library/Frameworks
     )
 else()
-    find_library(CSOUND_LIBRARY
-        NAMES csound64 csound
-        HINTS ${CSOUND_LIBRARY_DIR_HINT}
-    )
+    # Csound 7 on Windows is named csound7_64 (double) or csound7 (single).
+    if(WIN32)
+        set(_csound_library_names csound7_64 csound7 csound64 csound)
+    else()
+        set(_csound_library_names csound64 csound)
+    endif()
+    if(WIN32)
+        find_library(CSOUND_LIBRARY
+            NAMES ${_csound_library_names}
+            HINTS
+                ${CSOUND_LIBRARY_DIR_HINT}
+                "$ENV{ProgramFiles}/Csound7/lib"
+                "$ENV{ProgramW6432}/Csound7/lib"
+        )
+    else()
+        find_library(CSOUND_LIBRARY
+            NAMES ${_csound_library_names}
+            HINTS ${CSOUND_LIBRARY_DIR_HINT}
+        )
+    endif()
+    unset(_csound_library_names)
 endif()
 
 if(CSOUND_INCLUDE_DIR AND EXISTS "${CSOUND_INCLUDE_DIR}/version.h")
