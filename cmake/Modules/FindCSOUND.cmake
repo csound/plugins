@@ -75,8 +75,8 @@ else()
             NAMES ${_csound_library_names}
             HINTS
                 ${CSOUND_LIBRARY_DIR_HINT}
-                "$ENV{ProgramFiles}/Csound7/lib64"
-                "$ENV{ProgramW6432}/Csound7/lib64"
+                "$ENV{ProgramFiles}/Csound7/lib"
+                "$ENV{ProgramW6432}/Csound7/lib"
         )
     else()
         find_library(CSOUND_LIBRARY
