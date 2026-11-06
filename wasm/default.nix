@@ -44,7 +44,7 @@ let
     NIX_CFLAGS_COMPILE = (old.NIX_CFLAGS_COMPILE or []) ++ [
       "-fPIC" "-mllvm" "-wasm-enable-sjlj" "-mllvm" "-wasm-use-legacy-eh=false"
     ];
-    # Use the engine's allocator. wasi-libc 32's CMake build still references
+    # Use the engine's allocator. The pinned libc's CMake build still references
     # empty malloc targets in MALLOC=none mode, so omit those object lists.
     postPatch = (old.postPatch or "") + ''
       python3 ${./scripts/patch-libc.py}
@@ -57,6 +57,7 @@ let
     dontStrip = true;
   });
   libcxx = (pkgsWasm.llvmPackages.libcxx.override { stdenv = wasiCxx; }).overrideAttrs (old: {
+    patches = (old.patches or []) ++ [ ./libcxx-wasi-filesystem.patch ];
     cmakeFlags = old.cmakeFlags ++ [
       "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
       "-DLIBCXX_ENABLE_FILESYSTEM=ON"
