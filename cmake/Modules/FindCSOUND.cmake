@@ -54,14 +54,15 @@ else()
 endif()
 
 if(APPLE)
-    find_file(CSOUND_LIBRARY
+    # Hints are framework parent dirs; find_library resolves CsoundLib64.framework inside them.
+    find_library(CSOUND_LIBRARY
         NAMES CsoundLib64
         NO_DEFAULT_PATH
         HINTS
             ${CSOUND_LIBRARY_DIR_HINT}
-            "$ENV{HOME}/Library/Frameworks/CsoundLib64.framework"
-            /Applications/csound/CsoundLib64.framework
-            /Library/Frameworks/CsoundLib64.framework/
+            "$ENV{HOME}/Library/Frameworks"
+            /Applications/csound
+            /Library/Frameworks
     )
 else()
     # Csound 7 on Windows is named csound7_64 (double) or csound7 (single).
