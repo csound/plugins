@@ -1,7 +1,6 @@
 <CsoundSynthesizer>
 <CsOptions>
--+rtaudio=wasapi -odac4
---opcode-lib=../../build/src/chips/Debug/chips.dll
+-odac --opcode-lib=../../build/src/chips/Debug/libchips.dylib
 </CsOptions>
 <CsInstruments>
 sr = 44100
@@ -59,8 +58,6 @@ instr 1
     bass_gate:k init 0
     arp_gate:k init 0
     retrigger_lead:k init 0
-    retrigger_bass:k init 0
-    retrigger_arp:k init 0
     kick_gate:k init 0
     snare_gate:k init 0
     snare_remaining:k init 0
