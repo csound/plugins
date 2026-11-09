@@ -1,7 +1,2 @@
-/** Asset URLs for Csound 7's `withPlugins` option. */
-export const plugins = Object.freeze({
-  chua: new URL("./dist/chua.wasm", import.meta.url).href,
-  image: new URL("./dist/image.wasm", import.meta.url).href,
-  linearAlgebra: new URL("./dist/linear_algebra.wasm", import.meta.url).href,
-  stk: new URL("./dist/stkops.wasm", import.meta.url).href,
-});
+/** The default browser engine uses wasm32 with float samples. */
+export { plugins } from "./wasm32.js";
