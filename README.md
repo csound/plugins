@@ -11,47 +11,47 @@ Csound 6 is end-of-life. Its plugin tree is archived on the
 
 Currently, the plugins available in this tree are
 
-- chua (requires the Eigen library, header-only)  
+- chua (requires the Eigen library, header-only)
 **chuap**
 
-- fluidOpcodes (requires fluidsynth)  
+- fluidOpcodes (requires fluidsynth)
 **fluidEngine fluidLoad fluidNote fluidCCi fluidCCk fluidControl fluidProgramSelect fluidAllOut fluidOut fluidInfo fluidSetInterpMethod**
 
-- dssi4cs (hosts native DSSI/LADSPA plugins; Linux only, requires the ALSA headers)  
+- dssi4cs (hosts native DSSI/LADSPA plugins; Linux only, requires the ALSA headers)
 **dssiinit dssiactivate dssiaudio dssisynth dssictls dssiget dssinote dssievent dssinrpn dssiprogram dssiconfigure dssiprograminfo dssiinfo dssilist**
 
-- faust (requires the Faust compiler library and headers, `libfaust`)  
+- faust (requires the Faust compiler library and headers, `libfaust`)
 **faustgen faustcompile faustaudio faustdsp faustplay faustctl**
 
-- image (requires libpng)  
+- image (requires libpng)
 **imageload imagesave imagecreate imagesize imagegetpixel imagesetpixel imagefree**
 
-- hdf5 (requires the HDF5 library)  
+- hdf5 (requires the HDF5 library)
 **hdf5read hdf5write**
 
-- linear_algebra (requires the gmm++ library, header-only; vendored under this directory)  
+- linear_algebra (requires the gmm++ library, header-only; vendored under this directory)
 **A large family of `la_*` opcodes, with i-rate and k-rate variants, for vector, matrix and tensor operations**
 
-- py (requires a Python 3.x installation with dev libs)  
+- py (requires a Python 3.x installation with dev libs)
 **Many opcodes to call Python code**
 
-- websockets (requires libwebsockets)  
+- websockets (requires libwebsockets)
 **websocket**
 
-- wiimote (requires the wiiuse library; CMake-only, see note below)  
+- wiimote (requires the wiiuse library; CMake-only, see note below)
 **wiiconnect wiidata wiisend wiirange**
 
-- p5glove (requires the p5glove driver; CMake-only, see note below)  
+- p5glove (requires the p5glove driver; CMake-only, see note below)
 **p5gconnect p5gdata**
 
-- CUDA (requires the CUDA toolkit; Linux only, disabled by default, see note below)  
+- CUDA (requires the CUDA toolkit; Linux only, disabled by default, see note below)
 **cudasynth cudanal cudasliding cudaconv cudapconv**
 
-- OpenCL (requires the OpenCL headers/loader; see note below)  
+- OpenCL (requires the OpenCL headers/loader; see note below)
 **cladsyn**
 
-- STK (port of the Synthesis ToolKit instruments; STK 4.6.2 is vendored under this directory, see note below)  
-**STKBandedWG STKBeeThree STKBlowBotl STKBlowHole STKBowed STKBrass STKClarinet STKDrummer STKFlute STKFMVoices STKHevyMetl STKMandolin STKModalBar STKMoog STKPercFlut STKPlucked STKResonate STKRhodey STKSaxofony STKShakers STKSimple STKSitar STKStifKarp STKTubeBell STKVoicForm STKWhistle STKWurley**  
+- STK (port of the Synthesis ToolKit instruments; STK 4.6.2 is vendored under this directory, see note below)
+**STKBandedWG STKBeeThree STKBlowBotl STKBlowHole STKBowed STKBrass STKClarinet STKDrummer STKFlute STKFMVoices STKHevyMetl STKMandolin STKModalBar STKMoog STKPercFlut STKPlucked STKResonate STKRhodey STKSaxofony STKShakers STKSimple STKSitar STKStifKarp STKTubeBell STKVoicForm STKWhistle STKWurley**
 
 
 WebAssembly (WASM) plugins
@@ -371,18 +371,26 @@ library instalation directory (customisable) on LINUX. These are:
        * for doubles: `${CSOUND_INSTALL_PREFIX}/lib/csound/plugins64-${APIVERSION}`
        * for floats: `${CSOUND_INSTALL_PREFIX}/lib/csound/plugins-${APIVERSION}`
 
-- MACOS: 
-    * For doubles: `$HOME/Library/csound/${APIVERSION}/plugins64` 
+- MACOS:
+    * For doubles: `$HOME/Library/csound/${APIVERSION}/plugins64`
     * For floats: `$HOME/Library/csound/${APIVERSION}/plugins`
-- Windows: 
+- Windows:
     * For doubles: `%LOCALAPPDATA%\csound\${APIVERSION}\plugins64`
     * For floats: `%LOCALAPPDATA%\csound\${APIVERSION}\plugins`
 
 On all platforms, the install directory can be overridden by setting the
 `PLUGIN_INSTALL_DIR` CMake cache variable (e.g. `-DPLUGIN_INSTALL_DIR=/custom/path`).
 
+Installing with Homebrew (Linux/macOS)
+---
 
-Build Instructions for Linux and MacOS
+If you use [Homebrew](https://brew.sh), installation is easy. Run the following command to get started:
+
+`brew install csound-plugins`
+
+If you prefer to build from source, see the following section.
+
+Build Instructions for Linux and macOS
 ---
 
 The build requires Csound to be installed, as well as CMake. With this
